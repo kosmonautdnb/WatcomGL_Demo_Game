@@ -5,275 +5,42 @@
 #include "vector.hpp"
 #include "object.hpp"
 #include "string.hpp"
-#include "speaker.hpp"
 #include "smplobjl.hpp"
-#include <math.h>
-#define PI 3.1415926
 #include "gameobj.hpp"
 #include "gameomgr.hpp"
+#include "textures.hpp"
+#include "backgrnd.hpp"
+#include "camera.hpp"
+#include "sound.hpp"
 #include "image.hpp"
+#include "util.hpp"
+#include "meshes.hpp"
+#include "colision.hpp"
+#include <math.h>
 
-#define XRES 320
-#define YRES 200
+int XRES = 320;
+int YRES = 200;
 
-class Face {
-public:
-  int v[3];
-  int n[3];
-  unsigned int color;
-};
-
-class Mesh {
-public:
-  Array<Vector> vertices;
-  Array<Vector> normals;
-  Array<Face> faces;
-};
-
-class Sample {
-public:
-  unsigned char *sample;
-  int sampleLength;
-
-  void play() {
-    playSample(sample, sampleLength, false);
-  }
-};
-
-Mesh *player = NULL;
-Mesh *enemy = NULL;
 Sample *shotSound = NULL;
-
-template<class T>
-T min(const T&a, const T&b) {
-  return a<b?a:b;
-}
-
-template<class T>
-T max(const T&a, const T&b) {
-  return a>b?a:b;
-}
-
-template<class T>
-T clamp(const T&a, const T &b, const T &c) {
-  return a<b?b:(a>c?c:a);
-}
-
-template<class T>
-T saturate(const T&a) {
-  return clamp(a,(T)0,(T)1);
-}
-
-static const float randomLike(const int index) {
-    int b = index ^ (index * 11) ^ (index / 17) ^ (index >> 16) ^ (index * 1877) ^ (index * 8332) ^ (index * 173);
-    b = b ^ (b << 8) ^ (b * 23);
-    b >>= 3;
-    return (float)(b & 0xffff) / 0x10000;
-}
-
-const float rand2d(int x, int y) {
-  return randomLike((x*17)+randomLike(y*31)*0x4000);
-}
-
-const float rand2dp(double x, double y) {
-  const int xi = (int)floor(x);
-  const int yi = (int)floor(y);
-  double fx = x - (double)xi;
-  double fy = y - (double)yi;
-  fx*=fx;
-  fy*=fy;
-  const double p00 = rand2d(xi,yi);
-  const double p10 = rand2d(xi+1,yi);
-  const double p11 = rand2d(xi+1,yi+1);
-  const double p01 = rand2d(xi,yi+1);
-  const double top = (p10 - p00) * fx + p00;
-  const double btm = (p11 - p01) * fx + p01;
-  return (btm-top)*fy+top;
-}
-
-const float perlin(double x, double y) {
-  float r = 0;
-  r += rand2dp(x*1,y*1)/1.0;
-  r += rand2dp(x*2,y*2)/2.0;
-  r += rand2dp(x*4,y*4)/4.0;
-  r += rand2dp(x*8,y*8)/4.0;
-  //r += rand2dp(x*16,y*16)/16.0;
-  return r;
-}
-
-void loadObjectFileCallback(void *ctx, const char *filename, int is_mtl, const char *obj_filename, char **buf, size_t *len) {
-  *buf = NULL;
-  *len  = 0;
-  FILE *in = fopen(filename,"rb");
-  if (in == NULL) return;
-  fseek(in,0,SEEK_END);
-  *len = ftell(in);
-  fseek(in,0,SEEK_SET);
-  *buf = (char*)malloc(*len);
-  fread(*buf,1,*len,in);
-  fclose(in);
-}
-
-unsigned int translateToColor(const String &c) {
-  String k = toLower(c);
-  if (k.startsWith("white")) return 0xffffffff;
-  if (k.startsWith("red")) return 0xff0000ff;
-  if (k.startsWith("plexiglas")) return 0x80ffc000;
-  if (k.startsWith("lightblue")) return 0xffff8080;
-  if (k.startsWith("turbine")) return 0x4000c0ff;
-  if (k.startsWith("color1")) return 0xffffffff;
-  if (k.startsWith("color2")) return 0xff0000ff;
-  glDone();
-  printf("a%da\n",k.c_str()[6]);
-  exit(0);
-  return 0;
-}
-
-Vector swizzle(const Vector &v) {
-  return Vector(v.x,-v.y,-v.z);
-}
-
-Mesh *loadObject(const String &fileName) {
-  Mesh *ret = NULL;
-  SMPL_File *f = loadObj(fileName,true);
-  if (f == NULL) {
-    glDone();
-    printf("ReadError\n");
-    exit(0);
-  }
-  ret = new Mesh();
-  int i;
-  for (i = 0; i < f->vertices.size(); i++) {
-    ret->vertices.push_back(swizzle(f->vertices[i]));
-  }
-  for (i = 0; i < f->normals.size(); i++) {
-    ret->normals.push_back(swizzle(f->normals[i]));
-  }
-  for (i = 0; i < f->objs.size(); i++) {
-    SMPL_Object *o = &f->objs[i];
-    for (int j = o->faceStart; j < o->faceEnd; j++) {
-      SMPL_Face *f2 = &f->faces[j];
-      ret->faces.push_back(Face());
-      Face *t = &ret->faces.back();
-      if (f2->c != 3) {glDone(); printf("error%d\n",f2->c);exit(0);}
-      t->v[0] = f2->v[0];
-      t->v[1] = f2->v[1];
-      t->v[2] = f2->v[2];
-      t->n[0] = f2->n[0];
-      t->n[1] = f2->n[1];
-      t->n[2] = f2->n[2];
-      //t->color = translateToColor(f->materialNames[f2->m]);
-      t->color = translateToColor(o->name);
-    }
-  }  
-  delete f;
-  return ret;
-}
-
-void centerAndResizeObject(Mesh *mesh, double size) {
-  int i;
-  Vector center;
-  for (i = 0; i < mesh->vertices.size(); ++i) {
-    center+=mesh->vertices[i];
-  }
-  center/=mesh->vertices.size();
-  double radius = 0;
-  for (i = 0; i < mesh->vertices.size(); ++i) {
-    double r = length(mesh->vertices[i]-center);
-     if (r > radius) radius = r;
-  }
+Sample *exploSound = NULL;
 
 
-  for (i = 0; i < mesh->vertices.size(); ++i) {
-    mesh->vertices[i] = (mesh->vertices[i]-center)*size/radius;
-  }  
-}
-
-Sample *loadSample() {
-  Sample *ret=NULL;
-  unsigned int len = speakerFrequency*3;
-  unsigned short *sample = (unsigned short*)malloc(len*sizeof(unsigned short));
-  for (int i = 0; i < len; i++) {
-    double ri = (double)i / len;
-    ri = pow(ri,1.5);
-    float f = sin(ri*2.0*PI*0.5);
-    f = clamp(f,-1.f,1.f);
-    sample[i]=f*32000+32768;
-  }
-  ret = new Sample();
-  ret->sample = convertSampleFromUInt16(sample,len);
-  ret->sampleLength = (len+7)/8;
-  free(sample);
-  return ret;
-}
-
-GLuint glowTexture = 0;
-GLuint cloudTexture = 0;
-unsigned int buffer[128*128];
-
-void loadTextures() {
-  int x,y;
-
-  for (y = 0; y < 32; y++) {
-    float fy = y / 31.f * 2.f - 1.f;
-    for (x = 0; x < 32; x++) {
-      float fx = x / 31.f * 2.f - 1.f;
-      float d = 1.f-sqrt(fx*fx+fy*fy);
-      if (d < 0) d = 0;
-      d = pow(d,2);
-      int r = d * 255.f;
-      if (r < 0) r = 0;
-      if (r > 255) r = 255;
-      buffer[x+y*32] = r | (r<<8) | (r<<16) | 0xff000000;
-    }
-  }
-  glGenTextures(1, &glowTexture);
-  glBindTexture(GL_TEXTURE_2D, glowTexture);
-  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,32,32,0,GL_RGBA,GL_UNSIGNED_BYTE,buffer);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-
-  RGBAImage img = RGBAImage::fromFile("big3.png");
-  glGenTextures(1, &cloudTexture);
-  glBindTexture(GL_TEXTURE_2D, cloudTexture);
-  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,img.width,img.height,0,GL_RGBA,GL_UNSIGNED_BYTE,img.data);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-}
-
-#define FOV 30
-#define ASPECT (16.0/9.0)
-#define NEARPLANE 0.1
-#define FARPLANE 1000.0
-#define CAMPOSZ -120.0
-#define CAMPOSY 150.0
-#define CAMLOOKZ 1.0
 double lastTime = 0;
 double currentTime = 0;
 double timeDelta = 0;
+int currentKey = 0;
 double scrollPosX=0;
 double scrollPosY=0;
 double walkingAngle=0;
+Vector playerPosScreen;
 Vector playerPos;
 double playerSpeed = 50.0;
 double playerRoll = 0;
 double playerDestRoll = 0;
 double playerRollSpeed = 100.0;
+bool playerBlue = true;
 
-
-void setCamera() {
-  glMatrixMode(GL_PROJECTION);
-  glLoadIdentity();
-  gluPerspective(FOV,ASPECT,NEARPLANE,FARPLANE);
-  glMatrixMode(GL_MODELVIEW);
-  glLoadIdentity();
-  gluLookAt(0,CAMPOSY,CAMPOSZ,0,0,0,0,-1,0);
-}
+#define CAPSULE_PLAYER_RADIUS 2
 
 void drawMesh(Mesh *mesh) {
   glEnable(GL_LIGHTING);
@@ -289,11 +56,6 @@ void drawMesh(Mesh *mesh) {
   glMaterialfv(GL_FRONT_AND_BACK,GL_SPECULAR,c);
   c[0]=10;
   glMaterialfv(GL_FRONT_AND_BACK,GL_SHININESS,c);
-  c[0] = 1;
-  c[1] = -1;
-  c[2] = -1;
-  c[3] = 0; // directional
-  glLightfv(GL_LIGHT0,GL_POSITION,c);
   float mv[16];
   glGetFloatv(GL_MODELVIEW_MATRIX,mv);
   glBegin(GL_TRIANGLES);
@@ -314,6 +76,9 @@ void drawMesh(Mesh *mesh) {
       col |= (int)(randomLike(currentTime*200)*0xff)<<8;
     } else {
       glEnable(GL_LIGHTING);
+    }
+    if ((col>>24)==0x20) {
+      col = playerBlue ? 0xff404040:0xffff00ff;
     }
     glColor4ubv((unsigned char*)&col);
     glNormal3f(n[0]->x,n[0]->y,n[0]->z); 
@@ -336,18 +101,130 @@ void drawPlayer(Mesh *mesh, const Vector &pos) {
   glRotatef(-90,0,1,0);
   glRotatef(-90,0,0,1);
   drawMesh(mesh);
+
+  glDisable(GL_DEPTH_TEST);
+  glEnable(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D, shotTexture[3]);
+  glEnable(GL_ALPHA_TEST);
+  glAlphaFunc(GL_GREATER,0.1f);
+  glBegin(GL_POINTS);
+  glColor4f(1,1,1,1);
+  glPointSize(XRES*10/640);
+  glVertex3f(0,0,0);
+  glEnd();
+  glDisable(GL_TEXTURE_2D);
+  glDisable(GL_ALPHA_TEST);
+  glEnable(GL_DEPTH_TEST);
+
   glPopMatrix();
 }
 
-double levelScrollY = 0;
-double levelScrollX = 0;
-
 void drawEnemy(Mesh *mesh, const Vector &pos) {
   glPushMatrix();
-  glTranslatef(pos.x-levelScrollX,pos.y,pos.z);
+  glTranslatef(pos.x,pos.y,pos.z);
   glRotatef(currentTime*80,sin(currentTime),cos(currentTime),0);
   drawMesh(mesh);
   glPopMatrix();
+}
+
+class Explosion : public GO, public GO_Position, public GO_LifeTime, public GO_Physical, public GO_Paintable {
+public:
+  double size;
+  bool smoke;
+  bool black;
+  Explosion(const Vector &p, const Vector &v, double size, double lifeTime, bool smoke, bool black) : GO(), GO_Position(p), GO_LifeTime(lifeTime), GO_Physical(v), GO_Paintable() {
+    this->size = size;
+    this->smoke = smoke;
+    this->black = black;
+  }
+  virtual void paint() {
+    glEnable(GL_TEXTURE_2D);
+    glEnable(GL_BLEND);
+    int xp[4]={1,-1,-1,1};
+    int yp[4]={-1,-1,1,1};
+    double b = 0.000;
+    double tx[4]={1-b,b,b,1-b};
+    double ty[4]={b,b,1-b,1-b};
+    if (smoke) {
+      glBindTexture(GL_TEXTURE_2D, smokeTexture);
+      glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+      glColor4f(1,1,1,1);
+      if (black) {
+        glBlendEquation(GL_FUNC_REVERSE_SUBTRACT);
+        glColor4f(1,1,1,0.5);
+      }
+    } else {
+      glBindTexture(GL_TEXTURE_2D, explosionTexture);
+      glBlendFunc(GL_SRC_ALPHA,index & 1 ? GL_ONE : GL_ONE_MINUS_SRC_ALPHA);
+      glColor4f(1,1,1,1);
+    }
+    int framesW = 4;
+    int framesH = 4;
+    int currentFrame = 15-floor(lifeTime * 16 / initialLifeTime);
+    double currentFrameX = currentFrame % framesW;
+    double currentFrameY = currentFrame / framesW;
+    for (int i2 = 0; i2 < 4; i2++) {
+      tx[i2]/=framesW;
+      ty[i2]/=framesH;
+      tx[i2]+=currentFrameX/framesW;
+      ty[i2]+=currentFrameY/framesH;
+    }
+    glPushMatrix();
+    glTranslatef(position.x,position.y,position.z);
+    glRotatef(lifeTime*120,0,0,1);
+    glBegin(GL_QUADS);
+    for (int i = 0; i < 4; i++) {
+      Vector p = Vector(xp[i],yp[i])*size;
+      glTexCoord2f(tx[i],ty[i]);
+      glVertex3f(p.x,p.y,p.z);
+    }
+    glEnd();
+    glPopMatrix();
+    glBlendEquation(GL_FUNC_ADD);
+    glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+    glDisable(GL_TEXTURE_2D);
+    glDisable(GL_BLEND);
+  }
+};
+
+void placeSmallExplosion(const Vector &p) {
+  gameObjects.push_back(go_(new Explosion(p,Vector(),2,1.0,true,false)));
+  shotSound->play();
+}
+
+void placeExplosion(const Vector &p) {
+  static int k;
+  int i;
+  for (i = 0; i < 10; i++) {
+    float ri = i * PI * 2 / 10;
+    gameObjects.push_back(go_(new Explosion(p,Vector(sin(ri)*120.0,cos(ri)*120.0,0),5,0.25,true,false)));
+  }
+  for (i = 0; i < 10; i++) {
+    if (i & 1)
+      gameObjects.push_back(go_(new Explosion(p,Vector((randomLike(k*11)-0.5)*80.0,(randomLike(k*543)-0.5)*80.0,0),5+randomLike(k*33)*15.0,0.25+randomLike(k*373)*0.5,false,false)));
+    else
+      gameObjects.push_back(go_(new Explosion(p,Vector((randomLike(k*11)-0.5)*80.0,(randomLike(k*543)-0.5)*80.0,0),5+randomLike(k*33)*15.0,0.25+randomLike(k*373)*0.5,true,true)));
+    k++;
+  }
+  for (i = 0; i < 3; i++) {
+    gameObjects.push_back(go_(new Explosion(p,Vector((randomLike(k*11)-0.5)*80.0,(randomLike(k*543)-0.5)*80.0,0),5+randomLike(k*33)*5.0,0.25+randomLike(k*373)*0.5,true,false)));
+    k++;
+  }
+  exploSound->play();
+}
+
+void playerShotHitObject(const Vector &shotPos, GO *o) {
+  if (dynamic_cast<GO_HitPoints*>(o) != NULL) {
+    dynamic_cast<GO_HitPoints*>(o)->hitPoints--;
+    if (dynamic_cast<GO_HitPoints*>(o)->hitPoints>0) {
+      placeSmallExplosion(shotPos);
+      return;
+    }
+  }
+  o->deleteIt = true;
+  if (dynamic_cast<GO_Position*>(o) != NULL) {
+    placeExplosion(dynamic_cast<GO_Position*>(o)->position);
+  }
 }
 
 class PlayerShot : public GO, public GO_Position, public GO_Physical, public GO_Paintable, public GO_AliveDistance {
@@ -357,30 +234,38 @@ public:
   PlayerShot(const Vector &p, const Vector &v) : GO(), GO_Position(), GO_Physical(), GO_Paintable(), GO_AliveDistance(180) {
     position = p;
     velocity = v;
-    fresh = true;
     shotSound->play();
+    fresh = true;
   }
   virtual void paint() {
-    Vector delta = normalize(position-lastPosition)*2;
-    lastPosition = position;
-    if (fresh) {fresh = false; return;}
-    glBegin(GL_LINES);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_ONE,GL_ONE);
-    glDisable(GL_BLEND);
-    float r = 1.0;
-    float g = 0.5;
-    float b = 0.3;
-    glColor3f(r*0.5,g*0.5,b*0.5);
-    glLineWidth(XRES*3/640);
+    if (!fresh) {
+      capsule[CAPSULE_PLAYERSHOT] = Capsule(position, lastPosition, CAPSULE_PLAYER_RADIUS);
+      for (int i = 0; i < gameObjects.size(); i++) {
+        GO *o = go_(gameObjects[i]);
+        if (o->deleteIt) continue;
+        GO_Collider_Enemy *v0 = dynamic_cast<GO_Collider_Enemy*>(o);
+        if (v0 != NULL) {
+          capsule[CAPSULE_COLLIDER] = Capsule(v0->colliderEnemyPosition, v0->lastColliderEnemyPosition, v0->colliderEnemyRadius);
+          if (collide(CAPSULE_COLLIDER,CAPSULE_PLAYERSHOT)) {
+            deleteIt = true;
+            playerShotHitObject(position,o);
+          }
+        }
+      }
+    }
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, shotTexture[2]);
+    glEnable(GL_ALPHA_TEST);
+    glAlphaFunc(GL_GREATER,0.1f);
+    glBegin(GL_POINTS);
+    glColor4f(1,1,1,1);
+    glPointSize(XRES*6/640);
     glVertex3f(position.x,position.y,position.z);
-    glVertex3f(position.x-delta.x*2,position.y-delta.y*2,position.z-delta.z*2);
-    glDisable(GL_BLEND);
-    glLineWidth(XRES*2/640);
-    glColor3f(r,g,b);
-    glVertex3f(position.x,position.y,position.z);
-    glVertex3f(position.x-delta.x,position.y-delta.y,position.z-delta.z);
     glEnd();
+    glDisable(GL_TEXTURE_2D);
+    glDisable(GL_ALPHA_TEST);
+    lastPosition = position;
+    fresh = false;
   }
   PlayerShot *vorlauf(double dt) {
     position += velocity * dt;
@@ -388,60 +273,51 @@ public:
   }
 };
 
-class EnemyShot  : public GO, public GO_Position, public GO_Physical, public GO_Paintable, public GO_AliveDistance, public GO_LifeTime {
+class EnemyShot : public GO, public GO_Position, public GO_Physical, public GO_Paintable, public GO_AliveDistance, public GO_LifeTime {
 public:
   Vector initialPosition;
+  bool blue;
   Vector lastPosition;
   bool fresh;
-  bool blue;
   EnemyShot(const Vector &p, const Vector &v) : GO(), GO_Position(), GO_Physical(), GO_Paintable(), GO_AliveDistance(180), GO_LifeTime(100) {
     initialPosition = p;
     position = p;
     velocity = v;
-    fresh = true;
     blue = false;
+    fresh = true;
   }
   virtual void paint() {
+    capsule[CAPSULE_COLLIDER] = Capsule(position, lastPosition, CAPSULE_PLAYER_RADIUS);
+    if ((fresh == false) && collide(CAPSULE_COLLIDER,CAPSULE_PLAYER) && blue==playerBlue) {
+      deleteIt = true;
+      placeExplosion(position);
+    }
     Vector position2 = position;
     Vector z = position2 - initialPosition;
     float ang = atan2(z.x,z.y) + lifeTime*0;
     float dist = length(z);
     position2 = Vector(sin(ang)*dist,cos(ang)*dist) + initialPosition;
-    Vector delta = normalize(position2-lastPosition)*2;
-    lastPosition = position2;
-    position2.x -= levelScrollX;
-    if (fresh) {fresh = false; return;}
-    glBegin(GL_LINES);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_ONE,GL_ONE);
-    glDisable(GL_BLEND);
-    float r = 1.0;
-    float g = 0.0;
-    float b = 0.0;
-    if (blue) {
-      r = 1.0;
-      g = 0.0;
-      b = 1.0;
-    }
-    glColor3f(r*0.5,g*0.5,b*0.5);
-    glLineWidth(XRES*3/640);
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, shotTexture[blue?1:0]);
+    glEnable(GL_ALPHA_TEST);
+    glAlphaFunc(GL_GREATER,0.1f);
+    glBegin(GL_POINTS);
+    glColor4f(1,1,1,1);
+    glPointSize(XRES*10/640);
     glVertex3f(position2.x,position2.y,position2.z);
-    glVertex3f(position2.x-delta.x*2,position2.y-delta.y*2,position2.z-delta.z*2);
-    glDisable(GL_BLEND);
-    glLineWidth(XRES*2/640);
-    glColor3f(r,g,b);
-    glVertex3f(position2.x,position2.y,position2.z);
-    glVertex3f(position2.x-delta.x,position2.y-delta.y,position2.z-delta.z);
     glEnd();
+    glDisable(GL_TEXTURE_2D);
+    glDisable(GL_ALPHA_TEST);
+    lastPosition = position;
+    fresh = false;
   }
 };
 
-class SimpleCircleShotEmitter : public GO, public GO_Position, public GO_FrequencyCallback, public GO_Callback {
+class SimpleCircleShotEmitter : public GO, public GO_Position, public GO_FrequencyCallback, public GO_Callback, public GO_Collider_Enemy, public GO_Paintable, public GO_HitPoints {
 public:
   int sectors;
   double shotSpeed;
-  SimpleCircleShotEmitter(const Vector &p, double frequency, double shotSpeed, int sectors) : GO(), GO_Position(p), GO_FrequencyCallback(frequency), GO_Callback() {
-    deleteIt = false; // actually this should have been set by GO()
+  SimpleCircleShotEmitter(const Vector &p, double frequency, double shotSpeed, int sectors) : GO(), GO_Position(p), GO_FrequencyCallback(frequency), GO_Callback(), GO_Collider_Enemy(20), GO_Paintable(), GO_HitPoints(64) {
     this->sectors = sectors;
     this->shotSpeed = shotSpeed;
   }
@@ -450,8 +326,8 @@ public:
     for (int i = 0; i < sectors; i++) {
       float a = i * 2 * PI / sectors + iteration;
       Vector dir(sin(a)*shotSpeed,cos(a)*shotSpeed,0);
-      GO *enemyShot = new EnemyShot(position,dir);
-      if ((iteration % 12)==0)
+      GO *enemyShot = go_(new EnemyShot(position,dir));
+      if (((iteration % 12)==0)&&(i&1))
         dynamic_cast<EnemyShot*>(enemyShot)->blue=true;
       gameObjects.push_back(enemyShot);
     }
@@ -459,214 +335,122 @@ public:
       shotSound->play();
   }
   virtual void callback(double dt) {
-    position.y+=dt*10;
+  }
+  virtual void paint() {
+    drawEnemy(enemy,position);
   }
 };
 
 void shot() {
   static double lastShotTime = currentTime;
   double distance = fabs(lastShotTime - currentTime);
-  if (distance > 0.2) {
+  if (distance > 0.1) {
     lastShotTime = currentTime;
     for (int i = -1; i <= 1; i++) {
       Vector k = playerPos;  
       k.x += i*3;
-      gameObjects.push_back((GO*)(new PlayerShot(k,Vector(0,-80,0))));
-      gameObjects.push_back((GO*)(new PlayerShot(k,Vector(-20,-80,0)))->vorlauf(i*0.025));
-      gameObjects.push_back((GO*)(new PlayerShot(k,Vector(+20,-80,0)))->vorlauf(-i*0.025));
+      gameObjects.push_back(go_(new PlayerShot(k,Vector(0,-80,0))));
+      //gameObjects.push_back(go_(new PlayerShot(k,Vector(-20,-80,0)))->vorlauf(i*0.025));
+      //gameObjects.push_back(go_(new PlayerShot(k,Vector(+20,-80,0)))->vorlauf(-i*0.025));
     }
   }
 }
 
-void paintLevel() {
-  const double sc = 0.01;
-  const double scale = 0.5;
-  const double dY = 18.0*scale;
-  const double fY =  fmod(levelScrollY,dY);
-  const double tY = levelScrollY - fY;
-  const double particleSize = 7.5;
-  glEnable(GL_TEXTURE_2D);
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_ONE,GL_ONE);
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D,glowTexture);
-  glDepthMask(GL_FALSE);
-  glBegin(GL_POINTS);
-  glColor3f(1,1,1);
-  int yNear = 5+2;
-  int yFar = -25-23;
-  int nearX = 34;
-  int farX = 85;
-  for (int y = yFar; y < yNear; y++) {
-    int xHere = (farX-nearX)*abs(y-yNear)/abs(yFar-yNear)+nearX;
-    double lp = 0;
-    for (int x = -xHere/2; x <= xHere/2; x++) {
-      Vector k;
-      k.x = x * 3.75*2;
-      k.y = y * dY + sin(k.x*0.1*0.25+(y*dY-tY)*0.025)*dY;
-      double p = perlin(k.x*sc,(k.y-tY)*sc);
-      k.y += fY;
-      double d = 1.0+(lp-p)*10.0;
-      if (d < 0) d  = 0;
-      float r = 2-p*1.5;
-      float g = 2-p;
-      float b = p;
-      float subi = 0.5;
-      if (p>1.1) {
-        r = 0.5;
-        g = 0.75;
-        b = 1;
-      }
-      k.z = p*120.0;
-      if (k.z > 120) k.z = 120;
-      d *= perlin(k.x*sc*2,(k.y-tY-fY-levelScrollY*4)*sc*2);
-      glPointSize(XRES*(particleSize+randomLike(k.y-tY-fY+randomLike(k.x*13.0))*14.0)/640);
-      glColor3f(d*r-subi,d*g-subi,d*b-subi);
-      k.x -= levelScrollX*0.25;
-      glVertex3f(k.x,k.y,k.z);
-      lp = p;
-    }
-  }
-  glEnd();
-  glDepthMask(GL_TRUE);
-  glDisable(GL_TEXTURE_2D);
-  glDisable(GL_BLEND);
+void playerHit() {
+  placeExplosion(playerPos);
 }
 
-void paintCloudLayer() {
-  glEnable(GL_TEXTURE_2D);
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
-  //glDisable(GL_BLEND);
-  glEnable(GL_ALPHA_TEST);
-  glAlphaFunc(GL_GREATER,0.1f);
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D,cloudTexture);
-  glDepthMask(GL_FALSE);
-  glBegin(GL_QUADS);
-  for (int i = 0; i < 5; i++) {
-    double k = (levelScrollY+randomLike(i*54+1000)*1500.f)*(randomLike(i*33+7)*4.f+1.f);
-    int r = (int)floor(k / 600.0);
-    double yPos = fmod(k,600.f)-350;
-    double xPos = randomLike(i*678+r*33)*300.f-150.f-levelScrollX*(0.5+randomLike(i*123+r*23)*0.5);
-    double xSize = 80.0*randomLike(i*129+r*99)+50.0;
-    double ySize = xSize*(randomLike(i*771+r*337)*1.5+0.5);
-    double e = randomLike(i*33+7)*0.2+0.8;
-    glColor4f(e,e,e,0.85f);
-    glTexCoord2f(1,0);
-    glVertex3f(xPos+xSize,yPos,0);
-    glTexCoord2f(0,0);
-    glVertex3f(xPos,yPos,0);
-    glTexCoord2f(0,1);
-    glVertex3f(xPos,yPos+ySize,0);
-    glTexCoord2f(1,1);
-    glVertex3f(xPos+xSize,yPos+ySize,0);
-  }
-  glColor4f(1,1,1,1);
-  glEnd();
-  glDepthMask(GL_TRUE);
-  glDisable(GL_TEXTURE_2D);
-  glDisable(GL_BLEND);
-  glDisable(GL_ALPHA_TEST);
-}
-
-void paintLineLayer() {
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_ONE,GL_ONE);
-  glDepthMask(GL_FALSE);
-  glBegin(GL_LINES);
-  for (int i = 0; i < 100; i++) {
-    double k = (levelScrollY+randomLike(i*54+1000)*1500.f)*(randomLike(i*33+7)*5.f+2.f);
-    double yPos = fmod(k,500.f)-300;
-    int r = (int)floor(k / 500.0);
-    double xPos = randomLike(i*678+r*33)*300.f-150.f-levelScrollX*(0.375+randomLike(i*123+r*45)*0.4);
-    double ySize = 5.0*randomLike(i*447+r*22)+5.0;
-    glLineWidth(XRES*(randomLike(i*147+r*332)*3.0+1.0)/640);
-    glColor4f(0,0,0,1);
-    glVertex3f(xPos,yPos-ySize,0);
-    glColor4f(0.2,0.6,0.6,0);
-    glVertex3f(xPos,yPos+ySize,0);
-  }
-  glColor4f(1,1,1,1);
-  glEnd();
-  glDepthMask(GL_TRUE);
-  glDisable(GL_BLEND);
-}
-
+double levelScroll = 0;
 int main(int argc, const char *argv) {
-  installKeyboardHandler();
   glVesa(XRES,YRES,32);
   glEnable(GL_CULL_FACE);
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LEQUAL);
+  installKeyboardHandler();
+  auSoundDriverOn();
+  auMuteAudio(true);
 
   player = loadObject("player.obj");
   enemy = loadObject("impostor.obj");
   centerAndResizeObject(player,10.0);
   centerAndResizeObject(enemy,10.0);
-  shotSound = loadSample();
+  shotSound = auLoadSample(0,0.5);
+  exploSound = auLoadSample(1,10);
   loadTextures();
 
-  enableSamplePlayback();
   go_setupManagers();
    
-  GO *a = new SimpleCircleShotEmitter(Vector(-100,-200,0),0.2,32,20);
-  gameObjects.push_back(a);
-  GO *b = new SimpleCircleShotEmitter(Vector(+100,-200,0),0.2,32,40);
-  gameObjects.push_back(b);
-  GO *c = new SimpleCircleShotEmitter(Vector(0,-400,0),0.8,32,80);
-  gameObjects.push_back(c);
+  gameObjects.push_back(go_(new SimpleCircleShotEmitter(Vector(-100,-200,0),0.2,32,20)));
+  gameObjects.push_back(go_(new SimpleCircleShotEmitter(Vector(+100,-200,0),0.2,32,40)));
+  gameObjects.push_back(go_(new SimpleCircleShotEmitter(Vector(0,-400,0),0.8,32,80)));
 
   bool done = false;
   do {
-    currentTime = speakerSeconds;
+    currentTime = auSeconds();
     timeDelta = currentTime-lastTime;
     lastTime = currentTime;
 
-    glClearColor(0.0,0.0,0.0,1.0);
-    glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-    setCamera();
+    levelScroll += timeDelta * 10.0;
+    levelScrollX = playerPosScreen.x;
+    levelScrollY = levelScroll;
 
-    levelScrollY += timeDelta * 10.0;
+    clearFrame();
+    setCameraBackground();
     paintLevel();
-    paintLineLayer();
-    paintCloudLayer();
+    setCameraGame();
+    static Vector lastPlayerPos = playerPos;
+    capsule[CAPSULE_PLAYER] = Capsule(playerPos,lastPlayerPos,CAPSULE_PLAYER_RADIUS);
+    lastPlayerPos = playerPos;
     drawPlayer(player,playerPos);
-    drawEnemy(enemy,dynamic_cast<GO_Position*>(a)->position);
-    drawEnemy(enemy,dynamic_cast<GO_Position*>(b)->position);
-    drawEnemy(enemy,dynamic_cast<GO_Position*>(c)->position);
-    int currentKey = glNextKey();
+    currentKey = glNextKey();
     if (currentKey == GL_VK_ESCAPE) done = true;
-                   
+
+
     if (playerDestRoll<playerRoll) playerRoll -= timeDelta*playerRollSpeed;
     if (playerDestRoll>playerRoll) playerRoll += timeDelta*playerRollSpeed;
 
     playerDestRoll = 0;
     if (isKeyPressed(SCANCODE_UP)) {
-      playerPos.y -= playerSpeed*timeDelta;
+      playerPosScreen.y -= playerSpeed*timeDelta;
     }
     if (isKeyPressed(SCANCODE_DOWN)) {
-      playerPos.y += playerSpeed*timeDelta;
+      playerPosScreen.y += playerSpeed*timeDelta;
     }
     if (isKeyPressed(SCANCODE_LEFT)) {
-      playerPos.x -= playerSpeed*timeDelta;
+      playerPosScreen.x -= playerSpeed*timeDelta;
       playerDestRoll = +45;
     }
     if (isKeyPressed(SCANCODE_RIGHT)) {
-      playerPos.x += playerSpeed*timeDelta;
+      playerPosScreen.x += playerSpeed*timeDelta;
       playerDestRoll = -45;
     }
-    if (isKeyPressed(SCANCODE_RSHIFT)) {
+    if (isKeyPressed(SCANCODE_SPACE)) {
       shot();
     }      
-    playerPos.x = clamp(playerPos.x,-64.0,64.0);
-    playerPos.y = clamp(playerPos.y,-100.0,50.0);
-    levelScrollX = playerPos.x;
+    if (isKeyPressed(SCANCODE_1)) {
+      playerBlue = false;
+    }      
+    if (isKeyPressed(SCANCODE_2)) {
+      playerBlue = true;
+    }      
+
+    playerPosScreen.x = clamp(playerPosScreen.x,-110.0,110.0);
+    playerPosScreen.y = clamp(playerPosScreen.y,-55.0,55.0);
+    playerPos = playerPosScreen-Vector(0,levelScrollY,0);
 
     go_onFrame(timeDelta);
     glRefresh();
+    if (currentKey == GL_VK_F1) {
+      RGBAImage m,m2;
+      m.width = glFrameBufferWidth;
+      m.height = glFrameBufferHeight;
+      m.data = glFrameBuffer;
+      m2 = m.getResized(1280, 720);
+      m2.savePNG("scrnshot.png");
+      m2.free();
+    }
   } while(!done);
-  disableSamplePlayback();
+  auSoundDriverOff();
   uninstallKeyboardHandler();
   glDone();
   return 0;

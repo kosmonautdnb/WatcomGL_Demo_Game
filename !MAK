@@ -7,5 +7,12 @@ matrix.cpp matrix.obj
 speaker.cpp speaker.obj
 gameomgr.cpp gameomgr.obj
 image.cpp image.obj
-smplobjl.cpp smplobjl.hpp
+smplobjl.cpp smplobjl.obj
+textures.cpp textures.obj
+backgrnd.cpp backgrnd.obj
+camera.cpp camera.obj
+sound.cpp sound.obj
+util.cpp util.obj
+meshes.cpp meshes.obj
+colision.cpp colision.obj
 main.cpp main.OBJ

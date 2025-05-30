@@ -3,11 +3,17 @@
 
 #include "vector.hpp"
 
+#define go_(__v__) dynamic_cast<GO*>(__v__)
+
 class GO {
 public:
   bool deleteIt;
-  Go() {
+  int index;
+  GO() {
     deleteIt = false;
+    static int k=0;
+    index = k; 
+    k++;
   }
   virtual ~GO() {
   }
@@ -78,6 +84,8 @@ public:
   Vector force;
   GO_Physical() {
   }
+  GO_Physical(const Vector &v) : velocity(v) {
+  }
   virtual ~GO_Physical() {
   }
 };
@@ -86,12 +94,14 @@ public:
 class GO_LifeTime {
 public:
   double lifeTime;
+  double initialLifeTime;
   GO_LifeTime(double seconds=0) {
     lifeTime = seconds;
+    initialLifeTime = seconds;
   }
   virtual ~GO_LifeTime() {
   }
-  void initLifeTime(double s) {lifeTime = s;}
+  void initLifeTime(double s) {lifeTime = s; initialLifeTime = s;}
 };
 
 class GO_AliveDistance {
@@ -116,6 +126,27 @@ public:
   virtual ~GO_Paintable() {
   }
   virtual void paint() = 0;
+};
+
+class GO_Collider_Enemy {
+public:
+  Vector colliderEnemyPosition;
+  Vector lastColliderEnemyPosition;
+  double colliderEnemyRadius;
+  bool colliderEnemyFresh;
+  GO_Collider_Enemy(double rad) : colliderEnemyRadius(rad) {
+    colliderEnemyFresh = true;
+  }
+  virtual ~GO_Collider_Enemy() {
+  }
+};
+
+class GO_HitPoints {
+public:
+  int hitPoints;
+  int initialHitPoints;
+  GO_HitPoints(int hitPoints) : hitPoints(hitPoints), initialHitPoints(hitPoints) {;}
+  virtual ~GO_HitPoints() {;}
 };
 
 #endif // __GAMEOBJ_HPP__

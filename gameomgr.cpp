@@ -1,5 +1,6 @@
 #include "gameobj.hpp"
 #include "gameomgr.hpp"
+#include "colision.hpp"
 
 Array<GO*> gameObjects;
 Array<GO_Manager*> goManagers;
@@ -13,6 +14,7 @@ bool GO_CallbackManager::addObject(GO *o) {
 void GO_CallbackManager::manage() {
   for (int i = 0; i < managed.size(); i++) {
     GO *o = managed[i];
+    if (o->deleteIt) continue;
     GO_Callback *v0 = dynamic_cast<GO_Callback*>(o);
     v0->callback(dt);
   }
@@ -27,6 +29,7 @@ bool GO_FrequencyCallbackManager::addObject(GO *o) {
 void GO_FrequencyCallbackManager::manage() {
   for (int i = 0; i < managed.size(); i++) {
     GO *o = managed[i];
+    if (o->deleteIt) continue;
     GO_FrequencyCallback *v0 = dynamic_cast<GO_FrequencyCallback*>(o);
     v0->durationTillNext -= dt;
     if (v0->durationTillNext <= 0) {
@@ -46,6 +49,7 @@ bool GO_RotationManager::addObject(GO *o) {
 void GO_RotationManager::manage() {
   for (int i = 0; i < managed.size(); i++) {
     GO *o = managed[i];
+    if (o->deleteIt) continue;
     GO_Rotation *v0 = dynamic_cast<GO_Rotation*>(o);
     v0->angle += v0->angleAddPerSecond * dt;
   }
@@ -61,6 +65,7 @@ bool GO_SimplePhysicsManager::addObject(GO *o) {
 void GO_SimplePhysicsManager::manage() {
   for (int i = 0; i < managed.size(); i++) {
     GO *o = managed[i];
+    if (o->deleteIt) continue;
     GO_Position *v0 = dynamic_cast<GO_Position*>(o);
     GO_Physical *v1 = dynamic_cast<GO_Physical*>(o);
     v1->velocity += v1->force * dt;
@@ -78,6 +83,7 @@ bool GO_LifeTimeManager::addObject(GO *o) {
 void GO_LifeTimeManager::manage() {
   for (int i = 0; i < managed.size(); i++) {
     GO *o = managed[i];
+    if (o->deleteIt) continue;
     GO_LifeTime *v0 = dynamic_cast<GO_LifeTime*>(o);
     v0->lifeTime -= dt;
     if (v0->lifeTime < 0) o->deleteIt = true;
@@ -94,6 +100,7 @@ bool GO_AliveDistanceManager::addObject(GO *o) {
 void GO_AliveDistanceManager::manage() {
   for (int i = 0; i < managed.size(); i++) {
     GO *o = managed[i];
+    if (o->deleteIt) continue;
     GO_Position *v0 = dynamic_cast<GO_Position*>(o);
     GO_AliveDistance *v1 = dynamic_cast<GO_AliveDistance*>(o);
     Vector lastPosition = v1->aliveLastPosition;
@@ -114,8 +121,34 @@ bool GO_PaintableManager::addObject(GO *o) {
 void GO_PaintableManager::manage() {
   for (int i = 0; i < managed.size(); i++) {
     GO *o = managed[i];
+    if (o->deleteIt) continue;
     GO_Paintable *v0 = dynamic_cast<GO_Paintable*>(o);
     v0->paint();
+  }
+}
+
+bool GO_Collider_Enemy_Manager::addObject(GO *o) {
+  if (dynamic_cast<GO_Collider_Enemy*>(o)==NULL) return false;
+  if (dynamic_cast<GO_Position*>(o)==NULL) return false;
+  managed.push_back(o);
+  return true;
+}
+
+void playerHit();
+
+void GO_Collider_Enemy_Manager::manage() {
+  for (int i = 0; i < managed.size(); i++) {
+    GO *o = managed[i];
+    if (o->deleteIt) continue;
+    GO_Position *v0 = dynamic_cast<GO_Position*>(o);
+    GO_Collider_Enemy *v1 = dynamic_cast<GO_Collider_Enemy*>(o);
+    v1->lastColliderEnemyPosition = v1->colliderEnemyPosition;
+    v1->colliderEnemyPosition = v0->position;
+    if (v1->colliderEnemyFresh) {v1->colliderEnemyFresh=false;continue;}
+    capsule[CAPSULE_COLLIDER] = Capsule(v1->colliderEnemyPosition, v1->lastColliderEnemyPosition, v1->colliderEnemyRadius);
+    if (collide(CAPSULE_COLLIDER,CAPSULE_PLAYER)) {
+      playerHit();
+    }
   }
 }
 
@@ -134,6 +167,7 @@ void go_setupManagers() {
   goManagers.push_back(new GO_AliveDistanceManager());
   goManagers.push_back(new GO_PaintableManager());
   goManagers.push_back(new GO_FrequencyCallbackManager());
+  goManagers.push_back(new GO_Collider_Enemy_Manager());
 }
 
 
@@ -147,7 +181,7 @@ void go_onFrame(double dt) {
   for (int i = 0; i < goManagers.size(); i++) {
     go_setup(goManagers[i],dt);
     for (int j = 0; j < gameObjects.size(); j++) {
-      goManagers[i]->addObject(gameObjects[j]);
+      goManagers[i]->addObject(go_(gameObjects[j]));
     }
   }
 
@@ -158,8 +192,8 @@ void go_onFrame(double dt) {
 
   // delete all game objects that should be deleted
   for (int j = 0; j < gameObjects.size(); j++) {
-    if (gameObjects[j]->deleteIt == true) {
-     delete gameObjects[j];
+    if (gameObjects[j]->deleteIt) {
+     delete go_(gameObjects[j]);
      gameObjects.erase(j,1);
      j--;
     }

@@ -24,3 +24,4 @@ copy /Y c:\_STL_\STBIMGRS.HPP
 copy /Y c:\_STL_\STBIMGWR.HPP
 copy /Y c:\_STL_\SMPLOBJL.HPP
 copy /Y c:\_STL_\SMPLOBJL.CPP
+!copylua

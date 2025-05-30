@@ -89,6 +89,16 @@ public:
   virtual void manage();
 };
 
+class GO_Collider_Enemy_Manager : public GO_Manager {
+public:
+  GO_Collider_Enemy_Manager() : GO_Manager() {
+  }
+  virtual ~GO_Collider_Enemy_Manager() {
+  }
+  virtual bool addObject(GO *o);
+  virtual void manage();
+};
+
 extern Array<class GO*> gameObjects;
 extern Array<class GO_Manager*> goManagers;
 
