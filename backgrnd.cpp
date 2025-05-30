@@ -73,11 +73,12 @@ void paintLevel() {
   for (int y = yFar; y < yNear; y++) {
     int xHere = (farX-nearX)*fabs(y-yNear)/fabs(yFar-yNear)+nearX;
     double lp = 0;
-    for (int x = -xHere/2; x <= xHere/2; x++) {
+    for (int x = -xHere; x <= xHere; x++) {
       Vector k;
-      k.x = x * 3.75*2;
+      k.x = x * 3.75;
       k.y = y * dY + sin(k.x*0.1*0.25+(y*dY-tY)*0.025)*dY;
       double p = perlin(k.x*sc,(k.y-tY)*sc);
+      if ((p > 0.8)&&(x&1)) continue;
       k.y += fY;
       double d = 1.0+(lp-p)*10.0;
       if (d < 0) d  = 0;
@@ -93,9 +94,14 @@ void paintLevel() {
       k.z = p*120.0;
       if (k.z > 120) k.z = 120;
       d *= perlin(k.x*sc*2,(k.y-tY-fY-levelScrollY*4)*sc*2)*0.5+0.5;
-      glPointSize(XRES*(particleSize+randomLike(k.y-tY-fY+randomLike(k.x*13.0))*10.0)/640);
       glColor3f(d*r-subi,d*g-subi,d*b-subi);
-      if (p<0.625&&p>0.575) glColor3f(10,0,0);
+      if (p<0.625&&p>0.575) {
+        glColor3f(10,0,0);
+      }
+      if (p<0.9&&p>0.8) {
+        glColor3f(0,10,10);
+      }
+      glPointSize(XRES*(particleSize*((x&1)*0.25+0.75)+randomLike(k.y-tY-fY+randomLike(k.x*13.0))*10.0)/640);
       k.x -= levelScrollX*0.25;
       glVertex3f(k.x,k.y,k.z);
       lp = p;

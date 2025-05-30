@@ -16,12 +16,14 @@
 #include "util.hpp"
 #include "meshes.hpp"
 #include "colision.hpp"
+#include "text.hpp"
 #include <math.h>
 
 int XRES = 320;
 int YRES = 200;
 
 Sample *shotSound = NULL;
+Sample *enemyShotSound = NULL;
 Sample *exploSound = NULL;
 
 
@@ -39,6 +41,8 @@ double playerRoll = 0;
 double playerDestRoll = 0;
 double playerRollSpeed = 100.0;
 bool playerBlue = true;
+int32_t score = 0;
+int32_t lives = 4;
 
 #define CAPSULE_PLAYER_RADIUS 2
 
@@ -148,15 +152,15 @@ public:
     if (smoke) {
       glBindTexture(GL_TEXTURE_2D, smokeTexture);
       glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-      glColor4f(1,1,1,1);
+      glColor4f(1,1,1,0.5);
       if (black) {
         glBlendEquation(GL_FUNC_REVERSE_SUBTRACT);
-        glColor4f(1,1,1,0.5);
+        glColor4f(1,1,1,0.25);
       }
     } else {
       glBindTexture(GL_TEXTURE_2D, explosionTexture);
       glBlendFunc(GL_SRC_ALPHA,index & 1 ? GL_ONE : GL_ONE_MINUS_SRC_ALPHA);
-      glColor4f(1,1,1,1);
+      glColor4f(1,1,1,0.75);
     }
     int framesW = 4;
     int framesH = 4;
@@ -195,6 +199,7 @@ void placeSmallExplosion(const Vector &p) {
 void placeExplosion(const Vector &p) {
   static int k;
   int i;
+  gameObjects.push_back(go_(new Explosion(p,Vector(),25,0.125,false,false)));
   for (i = 0; i < 10; i++) {
     float ri = i * PI * 2 / 10;
     gameObjects.push_back(go_(new Explosion(p,Vector(sin(ri)*120.0,cos(ri)*120.0,0),5,0.25,true,false)));
@@ -214,17 +219,32 @@ void placeExplosion(const Vector &p) {
 }
 
 void playerShotHitObject(const Vector &shotPos, GO *o) {
+  if (dynamic_cast<GO_ScoreHit*>(o)!=NULL) {
+    score += dynamic_cast<GO_ScoreHit*>(o)->scoreHit;
+  }
+
   if (dynamic_cast<GO_HitPoints*>(o) != NULL) {
     dynamic_cast<GO_HitPoints*>(o)->hitPoints--;
     if (dynamic_cast<GO_HitPoints*>(o)->hitPoints>0) {
-      placeSmallExplosion(shotPos);
+       placeSmallExplosion(shotPos);
       return;
     }
   }
+
+  if (dynamic_cast<GO_ScoreDestructed*>(o)!=NULL) {
+    score += dynamic_cast<GO_ScoreDestructed*>(o)->scoreDestructed;
+  }
+
   o->deleteIt = true;
   if (dynamic_cast<GO_Position*>(o) != NULL) {
     placeExplosion(dynamic_cast<GO_Position*>(o)->position);
   }
+}
+
+bool isInScreen(const Vector &position) {
+  const double y = position.y + levelScrollY;
+  if (y > -65.0 && y < 65.0) return true;
+  return false;
 }
 
 class PlayerShot : public GO, public GO_Position, public GO_Physical, public GO_Paintable, public GO_AliveDistance {
@@ -238,32 +258,34 @@ public:
     fresh = true;
   }
   virtual void paint() {
-    if (!fresh) {
-      capsule[CAPSULE_PLAYERSHOT] = Capsule(position, lastPosition, CAPSULE_PLAYER_RADIUS);
-      for (int i = 0; i < gameObjects.size(); i++) {
-        GO *o = go_(gameObjects[i]);
-        if (o->deleteIt) continue;
-        GO_Collider_Enemy *v0 = dynamic_cast<GO_Collider_Enemy*>(o);
-        if (v0 != NULL) {
-          capsule[CAPSULE_COLLIDER] = Capsule(v0->colliderEnemyPosition, v0->lastColliderEnemyPosition, v0->colliderEnemyRadius);
-          if (collide(CAPSULE_COLLIDER,CAPSULE_PLAYERSHOT)) {
-            deleteIt = true;
-            playerShotHitObject(position,o);
+    if (isInScreen(position)) {
+      if (!fresh) {
+        capsule[CAPSULE_PLAYERSHOT] = Capsule(position, lastPosition, CAPSULE_PLAYER_RADIUS);
+        for (int i = 0; i < gameObjects.size(); i++) {
+          GO *o = go_(gameObjects[i]);
+          if (o->deleteIt) continue;
+          GO_Collider_Enemy *v0 = dynamic_cast<GO_Collider_Enemy*>(o);
+          if (v0 != NULL) {
+            capsule[CAPSULE_COLLIDER] = Capsule(v0->colliderEnemyPosition, v0->lastColliderEnemyPosition, v0->colliderEnemyRadius);
+            if (collide(CAPSULE_COLLIDER,CAPSULE_PLAYERSHOT)) {
+              deleteIt = true;
+              playerShotHitObject(position,o);
+            }
           }
         }
       }
+      glEnable(GL_TEXTURE_2D);
+      glBindTexture(GL_TEXTURE_2D, shotTexture[2]);
+      glEnable(GL_ALPHA_TEST);
+      glAlphaFunc(GL_GREATER,0.1f);
+      glBegin(GL_POINTS);
+      glColor4f(1,1,1,1);
+      glPointSize(XRES*6/640);
+      glVertex3f(position.x,position.y,position.z);
+      glEnd();
+      glDisable(GL_TEXTURE_2D);
+      glDisable(GL_ALPHA_TEST);
     }
-    glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, shotTexture[2]);
-    glEnable(GL_ALPHA_TEST);
-    glAlphaFunc(GL_GREATER,0.1f);
-    glBegin(GL_POINTS);
-    glColor4f(1,1,1,1);
-    glPointSize(XRES*6/640);
-    glVertex3f(position.x,position.y,position.z);
-    glEnd();
-    glDisable(GL_TEXTURE_2D);
-    glDisable(GL_ALPHA_TEST);
     lastPosition = position;
     fresh = false;
   }
@@ -288,7 +310,7 @@ public:
   }
   virtual void paint() {
     capsule[CAPSULE_COLLIDER] = Capsule(position, lastPosition, CAPSULE_PLAYER_RADIUS);
-    if ((fresh == false) && collide(CAPSULE_COLLIDER,CAPSULE_PLAYER) && blue==playerBlue) {
+    if ((blue==playerBlue) && (fresh == false) && collide(CAPSULE_COLLIDER,CAPSULE_PLAYER)) {
       deleteIt = true;
       placeExplosion(position);
     }
@@ -313,26 +335,27 @@ public:
   }
 };
 
-class SimpleCircleShotEmitter : public GO, public GO_Position, public GO_FrequencyCallback, public GO_Callback, public GO_Collider_Enemy, public GO_Paintable, public GO_HitPoints {
+class SimpleCircleShotEmitter : public GO, public GO_Position, public GO_FrequencyCallback, public GO_Callback, public GO_Collider_Enemy, public GO_Paintable, public GO_HitPoints, public GO_ScoreHit, public GO_ScoreDestructed {
 public:
   int sectors;
   double shotSpeed;
-  SimpleCircleShotEmitter(const Vector &p, double frequency, double shotSpeed, int sectors) : GO(), GO_Position(p), GO_FrequencyCallback(frequency), GO_Callback(), GO_Collider_Enemy(20), GO_Paintable(), GO_HitPoints(64) {
+  SimpleCircleShotEmitter(const Vector &p, double frequency, double shotSpeed, int sectors) : GO(), GO_Position(p), GO_FrequencyCallback(frequency), GO_Callback(), GO_Collider_Enemy(20), GO_Paintable(), GO_HitPoints(64), GO_ScoreHit(1), GO_ScoreDestructed(200) {
     this->sectors = sectors;
     this->shotSpeed = shotSpeed;
   }
   virtual void frequent(int iteration) {
     float speed = 10.0;
-    for (int i = 0; i < sectors; i++) {
-      float a = i * 2 * PI / sectors + iteration;
-      Vector dir(sin(a)*shotSpeed,cos(a)*shotSpeed,0);
-      GO *enemyShot = go_(new EnemyShot(position,dir));
-      if (((iteration % 12)==0)&&(i&1))
-        dynamic_cast<EnemyShot*>(enemyShot)->blue=true;
-      gameObjects.push_back(enemyShot);
+    if (isInScreen(position)) {
+      for (int i = 0; i < sectors; i++) {
+        float a = i * 2 * PI / sectors + iteration;
+        Vector dir(sin(a)*shotSpeed,cos(a)*shotSpeed,0);
+        GO *enemyShot = go_(new EnemyShot(position,dir));
+        if (((iteration % 12)==0)&&(i&1))
+          dynamic_cast<EnemyShot*>(enemyShot)->blue=true;
+        gameObjects.push_back(enemyShot);
+      }
+      enemyShotSound->play();
     }
-    if ((iteration % 12)==0)
-      shotSound->play();
   }
   virtual void callback(double dt) {
   }
@@ -360,6 +383,15 @@ void playerHit() {
   placeExplosion(playerPos);
 }
 
+void drawHud() {
+  uint32_t color = 0xffffff00;
+  char scoreBuffer[16];
+  sprintf(scoreBuffer,"%08d",score);
+  drawText(0,0,scoreBuffer,color);
+  sprintf(scoreBuffer,"%02d",lives);
+  drawText(1280,0,scoreBuffer,color,1,1,0);
+}
+
 double levelScroll = 0;
 int main(int argc, const char *argv) {
   glVesa(XRES,YRES,32);
@@ -368,15 +400,17 @@ int main(int argc, const char *argv) {
   glDepthFunc(GL_LEQUAL);
   installKeyboardHandler();
   auSoundDriverOn();
-  auMuteAudio(true);
+  //auMuteAudio(true);
 
   player = loadObject("player.obj");
   enemy = loadObject("impostor.obj");
   centerAndResizeObject(player,10.0);
   centerAndResizeObject(enemy,10.0);
+  enemyShotSound = auLoadSample(0,0.25);
   shotSound = auLoadSample(0,0.5);
   exploSound = auLoadSample(1,10);
   loadTextures();
+  initText();
 
   go_setupManagers();
    
@@ -439,6 +473,7 @@ int main(int argc, const char *argv) {
     playerPos = playerPosScreen-Vector(0,levelScrollY,0);
 
     go_onFrame(timeDelta);
+    drawHud();
     glRefresh();
     if (currentKey == GL_VK_F1) {
       RGBAImage m,m2;

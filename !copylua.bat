@@ -1,3 +1,5 @@
+@echo off
+mkdir LUA
 copy /Y c:\_LUA_\LAPI.H LUA\
 copy /Y c:\_LUA_\LAPI.CPP LUA\
 copy /Y c:\_LUA_\LAUXLIB.H LUA\

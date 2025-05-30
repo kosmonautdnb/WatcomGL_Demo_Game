@@ -1,3 +1,4 @@
+@echo off
 copy /Y c:\_OPENGL_\GLIMPL.CPP
 copy /Y c:\_OPENGL_\GL.H
 copy /Y c:\_STL_\TYPES.HPP
@@ -24,4 +25,6 @@ copy /Y c:\_STL_\STBIMGRS.HPP
 copy /Y c:\_STL_\STBIMGWR.HPP
 copy /Y c:\_STL_\SMPLOBJL.HPP
 copy /Y c:\_STL_\SMPLOBJL.CPP
-!copylua
+copy /Y c:\_STL_\TRUETYPE.CPP
+copy /Y c:\_STL_\TRUETYPE.HPP
+copy /Y c:\_STL_\STBTTF.HPP

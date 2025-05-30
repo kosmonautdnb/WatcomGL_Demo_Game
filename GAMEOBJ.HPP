@@ -149,4 +149,18 @@ public:
   virtual ~GO_HitPoints() {;}
 };
 
+class GO_ScoreHit {
+public:
+  int scoreHit;
+  GO_ScoreHit(int score) : scoreHit(score) {;}
+  virtual ~GO_ScoreHit() {;}
+};
+
+class GO_ScoreDestructed {
+public:
+  int scoreDestructed;
+  GO_ScoreDestructed(int score) : scoreDestructed(score) {;}
+  virtual ~GO_ScoreDestructed() {;}
+};
+
 #endif // __GAMEOBJ_HPP__

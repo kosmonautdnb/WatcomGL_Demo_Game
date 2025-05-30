@@ -15,4 +15,6 @@ sound.cpp sound.obj
 util.cpp util.obj
 meshes.cpp meshes.obj
 colision.cpp colision.obj
+text.cpp text.obj
+truetype.cpp truetype.obj
 main.cpp main.OBJ
