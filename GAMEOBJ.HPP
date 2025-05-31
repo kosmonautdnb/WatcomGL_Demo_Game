@@ -9,11 +9,15 @@ class GO {
 public:
   bool deleteIt;
   int index;
+  double seconds;
+  bool activated;
   GO() {
     deleteIt = false;
     static int k=0;
     index = k; 
     k++;
+    seconds = 0;
+    activated = false;
   }
   virtual ~GO() {
   }
@@ -125,7 +129,7 @@ public:
   }
   virtual ~GO_Paintable() {
   }
-  virtual void paint() = 0;
+  virtual void paint(double dt) = 0;
 };
 
 class GO_Collider_Enemy {
@@ -133,9 +137,9 @@ public:
   Vector colliderEnemyPosition;
   Vector lastColliderEnemyPosition;
   double colliderEnemyRadius;
-  bool colliderEnemyFresh;
+  int colliderEnemyFresh;
   GO_Collider_Enemy(double rad) : colliderEnemyRadius(rad) {
-    colliderEnemyFresh = true;
+    colliderEnemyFresh = 2;
   }
   virtual ~GO_Collider_Enemy() {
   }

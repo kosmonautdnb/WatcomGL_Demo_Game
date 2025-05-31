@@ -26,6 +26,8 @@ Sample *shotSound = NULL;
 Sample *enemyShotSound = NULL;
 Sample *exploSound = NULL;
 
+//#define RECORDVIDEO
+#define videoPath "r:\\vid%04d.png"
 
 double lastTime = 0;
 double currentTime = 0;
@@ -102,8 +104,6 @@ void drawPlayer(Mesh *mesh, const Vector &pos) {
   glPushMatrix();
   glTranslatef(pos.x,pos.y,pos.z);
   glRotatef(playerRoll,0,1,0);
-  glRotatef(-90,0,1,0);
-  glRotatef(-90,0,0,1);
   drawMesh(mesh);
 
   glDisable(GL_DEPTH_TEST);
@@ -141,7 +141,7 @@ public:
     this->smoke = smoke;
     this->black = black;
   }
-  virtual void paint() {
+  virtual void paint(double dt) {
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_BLEND);
     int xp[4]={1,-1,-1,1};
@@ -257,7 +257,7 @@ public:
     shotSound->play();
     fresh = true;
   }
-  virtual void paint() {
+  virtual void paint(double dt) {
     if (isInScreen(position)) {
       if (!fresh) {
         capsule[CAPSULE_PLAYERSHOT] = Capsule(position, lastPosition, CAPSULE_PLAYER_RADIUS);
@@ -265,7 +265,7 @@ public:
           GO *o = go_(gameObjects[i]);
           if (o->deleteIt) continue;
           GO_Collider_Enemy *v0 = dynamic_cast<GO_Collider_Enemy*>(o);
-          if (v0 != NULL) {
+          if (v0 != NULL && (!v0->colliderEnemyFresh)) {
             capsule[CAPSULE_COLLIDER] = Capsule(v0->colliderEnemyPosition, v0->lastColliderEnemyPosition, v0->colliderEnemyRadius);
             if (collide(CAPSULE_COLLIDER,CAPSULE_PLAYERSHOT)) {
               deleteIt = true;
@@ -308,7 +308,7 @@ public:
     blue = false;
     fresh = true;
   }
-  virtual void paint() {
+  virtual void paint(double dt) {
     capsule[CAPSULE_COLLIDER] = Capsule(position, lastPosition, CAPSULE_PLAYER_RADIUS);
     if ((blue==playerBlue) && (fresh == false) && collide(CAPSULE_COLLIDER,CAPSULE_PLAYER)) {
       deleteIt = true;
@@ -335,11 +335,11 @@ public:
   }
 };
 
-class SimpleCircleShotEmitter : public GO, public GO_Position, public GO_FrequencyCallback, public GO_Callback, public GO_Collider_Enemy, public GO_Paintable, public GO_HitPoints, public GO_ScoreHit, public GO_ScoreDestructed {
+class SimpleCircleShotEmitter : public GO, public GO_Position, public GO_FrequencyCallback, public GO_Collider_Enemy, public GO_Paintable, public GO_HitPoints, public GO_ScoreHit, public GO_ScoreDestructed {
 public:
   int sectors;
   double shotSpeed;
-  SimpleCircleShotEmitter(const Vector &p, double frequency, double shotSpeed, int sectors) : GO(), GO_Position(p), GO_FrequencyCallback(frequency), GO_Callback(), GO_Collider_Enemy(20), GO_Paintable(), GO_HitPoints(64), GO_ScoreHit(1), GO_ScoreDestructed(200) {
+  SimpleCircleShotEmitter(const Vector &p, double frequency, double shotSpeed, int sectors) : GO(), GO_Position(p), GO_FrequencyCallback(frequency), GO_Collider_Enemy(20), GO_Paintable(), GO_HitPoints(64), GO_ScoreHit(1), GO_ScoreDestructed(200) {
     this->sectors = sectors;
     this->shotSpeed = shotSpeed;
   }
@@ -357,10 +357,81 @@ public:
       enemyShotSound->play();
     }
   }
-  virtual void callback(double dt) {
-  }
-  virtual void paint() {
+  virtual void paint(double dt) {
     drawEnemy(enemy,position);
+  }
+};
+
+class Enemy1 : public GO, public GO_Position, public GO_FrequencyCallback, public GO_Collider_Enemy, public GO_Paintable, public GO_HitPoints, public GO_ScoreHit, public GO_ScoreDestructed {
+public:
+  Enemy1(const Vector &p) : GO(), GO_Position(p), GO_FrequencyCallback(0.2), GO_Collider_Enemy(30), GO_Paintable(), GO_HitPoints(64), GO_ScoreHit(1), GO_ScoreDestructed(200) {
+  }
+  virtual void frequent(int iteration) {
+    double k2 = fmod(seconds,9);
+    int step = (int)floor(seconds/9);
+    if (k2 < 1)
+      return;
+
+    int k = iteration / 6 + 1;
+    if (k > 5) k = 5;
+    for (int j = 0; j < k; j++) {
+      double t = (seconds*((step&1)?90:-90)+j*360/5)*PI/180;
+      double sp = 20;
+      GO *enemyShot = go_(new EnemyShot(position,Vector(cos(t)*sp,sin(t)*sp,0)));
+      dynamic_cast<EnemyShot*>(enemyShot)->blue=step&1;
+      gameObjects.push_back(enemyShot);
+      enemyShotSound->play();
+    }
+  }
+  virtual void paint(double dt) {
+    glPushMatrix();
+    glTranslatef(position.x,position.y,position.z);
+    float k = sin(seconds*3)*0.1+0.9;
+    double k2 = fmod(seconds,9);
+    int step = (int)floor(seconds/9);
+    glRotatef(seconds*((step&1)?90:-90),0,0,1);
+    glScalef(k,k,k);
+    if (k2 < 1) {
+      glRotatef(k2*360,0,1,0);
+      if (seconds > 5)
+        position.x += dt*20;
+    }
+    drawMesh(enemy1);
+    glPopMatrix();
+  }
+};
+
+class Enemy2 : public GO, public GO_Position, public GO_FrequencyCallback, public GO_Collider_Enemy, public GO_Paintable, public GO_HitPoints, public GO_ScoreHit, public GO_ScoreDestructed {
+public:
+  bool blue;
+  Enemy2(const Vector &p, bool blue) : GO(), GO_Position(p), GO_FrequencyCallback(0.35), GO_Collider_Enemy(30), GO_Paintable(), GO_HitPoints(64), GO_ScoreHit(1), GO_ScoreDestructed(200) {
+    this->blue = blue;
+  }
+  virtual void frequent(int iteration) {
+    double k = (seconds/2.0)-1;
+    k = 1.0-pow(fabs(k),2.0);
+    if (k<0) return;
+    for (int i = 0; i <= 10; i++) {
+      double t = ((i-5)*25/5+90-atan2(playerPos.x-position.x,playerPos.y-position.y)*180/PI)*PI/180.f;
+      double sp = 20+(5-fabs(i-5))*4;
+      GO *enemyShot = go_(new EnemyShot(position,Vector(cos(t)*sp,sin(t)*sp,0)));
+      dynamic_cast<EnemyShot*>(enemyShot)->blue=blue;
+      gameObjects.push_back(enemyShot);
+      enemyShotSound->play();
+    }
+  }
+  virtual void paint(double dt) {
+    glPushMatrix();
+    glTranslatef(position.x,position.y,position.z);
+    double k = (seconds/2.0)-1;
+    k = 1.0-pow(fabs(k),2.0);
+    position.y += k;
+    position.x -= position.x * dt * 0.1;
+    glRotatef(180.f,0,1,0);
+    glRotatef(90.f-(k>-1?k:-1)*90.f+180,1,0,0);
+    if (k<0) glRotatef(k*180,0,1,0);
+    drawMesh(enemy2);
+    glPopMatrix();
   }
 };
 
@@ -400,12 +471,16 @@ int main(int argc, const char *argv) {
   glDepthFunc(GL_LEQUAL);
   installKeyboardHandler();
   auSoundDriverOn();
-  //auMuteAudio(true);
+  auMuteAudio(true);
 
   player = loadObject("player.obj");
   enemy = loadObject("impostor.obj");
+  enemy1 = loadObject("enemy1.obj");
+  enemy2 = loadObject("enemy2.obj");
   centerAndResizeObject(player,10.0);
   centerAndResizeObject(enemy,10.0);
+  centerAndResizeObject(enemy1,10.0);
+  centerAndResizeObject(enemy2,15.0);
   enemyShotSound = auLoadSample(0,0.25);
   shotSound = auLoadSample(0,0.5);
   exploSound = auLoadSample(1,10);
@@ -414,9 +489,26 @@ int main(int argc, const char *argv) {
 
   go_setupManagers();
    
-  gameObjects.push_back(go_(new SimpleCircleShotEmitter(Vector(-100,-200,0),0.2,32,20)));
-  gameObjects.push_back(go_(new SimpleCircleShotEmitter(Vector(+100,-200,0),0.2,32,40)));
-  gameObjects.push_back(go_(new SimpleCircleShotEmitter(Vector(0,-400,0),0.8,32,80)));
+  //gameObjects.push_back(go_(new SimpleCircleShotEmitter(Vector(-100,-1200,0),0.2,32,20)));
+  //gameObjects.push_back(go_(new SimpleCircleShotEmitter(Vector(+100,-1200,0),0.2,32,40)));
+  //gameObjects.push_back(go_(new SimpleCircleShotEmitter(Vector(0,-1400,0),0.8,32,80)));
+
+  int i;
+  for (i = 0; i < 10; i++) {
+    gameObjects.push_back(go_(new Enemy1(Vector(randomLike(i*33)*150-75,-100-i*20,0))));
+  }
+  for (i = 0; i < 5; i++) {
+    bool blue = i & 1;
+    double x = randomLike(i*77)*50+50;
+    gameObjects.push_back(go_(new Enemy2(Vector(x,-450-i*50,0),blue)));
+    gameObjects.push_back(go_(new Enemy2(Vector(-x,-450-i*50,0),blue)));
+    if (i>2)
+      gameObjects.push_back(go_(new Enemy2(Vector(0,-450-i*50-25,0),blue)));
+  }
+  for (i = 0; i < 3; i++) {
+    gameObjects.push_back(go_(new Enemy1(Vector(-75,-450-5*50-i*80,0))));
+    gameObjects.push_back(go_(new Enemy1(Vector(75,-450-5*50-i*80,0))));
+  }
 
   bool done = false;
   do {
@@ -484,6 +576,19 @@ int main(int argc, const char *argv) {
       m2.savePNG("scrnshot.png");
       m2.free();
     }
+#ifdef RECORDVIDEO
+  {
+    static int currentFrame = 0;
+    RGBAImage m;
+    m.width = glFrameBufferWidth;
+    m.height = glFrameBufferHeight;
+    m.data = glFrameBuffer;
+    char buffer[220];
+    sprintf(buffer,videoPath,currentFrame);
+    m.savePNG(buffer);
+    currentFrame++;
+  }
+#endif
   } while(!done);
   auSoundDriverOff();
   uninstallKeyboardHandler();

@@ -21,6 +21,8 @@ public:
 
 extern Mesh *player;
 extern Mesh *enemy;
+extern Mesh *enemy1; // round/circular object 
+extern Mesh *enemy2; // ship red wings
 
 Mesh *loadObject(const String &fileName);
 void centerAndResizeObject(Mesh *mesh, double size);

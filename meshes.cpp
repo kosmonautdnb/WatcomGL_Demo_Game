@@ -4,24 +4,27 @@
 
 Mesh *player = NULL;
 Mesh *enemy = NULL;
+Mesh *enemy1 = NULL;
+Mesh *enemy2 = NULL;
 
 static unsigned int translateToColor(const String &c) {
   String k = toLower(c);
   if (k.startsWith("white")) return 0xffffffff;
   if (k.startsWith("red")) return 0xff0000ff;
+  if (k.startsWith("black")) return 0xff000000;
   if (k.startsWith("plexiglas")) return 0x80ffc000;
   if (k.startsWith("lightblue")) {return 0x20000000;}
   if (k.startsWith("turbine")) return 0x4000c0ff;
   if (k.startsWith("color1")) return 0xffffffff;
   if (k.startsWith("color2")) return 0xff0000ff;
   glDone();
-  printf("a%da\n",k.c_str()[6]);
+  printf("%s\n",k.c_str());
   exit(0);
   return 0;
 }
 
 Vector swizzle(const Vector &v) {
-  return Vector(v.x,-v.y,-v.z);
+  return Vector(v.z,-v.x,-v.y);
 }
 
 Mesh *loadObject(const String &fileName) {

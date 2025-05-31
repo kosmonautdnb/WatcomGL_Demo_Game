@@ -19,6 +19,16 @@ public:
   virtual void manage()=0;
 };                                             
 
+class GO_GOManager : public GO_Manager {
+public:
+  GO_GOManager() : GO_Manager() {
+  }
+  virtual ~GO_GOManager() {
+  }
+  virtual bool addObject(GO *o);
+  virtual void manage();
+};
+
 class GO_CallbackManager : public GO_Manager {
 public:
   GO_CallbackManager() : GO_Manager() {

@@ -42,6 +42,7 @@ static const float rand2dp(double x, double y) {
 }
 
 static const float perlin(double x, double y) {
+  y -= 1;
   float r = 0;
   r += rand2dp(x*1,y*1)/1.0;
   r += rand2dp(x*2,y*2)/2.0;
