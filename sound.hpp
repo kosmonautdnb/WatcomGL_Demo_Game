@@ -6,7 +6,7 @@ public:
   unsigned char *sample;
   int sampleLength;
   double priority;
-  void play();
+  void play(const class Vector &pos);
 };
 
 Sample *auLoadSample(int type, double priority);

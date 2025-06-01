@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include "util.hpp"
+#include "vector.hpp"
 
 float randomLike(const int i);
 
@@ -10,8 +11,11 @@ double currentSoundStartTime;
 double currentSoundDuration;
 double currentSoundPriority;
 
-void Sample::play() {
-  auPlaySample(this);
+bool isInScreen(const Vector &position);
+
+void Sample::play(const Vector &pos) {
+  if (isInScreen(pos))
+    auPlaySample(this);
 }
 
 Sample *auLoadSample(int type, double priority) {
@@ -38,6 +42,22 @@ Sample *auLoadSample(int type, double priority) {
     for (int i = 0; i < len; i++) {
       int k = i*3/len+1;
       sample[i]=(randomLike(i/k*k)*2-1)*32000+32768;
+    }
+    ret = new Sample();
+    ret->priority = priority;
+    ret->sample = convertSampleFromUInt16(sample,len);
+    ret->sampleLength = len;
+    free(sample);
+  }
+  if (type == 2) {
+    unsigned int len = speakerFrequency*0.5;
+    unsigned short *sample = (unsigned short*)malloc(len*sizeof(unsigned short));
+    for (int i = 0; i < len; i++) {
+      double ri = (double)i / (speakerFrequency*20.0);
+      ri = pow(ri,0.5);
+      float f = sin(ri*2.0*PI*0.5);
+      f = clamp(f,-1.f,1.f);
+      sample[i]=f*32000+32768;
     }
     ret = new Sample();
     ret->priority = priority;
