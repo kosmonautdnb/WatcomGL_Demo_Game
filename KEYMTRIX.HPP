@@ -9,6 +9,9 @@ extern bool keyPressed[0x80];
   // checks if a scan code currently is pressed
 bool isKeyPressed(int scanCode);
 
+  // convenience function for easy "keyClicked" behaviour
+void unpressKey(int scanCode);
+
   // installs the "keyPressed handler"
 void installKeyboardHandler();
 

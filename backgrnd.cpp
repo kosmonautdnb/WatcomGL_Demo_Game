@@ -15,31 +15,37 @@ void clearFrame() {
   glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 }
 
-static const float randomLike(const int index) {
-    int b = index ^ (index * 11) ^ (index / 17) ^ (index >> 16) ^ (index * 1877) ^ (index * 8332) ^ (index * 173);
+static __inline const unsigned short randomLike(const unsigned short index) {
+    int b = (int)index ^ (index * 11) ^ (index / 17) ^ (index * 1877) ^ (index * 8332) ^ (index * 173);
     b = b ^ (b << 8) ^ (b * 23);
     b >>= 3;
-    return (float)(b & 0xffff) / 0x10000;
+    return b & 0xffff;
 }
 
-static const float rand2d(int x, int y) {
-  return randomLike((x*17)+randomLike(y*31)*0x4000);
+static __inline const float randomLike2(const int index) {
+    return (float)randomLike(index)/0x10000;
 }
 
-static const float rand2dp(double x, double y) {
+static __inline const unsigned short rand2d(int x, int y) {
+  return randomLike((x*17)+randomLike(y*31));
+}
+
+static __inline const float rand2dp(double x, double y) {
   const int xi = (int)floor(x);
   const int yi = (int)floor(y);
-  double fx = x - (double)xi;
-  double fy = y - (double)yi;
+  float fx = x - (double)xi;
+  float fy = y - (double)yi;
   fx*=fx;
   fy*=fy;
-  const double p00 = rand2d(xi,yi);
-  const double p10 = rand2d(xi+1,yi);
-  const double p11 = rand2d(xi+1,yi+1);
-  const double p01 = rand2d(xi,yi+1);
-  const double top = (p10 - p00) * fx + p00;
-  const double btm = (p11 - p01) * fx + p01;
-  return (btm-top)*fy+top;
+  int fxi = fx * 0x400;
+  int fyi = fy * 0x400;
+  const unsigned short p00 = rand2d(xi,yi);
+  const unsigned short p10 = rand2d(xi+1,yi);
+  const unsigned short p11 = rand2d(xi+1,yi+1);
+  const unsigned short p01 = rand2d(xi,yi+1);
+  const unsigned short top = (((p10 - p00) * fxi)>>10) + p00;
+  const unsigned short btm = (((p11 - p01) * fxi)>>10) + p01;
+  return (float)((((btm-top)*fyi)>>10)+top)/0x10000;
 }
 
 static const float perlin(double x, double y) {
@@ -105,7 +111,7 @@ void paintLevel() {
       if (p<0.9&&p>0.8) {
         glColor3f(0,10,10);
       }
-      glPointSize(XRES*(particleSize*((x&1)*0.25+0.75)+randomLike(k.y-tY-fY+randomLike(k.x*13.0))*10.0)/640);
+      glPointSize(XRES*(particleSize*((x&1)*0.25+0.75)+randomLike2(k.y-tY-fY+randomLike2(k.x*13.0))*10.0)/640);
       k.x -= levelScrollX*0.25;
       glVertex3f(k.x,k.y,k.z);
       lp = p;

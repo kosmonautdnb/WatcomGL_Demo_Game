@@ -47,6 +47,8 @@ double playerRollSpeed = 100.0;
 int playerHits=0;
 int maxPlayerHits=20;
 bool playerBlue = true;
+int currentFrame = 0;
+double fps = 0;
 int32_t score = 0;
 int32_t lives = 4;
 
@@ -222,7 +224,8 @@ public:
 class PlayerTurbineParticle : public GO, public GO_LifeTime, public GO_Paintable {
 public:
   Vector displace;
-  PlayerTurbineParticle(const Vector &p) : displace(p), GO(), GO_LifeTime(0.5), GO_Paintable() {
+  bool white;
+  PlayerTurbineParticle(const Vector &p, bool white) : displace(p), white(white), GO(), GO_LifeTime(0.5), GO_Paintable() {
     activated = true;
     static int k = 0; k++;
     lifeTime+=randomLike(k*111)*0.25;
@@ -239,6 +242,8 @@ public:
     glBegin(GL_POINTS);
     double k = 1 - l;
     glColor3f(0.25*k,0.85*k,1.0*k);
+    if (white)
+      glColor3f(k,k,k);
     glVertex3f(position.x, position.y, position.z);
     glEnd();
     glDisable(GL_BLEND);
@@ -254,7 +259,7 @@ public:
         double r = 1.0;
         double x = 0;
         double y = 0;
-        gameObjects.push_back(go_(new PlayerTurbineParticle(Vector(x+(randomLike(k*33)*2-1)*r,y+(randomLike(k*33)*2-1)*r,0))));
+        gameObjects.push_back(go_(new PlayerTurbineParticle(Vector(x+(randomLike(k*33)*2-1)*r,y+(randomLike(k*33)*2-1)*r,0),(k&4)&&(k&8)&&(k&2))));
       }
     }
   }
@@ -630,12 +635,14 @@ void drawEnergyBar(double xp, double yp, double w, double h) {
   double aw = w;
   w *= 1-shorten;
   xp += aw-w;
+  float k = 5.0;
   glBegin(GL_QUADS);
   glColor4f(1,1,1,1);
-  glColor3f(r2,g2,b2);
+  glColor3f(r2*k,g2*k,b2*k);
   glVertex3f(xp+w,yp,0);
-  glColor3f(r1,g1,b1);
+  glColor3f(r1*k,g1*k,b1*k);
   glVertex3f(xp,yp,0);
+  glColor3f(r1,g1,b1);
   glVertex3f(xp,yp+h,0);
   glColor3f(r2,g2,b2);
   glVertex3f(xp+w,yp+h,0);
@@ -657,6 +664,10 @@ void drawHud() {
   drawText(0,0,scoreBuffer,color);
   sprintf(scoreBuffer,"%02d",lives);
   drawText(1280,0,scoreBuffer,color,1,1,0);
+
+  sprintf(scoreBuffer,"fps:%d",(int)fps);
+  drawText(0,40,scoreBuffer,color,1.0);
+
 
   drawEnergyBar(1280-250,5,150,20);
 
@@ -789,6 +800,14 @@ int main(int argc, const char *argv) {
     }
 #endif
     lastTime = currentTime;
+    currentFrame++;
+    static double lastFPSTime = 0;
+    static int lastFPSFrame = currentFrame;
+    if (fabs(lastFPSTime-currentTime)>1.0) {
+      lastFPSTime = currentTime;
+      fps = currentFrame-lastFPSFrame;
+      lastFPSFrame = currentFrame;
+    }
 
     levelScroll += timeDelta * 10.0;
     levelScrollX = playerPosScreen.x;
@@ -817,17 +836,19 @@ int main(int argc, const char *argv) {
       playerPosScreen.x += playerSpeed*timeDelta;
       playerDestRoll = -45;
     }
-    if (isKeyPressed(SCANCODE_SPACE)) {
+    if (isKeyPressed(SCANCODE_CTRL)) {
       shot();
     }      
-    if (isKeyPressed(SCANCODE_1)) {
-      if (playerBlue) placeExplosionRing(playerPos);
-      playerBlue = false;
-    }      
-    if (isKeyPressed(SCANCODE_2)) {
-      if (!playerBlue) placeExplosionRing(playerPos);
-      playerBlue = true;
-    }      
+    static bool shiftPressed = false;
+    if (isKeyPressed(SCANCODE_RSHIFT)) {
+      if (!shiftPressed) {
+        placeExplosionRing(playerPos);
+        playerBlue = !playerBlue;
+      }
+      shiftPressed = true;
+    } else {
+      shiftPressed = false;
+    }
 
     playerPosScreen.x = clamp(playerPosScreen.x,-110.0,110.0);
     playerPosScreen.y = clamp(playerPosScreen.y,-55.0,55.0);

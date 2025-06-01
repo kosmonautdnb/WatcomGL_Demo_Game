@@ -14,6 +14,10 @@ bool isKeyPressed(int scanCode) {
   return keyPressed[scanCode & 0x7f];
 }
 
+void unpressKey(int scanCode) {
+  keyPressed[scanCode & 0x7f] = false;
+}
+
 static void (__interrupt __far keyboardHandler) (void) {
   unsigned char key = inp(0x60);
   keyPressed[key & 0x7f] = key & 0x80 ? false : true;
