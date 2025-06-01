@@ -5,6 +5,7 @@
 
 double levelScrollY = 0;
 double levelScrollX = 0;
+double speedUpLevelScrollY = 0;
 
 extern int XRES;
 extern int YRES;
@@ -53,11 +54,13 @@ static const float perlin(double x, double y) {
 }
 
 void paintLevel() {
+  if (levelScrollY > 1000) speedUpLevelScrollY = (levelScrollY-1000)*2;
+  const double levelScrollY2 = levelScrollY + speedUpLevelScrollY;
   const double sc = 0.01;
   const double scale = 0.5;
   const double dY = 22.0*scale;
-  const double fY =  fmod(levelScrollY,dY);
-  const double tY = levelScrollY - fY;
+  const double fY =  fmod(levelScrollY2,dY);
+  const double tY = levelScrollY2 - fY;
   const double particleSize = 7.5;
   glEnable(GL_TEXTURE_2D);
   glEnable(GL_BLEND);
@@ -70,7 +73,7 @@ void paintLevel() {
   int yNear = 5+2;
   int yFar = -25-23-4;
   int nearX = 34+5+4;
-  int farX = 85+5;
+  int farX = 85+5+5+5;
   for (int y = yFar; y < yNear; y++) {
     int xHere = (farX-nearX)*fabs(y-yNear)/fabs(yFar-yNear)+nearX;
     double lp = 0;
@@ -94,7 +97,7 @@ void paintLevel() {
       }
       k.z = p*120.0;
       if (k.z > 120 && (k.y-tY>-1000)) k.z = 120;
-      d *= perlin(k.x*sc*2,(k.y-tY-fY-levelScrollY*4)*sc*2)*0.5+0.5;
+      d *= perlin(k.x*sc*2,(k.y-tY-fY-levelScrollY2*4)*sc*2)*0.5+0.5;
       glColor3f(d*r-subi,d*g-subi,d*b-subi);
       if (p<0.625&&p>0.575) {
         glColor3f(10,0,0);

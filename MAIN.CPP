@@ -215,6 +215,32 @@ public:
   ExplosionRing *slow() {_slow=true;lifeTime*=2;initialLifeTime*=2;return this;}
 };
 
+class ExplosionFlare : public GO, public GO_Position, public GO_LifeTime, public GO_Paintable {
+public:
+  ExplosionFlare(const Vector &p) : GO(), GO_Position(p), GO_LifeTime(0.5), GO_Paintable() {
+  }
+  virtual void paint(double dt) {
+    double l = (double)(initialLifeTime-lifeTime)/initialLifeTime;
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_ONE,GL_ONE);
+    float r = sin(l*PI)*20.0;
+    float k = 1.0;
+    for (int i = 0; i < 5; i++) {
+      float a1 = randomLike(i*33+index*77)*2*PI+seconds*(randomLike(i)+1)*3;
+      float a2 = a1+PI*0.15;
+      glBegin(GL_TRIANGLES);
+      glColor3f(0,0,0);
+      glVertex3f(position.x,position.y,position.z);   
+      glColor3f((1-l)*k,(1-l)*k*0.5,(1-l)*k*0.25);
+      glVertex3f(position.x+sin(a1)*r,position.y+cos(a1)*r,position.z);      
+      glColor3f((1-l)*0.5*k,(1-l)*0.5*k*0.5,(1-l)*0.5*k*0.25);
+      glVertex3f(position.x+sin(a2)*r,position.y+cos(a2)*r,position.z);      
+      glEnd();
+    }
+    glDisable(GL_BLEND);
+  }
+};
+
 void placeSmallSmoke(const Vector &p) {
   gameObjects.push_back(go_(new Explosion(p,Vector(),2,1.0,true,false)));
   shotSound->play();
@@ -256,6 +282,7 @@ void placeExplosion(const Vector &p) {
     gameObjects.push_back(go_(new Explosion(p,Vector((randomLike(k*11)-0.5)*80.0,(randomLike(k*543)-0.5)*80.0,0),5+randomLike(k*33)*5.0,0.25+randomLike(k*373)*0.5,true,false)));
     k++;
   }
+  gameObjects.push_back(go_(new ExplosionFlare(p)));
   exploSound->play();
 }
 
@@ -511,6 +538,22 @@ public:
   }
 };
 
+class LevelObject : public GO, public GO_Position, public GO_Paintable, public GO_Rotation, public GO_Collider_LevelObject {
+public:
+  Mesh *mesh;
+  LevelObject(const Vector &p, const Vector &r, Mesh *mesh) : GO(), GO_Position(p), GO_Paintable(), GO_Rotation(r.w,r.xyz()), GO_Collider_LevelObject(20) {
+    this->mesh = mesh;
+  }
+  virtual void paint(double dt) {
+    glPushMatrix();
+    position.y += dt * 30.0;
+    glTranslatef(position.x,position.y,position.z);
+    glRotatef(angle,axis.x,axis.y,axis.z);
+    drawMesh(mesh);
+    glPopMatrix();
+  }
+};
+
 void shot() {
   static double lastShotTime = currentTime;
   double distance = fabs(lastShotTime - currentTime);
@@ -595,11 +638,13 @@ int main(int argc, const char *argv) {
   enemy1 = loadObject("enemy1.obj");
   enemy2 = loadObject("enemy2.obj");
   enemy3 = loadObject("enemy3.obj");
+  object1 = loadObject("object1.obj");
   centerAndResizeObject(player,10.0);
   centerAndResizeObject(enemy,10.0);
   centerAndResizeObject(enemy1,10.0);
   centerAndResizeObject(enemy2,15.0);
   centerAndResizeObject(enemy3,10.0);
+  centerAndResizeObject(object1,30.0);
   enemyShotSound = auLoadSample(0,0.25);
   shotSound = auLoadSample(0,0.5);
   exploSound = auLoadSample(1,10);
@@ -612,7 +657,7 @@ int main(int argc, const char *argv) {
   //gameObjects.push_back(go_(new SimpleCircleShotEmitter(Vector(+100,-1200,0),0.2,32,40)));
   //gameObjects.push_back(go_(new SimpleCircleShotEmitter(Vector(0,-1400,0),0.8,32,80)));
 
-  int i;
+  int i,j;
   for (i = 0; i < 10; i++) {
     gameObjects.push_back(go_(new Enemy1(Vector(randomLike(i*33)*150-75,-100-i*20,0))));
   }
@@ -635,6 +680,35 @@ int main(int argc, const char *argv) {
     } else {
       gameObjects.push_back(go_((new Enemy2(Vector(randomLike(i*33)*150-75,-1100-i*80,0),true))->circularShots()));
       gameObjects.push_back(go_((new Enemy2(Vector(randomLike(i*33)*150-75,-1100-i*80-40,0),false))->circularShots()));
+    }
+  }
+
+  for (i = 0; i < 10; i++) {
+    double xp = 75;
+      gameObjects.push_back(go_(new LevelObject(Vector(-xp,-1100-i*5,0), Vector(0,1,0,0), object1)));
+      gameObjects.push_back(go_(new LevelObject(Vector(xp,-1100-i*5,0), Vector(0,1,0,180), object1)));
+  }
+
+  for (j = 0; j < 2; j++) {
+    for (int k = 0; k < 3; ++k) {
+      double r = 1.0-(double)k/3;
+      for (i = 0; i < 5; i++) {
+        double xp = 75;
+        gameObjects.push_back(go_(new LevelObject(Vector((-80+j*160)*r,-500-i*8-k*100,-xp), Vector(0,1,0,0-90), object1)));
+        gameObjects.push_back(go_(new LevelObject(Vector((-80+j*160)*r,-500-i*8-k*100,xp), Vector(0,1,0,180-90), object1)));
+      }
+    }
+  }
+
+  for (j = 0; j < 2; j++) {
+   for (i = 0; i < (j==0?8:18); i++) {
+      double xp = 95;
+      double a = i * 20;
+      double a2 = a * PI / 180.0;
+      a += 90;
+      double lp = -100 - j * 1240;
+      gameObjects.push_back(go_(new LevelObject(Vector(sin(a2)*xp,lp-i*4,cos(a2)*xp*0.2), Vector(0,1,0,0+a), object1)));
+      gameObjects.push_back(go_(new LevelObject(Vector(sin(a2+PI)*xp,lp-i*4,cos(a2+PI)*xp*0.2), Vector(0,1,0,180+a), object1)));
     }
   }
 

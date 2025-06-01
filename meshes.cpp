@@ -7,10 +7,12 @@ Mesh *enemy = NULL;
 Mesh *enemy1 = NULL;
 Mesh *enemy2 = NULL;
 Mesh *enemy3 = NULL;
+Mesh *object1 = NULL;
 
 static unsigned int translateToColor(const String &c) {
   String k = toLower(c);
   if (k.startsWith("white")) return 0xffffffff;
+  if (k.startsWith("grey")) return 0xff808080;
   if (k.startsWith("red")) return 0xff0000ff;
   if (k.startsWith("black")) return 0xff000000;
   if (k.startsWith("plexiglas")) return 0x80ffc000;

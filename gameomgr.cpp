@@ -203,6 +203,29 @@ void GO_Collider_Enemy_Manager::manage() {
   }
 }
 
+bool GO_Collider_LevelObject_Manager::addObject(GO *o) {
+  if (dynamic_cast<GO_Collider_LevelObject*>(o)==NULL) return false;
+  if (dynamic_cast<GO_Position*>(o)==NULL) return false;
+  managed.push_back(o);
+  return true;
+}
+
+void GO_Collider_LevelObject_Manager::manage() {
+  for (int i = 0; i < managed.size(); i++) {
+    GO *o = managed[i];
+    if (o->deleteIt||(!o->activated)) continue;
+    GO_Position *v0 = dynamic_cast<GO_Position*>(o);
+    GO_Collider_LevelObject *v1 = dynamic_cast<GO_Collider_LevelObject*>(o);
+    v1->lastColliderLevelObjectPosition = v1->colliderLevelObjectPosition;
+    v1->colliderLevelObjectPosition = v0->position;
+    if (v1->colliderLevelObjectFresh) {v1->colliderLevelObjectFresh--;continue;}
+    capsule[CAPSULE_COLLIDER] = Capsule(v1->colliderLevelObjectPosition, v1->lastColliderLevelObjectPosition, v1->colliderLevelObjectRadius);
+    if (collide(CAPSULE_COLLIDER,CAPSULE_PLAYER)) {
+      playerHit(true);
+    }
+  }
+}
+
 void go_clearManagers() {
   for (int i = 0; i < goManagers.size(); i++)
     delete goManagers[i];
@@ -220,6 +243,7 @@ void go_setupManagers() {
   goManagers.push_back(new GO_PaintableManager());
   goManagers.push_back(new GO_FrequencyCallbackManager());
   goManagers.push_back(new GO_Collider_Enemy_Manager());
+  goManagers.push_back(new GO_Collider_LevelObject_Manager());
 }
 
 

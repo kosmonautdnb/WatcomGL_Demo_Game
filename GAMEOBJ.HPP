@@ -47,6 +47,11 @@ public:
     angle = 0;
     angleAddPerSecond = 0;
   }
+  GO_Rotation(double angle, const Vector &axis) {
+    this->angle = angle;
+    this->axis = axis;
+    angleAddPerSecond = 0;
+  }
   virtual ~GO_Rotation() {
   }
 };
@@ -160,6 +165,19 @@ public:
     colliderEnemyFresh = 2;
   }
   virtual ~GO_Collider_Enemy() {
+  }
+};
+
+class GO_Collider_LevelObject {
+public:
+  Vector colliderLevelObjectPosition;
+  Vector lastColliderLevelObjectPosition;
+  double colliderLevelObjectRadius;
+  int colliderLevelObjectFresh;
+  GO_Collider_LevelObject(double rad) : colliderLevelObjectRadius(rad) {
+    colliderLevelObjectFresh = 2;
+  }
+  virtual ~GO_Collider_LevelObject() {
   }
 };
 

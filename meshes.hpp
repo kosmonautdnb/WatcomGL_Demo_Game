@@ -24,6 +24,7 @@ extern Mesh *enemy;
 extern Mesh *enemy1; // round/circular object 
 extern Mesh *enemy2; // ship red wings
 extern Mesh *enemy3; // a white black ball
+extern Mesh *object1; // hangar like <
 
 Mesh *loadObject(const String &fileName);
 void centerAndResizeObject(Mesh *mesh, double size);
