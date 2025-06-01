@@ -55,7 +55,7 @@ static const float perlin(double x, double y) {
 void paintLevel() {
   const double sc = 0.01;
   const double scale = 0.5;
-  const double dY = 18.0*scale;
+  const double dY = 22.0*scale;
   const double fY =  fmod(levelScrollY,dY);
   const double tY = levelScrollY - fY;
   const double particleSize = 7.5;
@@ -68,8 +68,8 @@ void paintLevel() {
   glBegin(GL_POINTS);
   glColor3f(1,1,1);
   int yNear = 5+2;
-  int yFar = -25-23;
-  int nearX = 34+5;
+  int yFar = -25-23-4;
+  int nearX = 34+5+4;
   int farX = 85+5;
   for (int y = yFar; y < yNear; y++) {
     int xHere = (farX-nearX)*fabs(y-yNear)/fabs(yFar-yNear)+nearX;
@@ -93,7 +93,7 @@ void paintLevel() {
         b = 1;
       }
       k.z = p*120.0;
-      if (k.z > 120) k.z = 120;
+      if (k.z > 120 && (k.y-tY>-1000)) k.z = 120;
       d *= perlin(k.x*sc*2,(k.y-tY-fY-levelScrollY*4)*sc*2)*0.5+0.5;
       glColor3f(d*r-subi,d*g-subi,d*b-subi);
       if (p<0.625&&p>0.575) {

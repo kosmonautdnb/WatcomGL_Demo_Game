@@ -21,6 +21,9 @@ public:
   }
   virtual ~GO() {
   }
+  virtual void destruct() {
+    deleteIt = true;
+  }
 };
 
 class GO_Position {
@@ -80,6 +83,21 @@ public:
   virtual ~GO_FrequencyCallback() {
   }
   virtual void frequent(int iteration) = 0;
+};
+
+class GO_FrequencyCallback2 {
+public:
+  double durationTillNext2;
+  double durationFull2;
+  int frequencyStep2;
+  GO_FrequencyCallback2(double duration) {
+    durationFull2 = duration;
+    durationTillNext2 = duration;
+    frequencyStep2 = 0;
+  }
+  virtual ~GO_FrequencyCallback2() {
+  }
+  virtual void frequent2(int iteration) = 0;
 };
 
 class GO_Physical {

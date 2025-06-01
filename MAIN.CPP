@@ -27,6 +27,7 @@ Sample *enemyShotSound = NULL;
 Sample *exploSound = NULL;
 
 //#define RECORDVIDEO
+#define ALTW
 #define videoPath "r:\\vid%04d.png"
 
 double lastTime = 0;
@@ -42,6 +43,8 @@ double playerSpeed = 50.0;
 double playerRoll = 0;
 double playerDestRoll = 0;
 double playerRollSpeed = 100.0;
+int playerHits=0;
+int maxPlayerHits=20;
 bool playerBlue = true;
 int32_t score = 0;
 int32_t lives = 4;
@@ -84,7 +87,7 @@ void drawMesh(Mesh *mesh) {
       glEnable(GL_LIGHTING);
     }
     if ((col>>24)==0x20) {
-      col = playerBlue ? 0xff404040:0xffff00ff;
+      col = (!playerBlue) ? 0xff0000ff:0xffff00ff;
     }
     glColor4ubv((unsigned char*)&col);
     glNormal3f(n[0]->x,n[0]->y,n[0]->z); 
@@ -120,14 +123,6 @@ void drawPlayer(Mesh *mesh, const Vector &pos) {
   glDisable(GL_ALPHA_TEST);
   glEnable(GL_DEPTH_TEST);
 
-  glPopMatrix();
-}
-
-void drawEnemy(Mesh *mesh, const Vector &pos) {
-  glPushMatrix();
-  glTranslatef(pos.x,pos.y,pos.z);
-  glRotatef(currentTime*80,sin(currentTime),cos(currentTime),0);
-  drawMesh(mesh);
   glPopMatrix();
 }
 
@@ -191,15 +186,61 @@ public:
   }
 };
 
-void placeSmallExplosion(const Vector &p) {
+class ExplosionRing : public GO, public GO_Position, public GO_LifeTime, public GO_Paintable {
+public:
+  bool _slow;
+  ExplosionRing(const Vector &p) : GO(), GO_Position(p), GO_LifeTime(0.5), GO_Paintable() {
+   _slow = false;
+  }
+  virtual void paint(double dt) {
+    double l = (double)(initialLifeTime-lifeTime)/initialLifeTime;
+    double q = 5+l * (8.0+(_slow?20:0));
+    double c = (1-l)*(_slow?0.25:1);
+    double qr = (5.0-l*5)*(_slow?1.25:1);
+    double xa[4]={1,0,0,1};
+    double ya[4]={0,0,1,1};
+    int tessel = 24;
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_ONE,GL_ONE);
+    glBegin(GL_QUADS);
+    glColor4f(c,c,c,1);
+    for (int r = 0; r < tessel; r++) {
+      for (int i = 0; i < 4; i++) {
+        glVertex3f(position.x+sin((double)(xa[i]+r)/tessel*PI*2)*(q+ya[i]*qr),position.y+cos((double)(xa[i]+r)/tessel*PI*2)*(q+ya[i]*qr),0);
+      }
+    }
+    glEnd();
+    glDisable(GL_BLEND);
+  }
+  ExplosionRing *slow() {_slow=true;lifeTime*=2;initialLifeTime*=2;return this;}
+};
+
+void placeSmallSmoke(const Vector &p) {
   gameObjects.push_back(go_(new Explosion(p,Vector(),2,1.0,true,false)));
   shotSound->play();
+}
+
+void placeEmitExplosion(const Vector &p) {
+  gameObjects.push_back(go_(new Explosion(p,Vector(),3,0.75,false,false)));
+}
+
+void placeTailExplosion(const Vector &p) {
+  static int k = 0; k++;
+  double a = k*2*PI/20;
+  double sp = 10.0;
+  gameObjects.push_back(go_(new Explosion(p,Vector(sin(a)*sp,cos(a)*sp,0),randomLike(k*33)*2.5+1.5,1.5,false,false)));
+}
+
+void placeExplosionRing(const Vector &p) {
+  gameObjects.push_back(go_(new ExplosionRing(p)));
 }
 
 void placeExplosion(const Vector &p) {
   static int k;
   int i;
   gameObjects.push_back(go_(new Explosion(p,Vector(),25,0.125,false,false)));
+  gameObjects.push_back(go_(new ExplosionRing(p)));
+  gameObjects.push_back(go_((new ExplosionRing(p))->slow()));
   for (i = 0; i < 10; i++) {
     float ri = i * PI * 2 / 10;
     gameObjects.push_back(go_(new Explosion(p,Vector(sin(ri)*120.0,cos(ri)*120.0,0),5,0.25,true,false)));
@@ -226,7 +267,7 @@ void playerShotHitObject(const Vector &shotPos, GO *o) {
   if (dynamic_cast<GO_HitPoints*>(o) != NULL) {
     dynamic_cast<GO_HitPoints*>(o)->hitPoints--;
     if (dynamic_cast<GO_HitPoints*>(o)->hitPoints>0) {
-       placeSmallExplosion(shotPos);
+       placeSmallSmoke(shotPos);
       return;
     }
   }
@@ -295,6 +336,8 @@ public:
   }
 };
 
+void playerHit(bool explosion);
+
 class EnemyShot : public GO, public GO_Position, public GO_Physical, public GO_Paintable, public GO_AliveDistance, public GO_LifeTime {
 public:
   Vector initialPosition;
@@ -313,6 +356,7 @@ public:
     if ((blue==playerBlue) && (fresh == false) && collide(CAPSULE_COLLIDER,CAPSULE_PLAYER)) {
       deleteIt = true;
       placeExplosion(position);
+      playerHit(false);
     }
     Vector position2 = position;
     Vector z = position2 - initialPosition;
@@ -333,38 +377,15 @@ public:
     lastPosition = position;
     fresh = false;
   }
-};
-
-class SimpleCircleShotEmitter : public GO, public GO_Position, public GO_FrequencyCallback, public GO_Collider_Enemy, public GO_Paintable, public GO_HitPoints, public GO_ScoreHit, public GO_ScoreDestructed {
-public:
-  int sectors;
-  double shotSpeed;
-  SimpleCircleShotEmitter(const Vector &p, double frequency, double shotSpeed, int sectors) : GO(), GO_Position(p), GO_FrequencyCallback(frequency), GO_Collider_Enemy(20), GO_Paintable(), GO_HitPoints(64), GO_ScoreHit(1), GO_ScoreDestructed(200) {
-    this->sectors = sectors;
-    this->shotSpeed = shotSpeed;
-  }
-  virtual void frequent(int iteration) {
-    float speed = 10.0;
-    if (isInScreen(position)) {
-      for (int i = 0; i < sectors; i++) {
-        float a = i * 2 * PI / sectors + iteration;
-        Vector dir(sin(a)*shotSpeed,cos(a)*shotSpeed,0);
-        GO *enemyShot = go_(new EnemyShot(position,dir));
-        if (((iteration % 12)==0)&&(i&1))
-          dynamic_cast<EnemyShot*>(enemyShot)->blue=true;
-        gameObjects.push_back(enemyShot);
-      }
-      enemyShotSound->play();
-    }
-  }
-  virtual void paint(double dt) {
-    drawEnemy(enemy,position);
+  virtual void destruct() {
+    placeEmitExplosion(position);
+    GO::destruct();
   }
 };
 
-class Enemy1 : public GO, public GO_Position, public GO_FrequencyCallback, public GO_Collider_Enemy, public GO_Paintable, public GO_HitPoints, public GO_ScoreHit, public GO_ScoreDestructed {
+class Enemy1 : public GO, public GO_Position, public GO_FrequencyCallback, public GO_FrequencyCallback2, public GO_Collider_Enemy, public GO_Paintable, public GO_HitPoints, public GO_ScoreHit, public GO_ScoreDestructed {
 public:
-  Enemy1(const Vector &p) : GO(), GO_Position(p), GO_FrequencyCallback(0.2), GO_Collider_Enemy(30), GO_Paintable(), GO_HitPoints(64), GO_ScoreHit(1), GO_ScoreDestructed(200) {
+  Enemy1(const Vector &p) : GO(), GO_Position(p), GO_FrequencyCallback(0.2), GO_FrequencyCallback2(0.05), GO_Collider_Enemy(30), GO_Paintable(), GO_HitPoints(64), GO_ScoreHit(1), GO_ScoreDestructed(200) {
   }
   virtual void frequent(int iteration) {
     double k2 = fmod(seconds,9);
@@ -377,10 +398,21 @@ public:
     for (int j = 0; j < k; j++) {
       double t = (seconds*((step&1)?90:-90)+j*360/5)*PI/180;
       double sp = 20;
+      placeEmitExplosion(position+Vector(cos(t)*10,sin(t)*10,0));
       GO *enemyShot = go_(new EnemyShot(position,Vector(cos(t)*sp,sin(t)*sp,0)));
       dynamic_cast<EnemyShot*>(enemyShot)->blue=step&1;
       gameObjects.push_back(enemyShot);
       enemyShotSound->play();
+    }
+  }
+  virtual void frequent2(int iteration) {
+    double k2 = fmod(seconds,9);
+    int step = (int)floor(seconds/9);
+    if (k2 >= 1)
+      return;
+    for (int i = 0; i < 10; i++) {
+      double a = i * 2 * PI / 10.0;
+      placeEmitExplosion(position+Vector(sin(a)*10,cos(a)*10,0));
     }
   }
   virtual void paint(double dt) {
@@ -401,24 +433,34 @@ public:
   }
 };
 
-class Enemy2 : public GO, public GO_Position, public GO_FrequencyCallback, public GO_Collider_Enemy, public GO_Paintable, public GO_HitPoints, public GO_ScoreHit, public GO_ScoreDestructed {
+class Enemy2 : public GO, public GO_Position, public GO_FrequencyCallback, public GO_FrequencyCallback2, public GO_Collider_Enemy, public GO_Paintable, public GO_HitPoints, public GO_ScoreHit, public GO_ScoreDestructed {
 public:
   bool blue;
-  Enemy2(const Vector &p, bool blue) : GO(), GO_Position(p), GO_FrequencyCallback(0.35), GO_Collider_Enemy(30), GO_Paintable(), GO_HitPoints(64), GO_ScoreHit(1), GO_ScoreDestructed(200) {
+  bool _circularShots;
+  Enemy2(const Vector &p, bool blue) : GO(), GO_Position(p), GO_FrequencyCallback(0.35), GO_FrequencyCallback2(0.025), GO_Collider_Enemy(30), GO_Paintable(), GO_HitPoints(64), GO_ScoreHit(1), GO_ScoreDestructed(200) {
     this->blue = blue;
+    _circularShots = false;
   }
   virtual void frequent(int iteration) {
     double k = (seconds/2.0)-1;
     k = 1.0-pow(fabs(k),2.0);
     if (k<0) return;
     for (int i = 0; i <= 10; i++) {
-      double t = ((i-5)*25/5+90-atan2(playerPos.x-position.x,playerPos.y-position.y)*180/PI)*PI/180.f;
-      double sp = 20+(5-fabs(i-5))*4;
+      double t = ((i-5)*(_circularShots?90:25)/5+90-atan2(playerPos.x-position.x,playerPos.y-position.y)*180/PI)*PI/180.f;
+      double t2 = ((i-5)*(_circularShots?90:25)/5+90)*PI/180.f;
+      double sp = 10+(5-fabs(i-5))*4;
+      placeEmitExplosion(position+Vector(cos(t2)*sp*0.5,sin(t2)*sp*0.5,0));
       GO *enemyShot = go_(new EnemyShot(position,Vector(cos(t)*sp,sin(t)*sp,0)));
       dynamic_cast<EnemyShot*>(enemyShot)->blue=blue;
       gameObjects.push_back(enemyShot);
       enemyShotSound->play();
     }
+  }
+  virtual void frequent2(int iteration) {
+    double k = (seconds/2.0)-1;
+    k = 1.0-pow(fabs(k),2.0);
+    if (k>0) return;
+    placeTailExplosion(position+Vector(randomLike(iteration*33)*8-4,randomLike(iteration*77)*8-4,0));
   }
   virtual void paint(double dt) {
     glPushMatrix();
@@ -431,6 +473,40 @@ public:
     glRotatef(90.f-(k>-1?k:-1)*90.f+180,1,0,0);
     if (k<0) glRotatef(k*180,0,1,0);
     drawMesh(enemy2);
+    glPopMatrix();
+  }
+  Enemy2 *circularShots() {
+    _circularShots = true;
+    return this;
+  }
+};
+
+class Enemy3 : public GO, public GO_Position, public GO_FrequencyCallback, public GO_Collider_Enemy, public GO_Paintable, public GO_HitPoints, public GO_ScoreHit, public GO_ScoreDestructed {
+public:
+  double shotSpeed;
+  int sectors;
+  Enemy3(const Vector &p) : GO(), GO_Position(p), GO_FrequencyCallback(0.35), GO_Collider_Enemy(30), GO_Paintable(), GO_HitPoints(64), GO_ScoreHit(1), GO_ScoreDestructed(200) {
+    shotSpeed = 10;
+    sectors = 20;
+  }
+  virtual void frequent(int iteration) {
+    float speed = 10.0;
+    for (int i = 0; i < sectors; i++) {
+      float a = i * 2 * PI / sectors + iteration;
+      Vector dir(sin(a)*shotSpeed,cos(a)*shotSpeed,0);
+      placeEmitExplosion(position+Vector(cos(a)*10,sin(a)*10,0));
+      GO *enemyShot = go_(new EnemyShot(position,dir));
+      if (((iteration % 12)==0)&&(i&1))
+        dynamic_cast<EnemyShot*>(enemyShot)->blue=true;
+      gameObjects.push_back(enemyShot);
+    }
+    enemyShotSound->play();
+  }
+  virtual void paint(double dt) {
+    glPushMatrix();
+    glTranslatef(position.x,position.y,position.z);
+    glRotatef(seconds*90,sin(seconds*3),cos(seconds*3),0);
+    drawMesh(enemy3);
     glPopMatrix();
   }
 };
@@ -450,17 +526,58 @@ void shot() {
   }
 }
 
-void playerHit() {
-  placeExplosion(playerPos);
+void playerHit(bool explosion) {
+  playerHits++;
+  if (explosion)
+    placeExplosion(playerPos);
+}
+
+void drawEnergyBar(double xp, double yp, double w, double h) {
+  double shorten=(double)playerHits/maxPlayerHits;
+  float r2 = shorten;
+  float g2 = 1-saturate(shorten+0.5);
+  float b2 = 0;
+  float r1 = shorten;
+  float g1 = 1*(1-shorten);
+  float b1 = 0;  
+  double aw = w;
+  w *= 1-shorten;
+  xp += aw-w;
+  glBegin(GL_QUADS);
+  glColor4f(1,1,1,1);
+  glColor3f(r2,g2,b2);
+  glVertex3f(xp+w,yp,0);
+  glColor3f(r1,g1,b1);
+  glVertex3f(xp,yp,0);
+  glVertex3f(xp,yp+h,0);
+  glColor3f(r2,g2,b2);
+  glVertex3f(xp+w,yp+h,0);
+  glEnd();
 }
 
 void drawHud() {
+  glMatrixMode(GL_PROJECTION);
+  glPushMatrix();
+  glLoadIdentity();
+  glOrtho(0,1280,720,0,-1,1);
+  glMatrixMode(GL_MODELVIEW);
+  glPushMatrix();
+  glLoadIdentity();
+
   uint32_t color = 0xffffff00;
   char scoreBuffer[16];
   sprintf(scoreBuffer,"%08d",score);
   drawText(0,0,scoreBuffer,color);
   sprintf(scoreBuffer,"%02d",lives);
   drawText(1280,0,scoreBuffer,color,1,1,0);
+
+  drawEnergyBar(1280-250,5,150,20);
+
+  glMatrixMode(GL_MODELVIEW);
+  glPopMatrix();
+  glMatrixMode(GL_PROJECTION);
+  glPopMatrix();
+  glMatrixMode(GL_MODELVIEW);
 }
 
 double levelScroll = 0;
@@ -477,10 +594,12 @@ int main(int argc, const char *argv) {
   enemy = loadObject("impostor.obj");
   enemy1 = loadObject("enemy1.obj");
   enemy2 = loadObject("enemy2.obj");
+  enemy3 = loadObject("enemy3.obj");
   centerAndResizeObject(player,10.0);
   centerAndResizeObject(enemy,10.0);
   centerAndResizeObject(enemy1,10.0);
   centerAndResizeObject(enemy2,15.0);
+  centerAndResizeObject(enemy3,10.0);
   enemyShotSound = auLoadSample(0,0.25);
   shotSound = auLoadSample(0,0.5);
   exploSound = auLoadSample(1,10);
@@ -510,10 +629,26 @@ int main(int argc, const char *argv) {
     gameObjects.push_back(go_(new Enemy1(Vector(75,-450-5*50-i*80,0))));
   }
 
+  for (i = 0; i < 10; i++) {
+    if (i & 1) {
+      gameObjects.push_back(go_(new Enemy3(Vector(randomLike(i*33)*150-75,-1100-i*80,0))));
+    } else {
+      gameObjects.push_back(go_((new Enemy2(Vector(randomLike(i*33)*150-75,-1100-i*80,0),true))->circularShots()));
+      gameObjects.push_back(go_((new Enemy2(Vector(randomLike(i*33)*150-75,-1100-i*80-40,0),false))->circularShots()));
+    }
+  }
+
   bool done = false;
   do {
+    currentKey = glNextKey();
+    if (currentKey == GL_VK_ESCAPE) done = true;
     currentTime = auSeconds();
     timeDelta = currentTime-lastTime;
+#ifdef ALTW
+    if (isKeyPressed(SCANCODE_W) && isKeyPressed(SCANCODE_ALT)) {
+      timeDelta *= 15;
+    }
+#endif
     lastTime = currentTime;
 
     levelScroll += timeDelta * 10.0;
@@ -528,9 +663,6 @@ int main(int argc, const char *argv) {
     capsule[CAPSULE_PLAYER] = Capsule(playerPos,lastPlayerPos,CAPSULE_PLAYER_RADIUS);
     lastPlayerPos = playerPos;
     drawPlayer(player,playerPos);
-    currentKey = glNextKey();
-    if (currentKey == GL_VK_ESCAPE) done = true;
-
 
     if (playerDestRoll<playerRoll) playerRoll -= timeDelta*playerRollSpeed;
     if (playerDestRoll>playerRoll) playerRoll += timeDelta*playerRollSpeed;
@@ -554,9 +686,11 @@ int main(int argc, const char *argv) {
       shot();
     }      
     if (isKeyPressed(SCANCODE_1)) {
+      if (playerBlue) placeExplosionRing(playerPos);
       playerBlue = false;
     }      
     if (isKeyPressed(SCANCODE_2)) {
+      if (!playerBlue) placeExplosionRing(playerPos);
       playerBlue = true;
     }      
 

@@ -23,6 +23,7 @@ extern Mesh *player;
 extern Mesh *enemy;
 extern Mesh *enemy1; // round/circular object 
 extern Mesh *enemy2; // ship red wings
+extern Mesh *enemy3; // a white black ball
 
 Mesh *loadObject(const String &fileName);
 void centerAndResizeObject(Mesh *mesh, double size);

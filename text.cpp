@@ -12,18 +12,5 @@ void initText() {
 }
 
 void drawText(float xp, float yp, const char *text, uint32_t color, const float scale, float anchorX, float anchorY) {
-  glMatrixMode(GL_PROJECTION);
-  glPushMatrix();
-  glLoadIdentity();
-  glOrtho(0,1280,0,720,-1,1);
-  glMatrixMode(GL_MODELVIEW);
-  glPushMatrix();
-  glLoadIdentity();
   glDrawTextTTF(false,xp, yp, 0, scale, text, color, anchorX, anchorY);
-
-  glMatrixMode(GL_MODELVIEW);
-  glPopMatrix();
-  glMatrixMode(GL_PROJECTION);
-  glPopMatrix();
-  glMatrixMode(GL_MODELVIEW);
 }

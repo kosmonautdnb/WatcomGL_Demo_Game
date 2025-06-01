@@ -59,7 +59,7 @@ void GO_CallbackManager::manage() {
 }
 
 bool GO_FrequencyCallbackManager::addObject(GO *o) {
-  if (dynamic_cast<GO_FrequencyCallback*>(o)==NULL) return false;
+  if (dynamic_cast<GO_FrequencyCallback*>(o)==NULL&&dynamic_cast<GO_FrequencyCallback2*>(o)==NULL) return false;
   managed.push_back(o);
   return true;
 }
@@ -68,12 +68,25 @@ void GO_FrequencyCallbackManager::manage() {
   for (int i = 0; i < managed.size(); i++) {
     GO *o = managed[i];
     if (o->deleteIt||(!o->activated)) continue;
+
     GO_FrequencyCallback *v0 = dynamic_cast<GO_FrequencyCallback*>(o);
-    v0->durationTillNext -= dt;
-    if (v0->durationTillNext <= 0) {
-      v0->frequent(v0->frequencyStep);
-      v0->frequencyStep++;
-      v0->durationTillNext = v0->durationFull;
+    if (v0 != NULL) {
+      v0->durationTillNext -= dt;
+      if (v0->durationTillNext <= 0) {
+        v0->frequent(v0->frequencyStep);
+        v0->frequencyStep++;
+        v0->durationTillNext = v0->durationFull;
+      }
+    }
+
+    GO_FrequencyCallback2 *v1 = dynamic_cast<GO_FrequencyCallback2*>(o);
+    if (v1 != NULL) {
+      v1->durationTillNext2 -= dt;
+      if (v1->durationTillNext2 <= 0) {
+        v1->frequent2(v1->frequencyStep2);
+        v1->frequencyStep2++;
+        v1->durationTillNext2 = v1->durationFull2;
+      }
     }
   }
 }
@@ -124,7 +137,7 @@ void GO_LifeTimeManager::manage() {
     if (o->deleteIt||(!o->activated)) continue;
     GO_LifeTime *v0 = dynamic_cast<GO_LifeTime*>(o);
     v0->lifeTime -= dt;
-    if (v0->lifeTime < 0) o->deleteIt = true;
+    if (v0->lifeTime < 0) {o->destruct();}
   }
 }
 
@@ -146,7 +159,7 @@ void GO_AliveDistanceManager::manage() {
     double d = length(v0->position-lastPosition);
     v1->aliveLastPosition = v0->position;
     v1->aliveDistance -= d;
-    if (v1->aliveDistance < 0) o->deleteIt = true;
+    if (v1->aliveDistance < 0) {o->destruct();}
   }
 }
 
@@ -172,7 +185,7 @@ bool GO_Collider_Enemy_Manager::addObject(GO *o) {
   return true;
 }
 
-void playerHit();
+void playerHit(bool explosion);
 
 void GO_Collider_Enemy_Manager::manage() {
   for (int i = 0; i < managed.size(); i++) {
@@ -185,7 +198,7 @@ void GO_Collider_Enemy_Manager::manage() {
     if (v1->colliderEnemyFresh) {v1->colliderEnemyFresh--;continue;}
     capsule[CAPSULE_COLLIDER] = Capsule(v1->colliderEnemyPosition, v1->lastColliderEnemyPosition, v1->colliderEnemyRadius);
     if (collide(CAPSULE_COLLIDER,CAPSULE_PLAYER)) {
-      playerHit();
+      playerHit(true);
     }
   }
 }

@@ -6,6 +6,7 @@ Mesh *player = NULL;
 Mesh *enemy = NULL;
 Mesh *enemy1 = NULL;
 Mesh *enemy2 = NULL;
+Mesh *enemy3 = NULL;
 
 static unsigned int translateToColor(const String &c) {
   String k = toLower(c);
