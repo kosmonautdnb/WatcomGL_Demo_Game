@@ -185,8 +185,6 @@ bool GO_Collider_Enemy_Manager::addObject(GO *o) {
   return true;
 }
 
-void playerHit(bool explosion);
-
 void GO_Collider_Enemy_Manager::manage() {
   for (int i = 0; i < managed.size(); i++) {
     GO *o = managed[i];
@@ -198,7 +196,7 @@ void GO_Collider_Enemy_Manager::manage() {
     if (v1->colliderEnemyFresh) {v1->colliderEnemyFresh--;continue;}
     capsule[CAPSULE_COLLIDER] = Capsule(v1->colliderEnemyPosition, v1->lastColliderEnemyPosition, v1->colliderEnemyRadius);
     if (collide(CAPSULE_COLLIDER,CAPSULE_PLAYER)) {
-      playerHit(true);
+      v1->collidedWithPlayer();
     }
   }
 }
@@ -221,7 +219,7 @@ void GO_Collider_LevelObject_Manager::manage() {
     if (v1->colliderLevelObjectFresh) {v1->colliderLevelObjectFresh--;continue;}
     capsule[CAPSULE_COLLIDER] = Capsule(v1->colliderLevelObjectPosition, v1->lastColliderLevelObjectPosition, v1->colliderLevelObjectRadius);
     if (collide(CAPSULE_COLLIDER,CAPSULE_PLAYER)) {
-      playerHit(true);
+      v1->collidedWithPlayer();
     }
   }
 }

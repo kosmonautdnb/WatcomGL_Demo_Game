@@ -157,6 +157,8 @@ public:
   virtual void paint(double dt) = 0;
 };
 
+void playerHit(bool explosion);
+
 class GO_Collider_Enemy {
 public:
   Vector colliderEnemyPosition;
@@ -167,6 +169,9 @@ public:
     colliderEnemyFresh = 2;
   }
   virtual ~GO_Collider_Enemy() {
+  }
+  virtual void collidedWithPlayer() {
+    playerHit(true);
   }
 };
 
@@ -180,6 +185,9 @@ public:
     colliderLevelObjectFresh = 2;
   }
   virtual ~GO_Collider_LevelObject() {
+  }
+  virtual void collidedWithPlayer() {
+    playerHit(true);
   }
 };
 

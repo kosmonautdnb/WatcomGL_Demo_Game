@@ -1,3 +1,4 @@
+// a round thing which rotates and changes shottype by that
 class Enemy1 : public GO, public GO_Position, public GO_FrequencyCallback, public GO_FrequencyCallback2, public GO_Collider_Enemy, public GO_Paintable, public GO_HitPoints, public GO_ScoreHit, public GO_ScoreDestructed {
 public:
   Enemy1(const Vector &p) : GO(), GO_Position(p), GO_FrequencyCallback(0.2), GO_FrequencyCallback2(0.15), GO_Collider_Enemy(30), GO_Paintable(), GO_HitPoints(64), GO_ScoreHit(1), GO_ScoreDestructed(200) {
@@ -56,6 +57,7 @@ public:
   }
 };
 
+// a space ship which comes from upwards, shots ands flies back upwards again
 class Enemy2 : public GO, public GO_Position, public GO_FrequencyCallback, public GO_FrequencyCallback2, public GO_Collider_Enemy, public GO_Paintable, public GO_HitPoints, public GO_ScoreHit, public GO_ScoreDestructed {
 public:
   bool blue;
@@ -121,6 +123,7 @@ public:
   }
 };
 
+// a ball that shoots many shots in all directions
 class Enemy3 : public GO, public GO_Position, public GO_FrequencyCallback, public GO_Collider_Enemy, public GO_Paintable, public GO_HitPoints, public GO_ScoreHit, public GO_ScoreDestructed {
 public:
   double shotSpeed;
@@ -164,15 +167,56 @@ public:
 };
 
 
+// a mine
+class Enemy4 : public GO, public GO_Position, public GO_FrequencyCallback, public GO_Collider_Enemy, public GO_Paintable, public GO_HitPoints, public GO_ScoreHit, public GO_ScoreDestructed {
+public:
+  bool blue;
+  Enemy4(const Vector &p) : GO(), GO_Position(p), GO_FrequencyCallback(0.5), GO_Collider_Enemy(20), GO_Paintable(), GO_HitPoints(64), GO_ScoreHit(1), GO_ScoreDestructed(200) {
+    static int k = 0; k++;
+    blue = k & 1;
+  }
+  virtual void frequent(int iteration) {
+    if (length(playerPos-position)<50.0) {
+      float speed = 10.0;
+      int sectors = 30;
+      float shotSpeed = 10;
+      for (int i = 0; i < sectors; i++) {
+        float a = i * 2 * PI / sectors;
+        Vector dir(sin(a)*shotSpeed,cos(a)*shotSpeed,0);
+        placeEmitExplosion(position+Vector(cos(a)*10,sin(a)*10,0));
+        GO *enemyShot = go_(new EnemyShot(position,dir));
+        dynamic_cast<EnemyShot*>(enemyShot)->blue=blue;
+        gameObjects.push_back(enemyShot);
+      }
+      enemyShotSound->play(position);
+    }
+  }
+  virtual void paint(double dt) {
+    glPushMatrix();
+    glTranslatef(position.x,position.y,position.z);
+    glRotatef(seconds*2,sin(seconds*3),cos(seconds*3),0);
+    reColor[0xffffffff] = blue ? 0xff0000ff : 0xff000000;
+    drawMesh(enemy4);
+    reColor.clear();
+    glPopMatrix();
+  }
+  virtual void destruct() {
+    placeExplosion(position);
+    GO::destruct();
+  }
+};
+
 void loadLevel1() {
   enemy1 = loadObject("enemy1.obj");
   enemy2 = loadObject("enemy2.obj");
   enemy3 = loadObject("enemy3.obj");
+  enemy4 = loadObject("enemy4.obj");
   object1 = loadObject("object1.obj");
   object2 = loadObject("object2.obj");
   centerAndResizeObject(enemy1,10.0);
   centerAndResizeObject(enemy2,15.0);
   centerAndResizeObject(enemy3,10.0);
+  centerAndResizeObject(enemy4,10.0);
   centerAndResizeObject(object1,30.0);
   centerAndResizeObject(object2,15.0);
 }
@@ -203,6 +247,22 @@ void buildLevel1() {
       gameObjects.push_back(go_((new Enemy2(Vector(randomLike(i*33)*150-75,-1100-i*80,0),true,2))->circularShots()));
       gameObjects.push_back(go_((new Enemy2(Vector(randomLike(i*33)*150-75,-1100-i*80-40,0),false,1))->circularShots()));
     }
+  }
+
+  for (i = 0; i < 20; i++) {
+    float z = 0;
+    float kx = randomLike(i*77+33)*200.0-100.0;
+    float ky = 2000+randomLike(i*44+33)*400;
+    gameObjects.push_back(go_(new Enemy4(Vector(kx,-ky,z))));
+  }
+
+  for (i = 0; i < 5; i++) {
+    bool blue = i & 1;
+    double x = randomLike(i*77)*50+50;
+    gameObjects.push_back(go_(new Enemy2(Vector(x,-2200-i*50,0),blue,0)));
+    gameObjects.push_back(go_(new Enemy2(Vector(-x,-2200-i*50,0),blue,0)));
+    if (i>2)
+      gameObjects.push_back(go_(new Enemy2(Vector(0,-2200-i*50-25,0),blue,1)));
   }
 
   // level objects

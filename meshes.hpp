@@ -19,13 +19,6 @@ public:
   Array<Face> faces;
 };
 
-extern Mesh *player;
-extern Mesh *enemy1; // round/circular object 
-extern Mesh *enemy2; // ship red wings
-extern Mesh *enemy3; // a white black ball
-extern Mesh *object1; // hangar like <
-extern Mesh *object2; // grey plate with red stripe
-
 Mesh *loadObject(const String &fileName);
 void centerAndResizeObject(Mesh *mesh, double size);
 

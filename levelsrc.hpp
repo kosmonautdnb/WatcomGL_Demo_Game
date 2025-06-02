@@ -1,3 +1,12 @@
+Mesh *player;
+Mesh *enemy1; // round/circular object 
+Mesh *enemy2; // ship red wings
+Mesh *enemy3; // a white black ball
+Mesh *enemy4; // a ball mine
+Mesh *object1; // hangar like <
+Mesh *object2; // grey plate with red stripe
+
+
 #define CAPSULE_PLAYER_RADIUS 2
 
 void placeSmallSmoke(const Vector &p);

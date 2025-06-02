@@ -2,13 +2,6 @@
 #include "smplobjl.hpp"
 #include "gl.h"
 
-Mesh *player = NULL;
-Mesh *enemy1 = NULL;
-Mesh *enemy2 = NULL;
-Mesh *enemy3 = NULL;
-Mesh *object1 = NULL;
-Mesh *object2 = NULL;
-
 static unsigned int translateToColor(const String &c) {
   String k = toLower(c);
   if (k.startsWith("white")) return 0xffffffff;

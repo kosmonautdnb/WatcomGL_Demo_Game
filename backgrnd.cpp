@@ -102,7 +102,7 @@ void paintLevel() {
         b = 1;
       }
       k.z = p*120.0;
-      if (k.z > 120 && (tY<1000)) k.z = 120;
+      if (k.z > 120 && (y*dY-tY>-1000)) k.z = 120;
       d *= perlin(k.x*sc*2,(k.y-tY-fY-levelScrollY2*4)*sc*2)*0.5+0.5;
       glColor3f(d*r-subi,d*g-subi,d*b-subi);
       if (p<0.625&&p>0.575) {
