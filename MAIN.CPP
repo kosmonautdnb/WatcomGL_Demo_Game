@@ -573,7 +573,10 @@ class Enemy3 : public GO, public GO_Position, public GO_FrequencyCallback, publi
 public:
   double shotSpeed;
   int sectors;
+  int type;
   Enemy3(const Vector &p) : GO(), GO_Position(p), GO_FrequencyCallback(0.35), GO_Collider_Enemy(30), GO_Paintable(), GO_HitPoints(64), GO_ScoreHit(1), GO_ScoreDestructed(200) {
+    static int k = 0; k++;
+    type = k & 1;
     shotSpeed = 10;
     sectors = 20;
   }
@@ -594,7 +597,12 @@ public:
     glPushMatrix();
     glTranslatef(position.x,position.y,position.z);
     glRotatef(seconds*90,sin(seconds*3),cos(seconds*3),0);
+    if (type == 1) {
+      reColor[0xffffffff] = 0xff000000;
+      reColor[0xff000000] = 0xff0000ff;
+    }
     drawMesh(enemy3);
+    reColor.clear();
     glPopMatrix();
   }
   virtual void destruct() {
@@ -606,17 +614,28 @@ public:
 class LevelObject : public GO, public GO_Position, public GO_Paintable, public GO_Rotation, public GO_Collider_LevelObject {
 public:
   Mesh *mesh;
+  bool _randomRotate;
+  Vector _scale;
   LevelObject(const Vector &p, const Vector &r, Mesh *mesh) : GO(), GO_Position(p), GO_Paintable(), GO_Rotation(r.w,r.xyz()), GO_Collider_LevelObject(20) {
     this->mesh = mesh;
+    _randomRotate = false;
+    _scale = Vector(1,1,1,1);
   }
   virtual void paint(double dt) {
     glPushMatrix();
     position.y += dt * 30.0;
     glTranslatef(position.x,position.y,position.z);
+    if (_randomRotate) {
+      Vector v = Vector(randomLike(index*10),randomLike(index*20),randomLike(index*30));
+      glRotatef(seconds*45,v.x,v.y,v.z);
+    }
     glRotatef(angle,axis.x,axis.y,axis.z);
+    glScalef(_scale.x,_scale.y,_scale.z);
     drawMesh(mesh);
     glPopMatrix();
   }
+  LevelObject *randomRotate() {_randomRotate=true;return this;}
+  LevelObject *scale(const Vector &_scale) {this->_scale=_scale;return this;}
 };
 
 void shot() {
@@ -633,7 +652,7 @@ void shot() {
     }
   }
 }
-
+                                                                                                                                                                                                      
 void playerHit(bool explosion) {
   playerHits++;
   if (explosion)
@@ -740,11 +759,13 @@ int main(int argc, const char *argv) {
   enemy2 = loadObject("enemy2.obj");
   enemy3 = loadObject("enemy3.obj");
   object1 = loadObject("object1.obj");
+  object2 = loadObject("object2.obj");
   centerAndResizeObject(player,10.0);
   centerAndResizeObject(enemy1,10.0);
   centerAndResizeObject(enemy2,15.0);
   centerAndResizeObject(enemy3,10.0);
   centerAndResizeObject(object1,30.0);
+  centerAndResizeObject(object2,15.0);
   enemyShotSound = auLoadSample(0,0.25);
   shotSound = auLoadSample(0,0.5);
   slideSound = auLoadSample(2,1);
@@ -753,7 +774,8 @@ int main(int argc, const char *argv) {
   initText();
 
   go_setupManagers();
-   
+
+  // level enemies   
   int i,j;
   for (i = 0; i < 10; i++) {
     gameObjects.push_back(go_(new Enemy1(Vector(randomLike(i*33)*150-75,-100-i*20,0))));
@@ -780,10 +802,20 @@ int main(int argc, const char *argv) {
     }
   }
 
+  // level objects
   for (i = 0; i < 10; i++) {
     double xp = 75;
-      gameObjects.push_back(go_(new LevelObject(Vector(-xp,-1100-i*5,0), Vector(0,1,0,0), object1)));
-      gameObjects.push_back(go_(new LevelObject(Vector(xp,-1100-i*5,0), Vector(0,1,0,180), object1)));
+    gameObjects.push_back(go_((new LevelObject(Vector(-xp,-1100-i*5,0), Vector(0,1,0,0), object1))->randomRotate()));
+    gameObjects.push_back(go_((new LevelObject(Vector(xp,-1100-i*5,0), Vector(0,1,0,180), object1))->randomRotate()));
+  }
+
+  for (i = 0; i < 100; i++) {
+    float z = 40;
+    int secs = 7;
+    float kx = (double(i % secs)/(secs-1)*2-1)*100.0;
+    float ky = (i/secs)*7.5+2000;
+    if (randomLike(i*33)<0.5)
+      gameObjects.push_back(go_((new LevelObject(Vector(kx,-ky,z), Vector(0,0,0,0), object2))->randomRotate()));
   }
 
   for (j = 0; j < 2; j++) {
@@ -791,8 +823,8 @@ int main(int argc, const char *argv) {
       double r = 1.0-(double)k/3;
       for (i = 0; i < 5; i++) {
         double xp = 75;
-        gameObjects.push_back(go_(new LevelObject(Vector((-80+j*160)*r,-500-i*8-k*100,-xp), Vector(0,1,0,0-90), object1)));
-        gameObjects.push_back(go_(new LevelObject(Vector((-80+j*160)*r,-500-i*8-k*100,xp), Vector(0,1,0,180-90), object1)));
+        gameObjects.push_back(go_((new LevelObject(Vector((-80+j*160)*r,-500-i*8-k*100,-xp), Vector(0,1,0,0-90), object1))));
+        gameObjects.push_back(go_((new LevelObject(Vector((-80+j*160)*r,-500-i*8-k*100,xp), Vector(0,1,0,180-90), object1))));
       }
     }
   }
