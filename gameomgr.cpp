@@ -33,9 +33,9 @@ void GO_GOManager::manage() {
       }
     }
     if ((o->activated)&&(!o->deleteIt)) {
-      GO_Position *v0 = dynamic_cast<GO_Position*>(o);
-      if (v0 != NULL) {
-        if (!isInActiveScreen(v0->position)) o->deleteIt = true;
+      GO_Position *v1 = dynamic_cast<GO_Position*>(o);
+      if (v1 != NULL) {
+        if (!isInActiveScreen(v1->position)) o->deleteIt = true;
       }
     }
     if (o->deleteIt||(!o->activated)) continue;

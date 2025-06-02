@@ -51,6 +51,7 @@ int currentFrame = 0;
 double fps = 0;
 int32_t score = 0;
 int32_t lives = 4;
+HashMap<uint32_t,uint32_t> reColor;
 
 #define CAPSULE_PLAYER_RADIUS 2
 
@@ -81,7 +82,8 @@ void drawMesh(Mesh *mesh) {
     n[0] = &mesh->normals[f->n[0]];
     n[1] = &mesh->normals[f->n[1]];
     n[2] = &mesh->normals[f->n[2]];
-    unsigned int col = f->color;
+    uint32_t col = f->color;
+    if (reColor.has(col)) col = reColor[col];
     if ((col>>24)==0x40) {
       glDisable(GL_LIGHTING);
       col = 0xffff0000;
@@ -112,6 +114,7 @@ public:
   bool smoke;
   bool black;
   Explosion(const Vector &p, const Vector &v, double size, double lifeTime, bool smoke, bool black) : GO(), GO_Position(p), GO_LifeTime(lifeTime), GO_Physical(v), GO_Paintable() {
+    activated = true;
     this->size = size;
     this->smoke = smoke;
     this->black = black;
@@ -229,6 +232,7 @@ public:
     activated = true;
     static int k = 0; k++;
     lifeTime+=randomLike(k*111)*0.25;
+    debugCountIt=false;
   }
   virtual void paint(double dt) {
     double l = (double)(initialLifeTime-lifeTime)/initialLifeTime;
@@ -342,6 +346,7 @@ public:
   Vector lastPosition;
   bool fresh;
   PlayerShot(const Vector &p, const Vector &v) : GO(), GO_Position(), GO_Physical(), GO_Paintable(), GO_AliveDistance(180) {
+    activated = true;
     position = p;
     velocity = v;
     shotSound->play(p);
@@ -402,6 +407,7 @@ public:
   Vector lastPosition;
   bool fresh;
   EnemyShot(const Vector &p, const Vector &v) : GO(), GO_Position(), GO_Physical(), GO_Paintable(), GO_AliveDistance(180), GO_LifeTime(100) {
+    activated = true;
     initialPosition = p;
     position = p;
     velocity = v;
@@ -502,8 +508,10 @@ class Enemy2 : public GO, public GO_Position, public GO_FrequencyCallback, publi
 public:
   bool blue;
   bool _circularShots;
-  Enemy2(const Vector &p, bool blue) : GO(), GO_Position(p), GO_FrequencyCallback(0.35), GO_FrequencyCallback2(0.025), GO_Collider_Enemy(30), GO_Paintable(), GO_HitPoints(64), GO_ScoreHit(1), GO_ScoreDestructed(200) {
+  int type;
+  Enemy2(const Vector &p, bool blue, int type) : GO(), GO_Position(p), GO_FrequencyCallback(0.35), GO_FrequencyCallback2(0.025), GO_Collider_Enemy(30), GO_Paintable(), GO_HitPoints(64), GO_ScoreHit(1), GO_ScoreDestructed(200) {
     this->blue = blue;
+    this->type = type;
     _circularShots = false;
   }
   virtual void frequent(int iteration) {
@@ -539,7 +547,15 @@ public:
     glRotatef(90.f-(k>-1?k:-1)*90.f+180,1,0,0);
     if (k<0) glRotatef(k*180,0,1,0);
     if (k<0&&lk>=0) exploSound->play(position);
+    if (type == 1) {
+      reColor[0xffffffff] = 0xff000000;
+    }
+    if (type == 2) {
+      reColor[0xffffffff] = 0xff000000;
+      reColor[0xff0000ff] = 0xffffffff;
+    }
     drawMesh(enemy2);
+    reColor.clear();
     glPopMatrix();
     lk = k;
   }
@@ -667,6 +683,13 @@ void drawHud() {
 
   sprintf(scoreBuffer,"fps:%d",(int)fps);
   drawText(0,40,scoreBuffer,color,1.0);
+  int debugCount = 0;
+  for (int i = 0; i < gameObjects.size(); i++) {
+    if (gameObjects[i]->debugCountIt)
+      debugCount++;
+  }
+  sprintf(scoreBuffer,"%d/%d",(int)gameObjects.size(),debugCount);
+  drawText(0,80,scoreBuffer,color,1.0);
 
 
   drawEnergyBar(1280-250,5,150,20);
@@ -710,16 +733,14 @@ int main(int argc, const char *argv) {
   glDepthFunc(GL_LEQUAL);
   installKeyboardHandler();
   auSoundDriverOn();
-  //auMuteAudio(true);
+  auMuteAudio(true);
 
   player = loadObject("player.obj");
-  enemy = loadObject("impostor.obj");
   enemy1 = loadObject("enemy1.obj");
   enemy2 = loadObject("enemy2.obj");
   enemy3 = loadObject("enemy3.obj");
   object1 = loadObject("object1.obj");
   centerAndResizeObject(player,10.0);
-  centerAndResizeObject(enemy,10.0);
   centerAndResizeObject(enemy1,10.0);
   centerAndResizeObject(enemy2,15.0);
   centerAndResizeObject(enemy3,10.0);
@@ -740,10 +761,10 @@ int main(int argc, const char *argv) {
   for (i = 0; i < 5; i++) {
     bool blue = i & 1;
     double x = randomLike(i*77)*50+50;
-    gameObjects.push_back(go_(new Enemy2(Vector(x,-450-i*50,0),blue)));
-    gameObjects.push_back(go_(new Enemy2(Vector(-x,-450-i*50,0),blue)));
+    gameObjects.push_back(go_(new Enemy2(Vector(x,-450-i*50,0),blue,0)));
+    gameObjects.push_back(go_(new Enemy2(Vector(-x,-450-i*50,0),blue,0)));
     if (i>2)
-      gameObjects.push_back(go_(new Enemy2(Vector(0,-450-i*50-25,0),blue)));
+      gameObjects.push_back(go_(new Enemy2(Vector(0,-450-i*50-25,0),blue,1)));
   }
   for (i = 0; i < 3; i++) {
     gameObjects.push_back(go_(new Enemy1(Vector(-75,-450-5*50-i*80,0))));
@@ -754,8 +775,8 @@ int main(int argc, const char *argv) {
     if (i & 1) {
       gameObjects.push_back(go_(new Enemy3(Vector(randomLike(i*33)*150-75,-1100-i*80,0))));
     } else {
-      gameObjects.push_back(go_((new Enemy2(Vector(randomLike(i*33)*150-75,-1100-i*80,0),true))->circularShots()));
-      gameObjects.push_back(go_((new Enemy2(Vector(randomLike(i*33)*150-75,-1100-i*80-40,0),false))->circularShots()));
+      gameObjects.push_back(go_((new Enemy2(Vector(randomLike(i*33)*150-75,-1100-i*80,0),true,2))->circularShots()));
+      gameObjects.push_back(go_((new Enemy2(Vector(randomLike(i*33)*150-75,-1100-i*80-40,0),false,1))->circularShots()));
     }
   }
 

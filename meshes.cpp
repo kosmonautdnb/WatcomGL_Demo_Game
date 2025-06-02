@@ -3,7 +3,6 @@
 #include "gl.h"
 
 Mesh *player = NULL;
-Mesh *enemy = NULL;
 Mesh *enemy1 = NULL;
 Mesh *enemy2 = NULL;
 Mesh *enemy3 = NULL;
@@ -18,8 +17,8 @@ static unsigned int translateToColor(const String &c) {
   if (k.startsWith("plexiglas")) return 0x80ffc000;
   if (k.startsWith("lightblue")) {return 0x20000000;}
   if (k.startsWith("turbine")) return 0x4000c0ff;
-  if (k.startsWith("color1")) return 0xffffffff;
-  if (k.startsWith("color2")) return 0xff0000ff;
+  //if (k.startsWith("color1")) return 0xffffffff;
+  //if (k.startsWith("color2")) return 0xff0000ff;
   glDone();
   printf("%s\n",k.c_str());
   exit(0);

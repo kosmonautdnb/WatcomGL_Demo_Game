@@ -11,6 +11,7 @@ public:
   int index;
   double seconds;
   bool activated;
+  bool debugCountIt;
   GO() {
     deleteIt = false;
     static int k=0;
@@ -18,6 +19,7 @@ public:
     k++;
     seconds = 0;
     activated = false;
+    debugCountIt = true;
   }
   virtual ~GO() {
   }
