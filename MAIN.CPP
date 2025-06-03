@@ -57,7 +57,10 @@ HashMap<uint32_t,uint32_t> reColor;
 #include "level1.hpp"
 #include "hud.hpp"
 
+double playerAnimDuration = 1.0;
+
 void shot() {
+  if (playerAnimDuration>0) return;
   static double lastShotTime = currentTime;
   double distance = fabs(lastShotTime - currentTime);
   if (distance > 0.1) {
@@ -74,26 +77,33 @@ void shot() {
 
 void drawPlayer(Mesh *mesh, const Vector &pos) {
   glPushMatrix();
-  glTranslatef(pos.x,pos.y,pos.z);
-  glRotatef(playerRoll,0,1,0);
-  drawMesh(mesh);
-
-  glDisable(GL_DEPTH_TEST);
-  glEnable(GL_TEXTURE_2D);
-  glBindTexture(GL_TEXTURE_2D, shotTexture[3]);
-  glEnable(GL_ALPHA_TEST);
-  glAlphaFunc(GL_GREATER,0.1f);
-  glBegin(GL_POINTS);
-  glColor4f(1,1,1,1);
-  glPointSize(XRES*5/320);
-  glVertex3f(0,0,0);
-  glEnd();
-  glDisable(GL_TEXTURE_2D);
-  glDisable(GL_ALPHA_TEST);
-  glEnable(GL_DEPTH_TEST);
-
+  if (playerAnimDuration<=0) {
+    glTranslatef(pos.x,pos.y,pos.z);
+    glRotatef(playerRoll,0,1,0);
+    drawMesh(mesh);
+  
+    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, shotTexture[3]);
+    glEnable(GL_ALPHA_TEST);
+    glAlphaFunc(GL_GREATER,0.1f);
+    glBegin(GL_POINTS);
+    glColor4f(1,1,1,1);
+    glPointSize(XRES*5/320);
+    glVertex3f(0,0,0);
+    glEnd();
+    glDisable(GL_TEXTURE_2D);
+    glDisable(GL_ALPHA_TEST);
+    glEnable(GL_DEPTH_TEST);
+    PlayerTurbineParticle::emit();
+  } else {
+    glTranslatef(pos.x,pos.y,pos.z-pow(playerAnimDuration,0.75)*220);
+    glRotatef(playerAnimDuration*45,1,0,0);
+    glRotatef(pow(playerAnimDuration,0.75)*360,0,1,0);
+    drawMesh(mesh);
+    playerAnimDuration -= timeDelta*0.5;
+  }
   glPopMatrix();
-  PlayerTurbineParticle::emit();
 }
 
 double levelScroll = 0;
@@ -192,6 +202,7 @@ int main(int argc, const char *argv) {
     drawPlayer(player,playerPos);
     go_onFrame(timeDelta);
     drawHud();
+    if (playerAnimDuration>0) drawHudGetReady(playerAnimDuration);
     glRefresh();
     if (currentKey == GL_VK_F1) {
       RGBAImage m,m2;

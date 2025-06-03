@@ -1,3 +1,21 @@
+void hudStart() {
+  glMatrixMode(GL_PROJECTION);
+  glPushMatrix();
+  glLoadIdentity();
+  glOrtho(0,1280,720,0,-1,1);
+  glMatrixMode(GL_MODELVIEW);
+  glPushMatrix();
+  glLoadIdentity();
+}
+
+void hudEnd() {
+  glMatrixMode(GL_MODELVIEW);
+  glPopMatrix();
+  glMatrixMode(GL_PROJECTION);
+  glPopMatrix();
+  glMatrixMode(GL_MODELVIEW);
+}
+
 void drawEnergyBar(double xp, double yp, double w, double h) {
   double shorten=(double)playerHits/maxPlayerHits;
   float r2 = shorten;
@@ -23,14 +41,14 @@ void drawEnergyBar(double xp, double yp, double w, double h) {
   glEnd();
 }
 
+void drawHudGetReady(double anim) {
+  hudStart();
+  drawText(1280/2,720/2,"Get Ready",0x00ffffff+((uint32_t)(pow(anim,0.5)*0xff000000)&0xff000000),1.0,0.5,0.5);
+  hudEnd();
+}
+
 void drawHud() {
-  glMatrixMode(GL_PROJECTION);
-  glPushMatrix();
-  glLoadIdentity();
-  glOrtho(0,1280,720,0,-1,1);
-  glMatrixMode(GL_MODELVIEW);
-  glPushMatrix();
-  glLoadIdentity();
+  hudStart();
 
   uint32_t color = 0xffffffc0;
   char scoreBuffer[16];
@@ -52,9 +70,5 @@ void drawHud() {
 
   drawEnergyBar(1280-250,5,150,20);
 
-  glMatrixMode(GL_MODELVIEW);
-  glPopMatrix();
-  glMatrixMode(GL_PROJECTION);
-  glPopMatrix();
-  glMatrixMode(GL_MODELVIEW);
+  hudEnd();
 }
