@@ -64,8 +64,8 @@ void drawHud() {
     if (gameObjects[i]->debugCountIt)
       debugCount++;
   }
-  sprintf(scoreBuffer,"%d/%d",(int)gameObjects.size(),debugCount);
-  drawText(0,80,scoreBuffer,color,1.0);
+  //sprintf(scoreBuffer,"%d/%d",(int)gameObjects.size(),debugCount);
+  //drawText(0,80,scoreBuffer,color,1.0);
 
 
   drawEnergyBar(1280-250,5,150,20);

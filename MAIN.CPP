@@ -53,6 +53,12 @@ int32_t score = 0;
 int32_t lives = 4;
 HashMap<uint32_t,uint32_t> reColor;
 
+enum {
+  WEAPON_GREEN = 1,
+};
+int weaponColor = WEAPON_GREEN;
+int weaponStrength = 1;
+
 #include "levelsrc.hpp"
 #include "level1.hpp"
 #include "hud.hpp"
@@ -64,13 +70,16 @@ void shot() {
   static double lastShotTime = currentTime;
   double distance = fabs(lastShotTime - currentTime);
   if (distance > 0.1) {
+    static int rk = 0; rk++;
     lastShotTime = currentTime;
     for (int i = -1; i <= 1; i++) {
       Vector k = playerPos;  
       k.x += i*3;
       gameObjects.push_back(go_(new PlayerShot(k,Vector(0,-80,0))));
-      //gameObjects.push_back(go_(new PlayerShot(k,Vector(-20,-80,0)))->vorlauf(i*0.025));
-      //gameObjects.push_back(go_(new PlayerShot(k,Vector(+20,-80,0)))->vorlauf(-i*0.025));
+      if (weaponStrength == 2 && (rk&1)) {
+        gameObjects.push_back(go_((new PlayerShot(k,Vector(-20,-80,0)))->vorlauf(i*0.025)));
+        gameObjects.push_back(go_((new PlayerShot(k,Vector(+20,-80,0)))->vorlauf(-i*0.025)));
+      }
     }
   }
 }

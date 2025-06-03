@@ -3,9 +3,9 @@ Mesh *enemy1; // round/circular object
 Mesh *enemy2; // ship red wings
 Mesh *enemy3; // a white black ball
 Mesh *enemy4; // a ball mine
+Mesh *collect; // a collectable object
 Mesh *object1; // hangar like <
 Mesh *object2; // grey plate with red stripe
-
 
 #define CAPSULE_PLAYER_RADIUS 2
 
@@ -360,6 +360,34 @@ public:
   }
   LevelObject *randomRotate() {_randomRotate=true;return this;}
   LevelObject *scale(const Vector &_scale) {this->_scale=_scale;return this;}
+};
+
+class Collectable : public GO, public GO_Position, public GO_Paintable, public GO_Rotation, public GO_Collider_LevelObject {
+public:
+  Collectable(const Vector &p) : GO(), GO_Position(p), GO_Paintable(), GO_Collider_LevelObject(10) {
+  }
+  virtual void paint(double dt) {
+    glPushMatrix();
+    glTranslatef(position.x,position.y,position.z);
+    glRotatef(seconds*120,sin(seconds),cos(seconds),0);
+    float l = sin(seconds*2*PI*1.5)*0.5f+0.75f;
+    int r = (int)clamp(l*55,0.f,255.f);
+    int g = (int)clamp(l*255.f,0.f,255.f);
+    int b = (int)clamp(l*155.f,0.f,255.f);
+    reColor[0xff00ff00] = r|(g<<8)|(b<<16)|0xff000000;
+    glScalef(1,1,0.75);
+    glRotatef(seconds*90,0,0,1);
+    drawMesh(collect);
+    reColor.clear();
+    glPopMatrix();
+  }
+  virtual void collidedWithPlayer() {
+    placeExplosionRing(playerPos);
+    deleteIt = true;
+    weaponColor = WEAPON_GREEN;
+    weaponStrength++;
+    slideSound->play(position);
+  }
 };
 
 void placeSmallSmoke(const Vector &p) {

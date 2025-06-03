@@ -171,12 +171,12 @@ public:
 class Enemy4 : public GO, public GO_Position, public GO_FrequencyCallback, public GO_Collider_Enemy, public GO_Paintable, public GO_HitPoints, public GO_ScoreHit, public GO_ScoreDestructed {
 public:
   bool blue;
-  Enemy4(const Vector &p) : GO(), GO_Position(p), GO_FrequencyCallback(0.5), GO_Collider_Enemy(20), GO_Paintable(), GO_HitPoints(64), GO_ScoreHit(1), GO_ScoreDestructed(200) {
+  Enemy4(const Vector &p) : GO(), GO_Position(p), GO_FrequencyCallback(0.5), GO_Collider_Enemy(20), GO_Paintable(), GO_HitPoints(128), GO_ScoreHit(1), GO_ScoreDestructed(200) {
     static int k = 0; k++;
     blue = k & 1;
   }
   virtual void frequent(int iteration) {
-    if (length(playerPos-position)<50.0) {
+    if (length(playerPos-position)<40.0) {
       float speed = 10.0;
       int sectors = 30;
       float shotSpeed = 10;
@@ -211,12 +211,14 @@ void loadLevel1() {
   enemy2 = loadObject("enemy2.obj");
   enemy3 = loadObject("enemy3.obj");
   enemy4 = loadObject("enemy4.obj");
+  collect = loadObject("collect.obj");
   object1 = loadObject("object1.obj");
   object2 = loadObject("object2.obj");
   centerAndResizeObject(enemy1,10.0);
   centerAndResizeObject(enemy2,15.0);
   centerAndResizeObject(enemy3,10.0);
   centerAndResizeObject(enemy4,10.0);
+  centerAndResizeObject(collect,7.5);
   centerAndResizeObject(object1,30.0);
   centerAndResizeObject(object2,15.0);
 }
@@ -303,4 +305,7 @@ void buildLevel1() {
       gameObjects.push_back(go_(new LevelObject(Vector(sin(a2+PI)*xp,lp-i*4,cos(a2+PI)*xp*0.2), Vector(0,1,0,180+a), object1)));
     }
   }
+
+  // collectables
+  gameObjects.push_back(go_(new Collectable(Vector(50,-400,0))));
 }
