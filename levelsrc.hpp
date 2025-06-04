@@ -241,7 +241,6 @@ public:
     activated = true;
     position = p;
     velocity = v;
-    shotSound->play(p);
     fresh = true;
   }
   virtual void paint(double dt) {
@@ -395,7 +394,7 @@ public:
 
 void placeSmallSmoke(const Vector &p) {
   gameObjects.push_back(go_(new Explosion(p,Vector(),2,1.0,true,false)));
-  shotSound->play(p);
+  //shotSound->play(p);
 }
 
 void placeEmitExplosion(const Vector &p) {

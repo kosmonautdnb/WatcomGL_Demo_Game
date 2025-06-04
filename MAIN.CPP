@@ -189,6 +189,8 @@ void shot() {
     paintGreenLaser(playerPos+Vector(0,-10,0),playerPos+Vector(0,-150,0),distance>0.1);
 
   if (distance > 0.1) {
+    //static int k3 = 0; k3++;
+    //if ((k3 % 2)==0) shotSound->play(playerPos);
     static int rk = 0; rk++;
     lastShotTime = currentTime;
     for (int i = -1; i <= 1; i++) {
@@ -312,6 +314,7 @@ int main(int argc, const char *argv) {
       if (!shiftPressed) {
         placeExplosionRing(playerPos);
         playerBlue = !playerBlue;
+        slideSound->play(playerPos);
       }
       shiftPressed = true;
     } else {

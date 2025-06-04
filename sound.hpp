@@ -3,7 +3,7 @@
 
 class Sample {
 public:
-  unsigned char *sample;
+  signed int *sample;
   int sampleLength;
   double priority;
   void play(const class Vector &pos);
