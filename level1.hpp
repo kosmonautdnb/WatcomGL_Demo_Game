@@ -1,7 +1,7 @@
 // a round thing which rotates and changes shottype by that
 class Enemy1 : public GO, public GO_Position, public GO_FrequencyCallback, public GO_FrequencyCallback2, public GO_Collider_Enemy, public GO_Paintable, public GO_HitPoints, public GO_ScoreHit, public GO_ScoreDestructed {
 public:
-  Enemy1(const Vector &p) : GO(), GO_Position(p), GO_FrequencyCallback(0.2), GO_FrequencyCallback2(0.15), GO_Collider_Enemy(30), GO_Paintable(), GO_HitPoints(64), GO_ScoreHit(1), GO_ScoreDestructed(200) {
+  Enemy1(const Vector &p) : GO(), GO_Position(p), GO_FrequencyCallback(0.2), GO_FrequencyCallback2(0.15), GO_Collider_Enemy(10), GO_Paintable(), GO_HitPoints(64), GO_ScoreHit(1), GO_ScoreDestructed(200) {
   }
   virtual void frequent(int iteration) {
     double k2 = fmod(seconds,9);
@@ -47,7 +47,9 @@ public:
         position.x += dt*20;
     }
     lk2 = k2;
+    markDebug = debugMark;
     drawMesh(enemy1);
+    markDebug = false;
     glPopMatrix();
   }
 
@@ -63,7 +65,7 @@ public:
   bool blue;
   bool _circularShots;
   int type;
-  Enemy2(const Vector &p, bool blue, int type) : GO(), GO_Position(p), GO_FrequencyCallback(0.35), GO_FrequencyCallback2(0.025), GO_Collider_Enemy(30), GO_Paintable(), GO_HitPoints(64), GO_ScoreHit(1), GO_ScoreDestructed(200) {
+  Enemy2(const Vector &p, bool blue, int type) : GO(), GO_Position(p), GO_FrequencyCallback(0.35), GO_FrequencyCallback2(0.025), GO_Collider_Enemy(10), GO_Paintable(), GO_HitPoints(64), GO_ScoreHit(1), GO_ScoreDestructed(200) {
     this->blue = blue;
     this->type = type;
     _circularShots = false;
@@ -108,7 +110,9 @@ public:
       reColor[0xffffffff] = 0xff000000;
       reColor[0xff0000ff] = 0xffffffff;
     }
+    markDebug = debugMark;
     drawMesh(enemy2);
+    markDebug = false;
     reColor.clear();
     glPopMatrix();
     lk = k;
@@ -129,7 +133,7 @@ public:
   double shotSpeed;
   int sectors;
   int type;
-  Enemy3(const Vector &p) : GO(), GO_Position(p), GO_FrequencyCallback(0.35), GO_Collider_Enemy(30), GO_Paintable(), GO_HitPoints(64), GO_ScoreHit(1), GO_ScoreDestructed(200) {
+  Enemy3(const Vector &p) : GO(), GO_Position(p), GO_FrequencyCallback(0.35), GO_Collider_Enemy(10), GO_Paintable(), GO_HitPoints(64), GO_ScoreHit(1), GO_ScoreDestructed(200) {
     static int k = 0; k++;
     type = k & 1;
     shotSpeed = 10;
@@ -156,7 +160,9 @@ public:
       reColor[0xffffffff] = 0xff000000;
       reColor[0xff000000] = 0xff0000ff;
     }
+    markDebug = debugMark;
     drawMesh(enemy3);
+    markDebug = false;
     reColor.clear();
     glPopMatrix();
   }
@@ -171,7 +177,7 @@ public:
 class Enemy4 : public GO, public GO_Position, public GO_FrequencyCallback, public GO_Collider_Enemy, public GO_Paintable, public GO_HitPoints, public GO_ScoreHit, public GO_ScoreDestructed {
 public:
   bool blue;
-  Enemy4(const Vector &p) : GO(), GO_Position(p), GO_FrequencyCallback(0.5), GO_Collider_Enemy(20), GO_Paintable(), GO_HitPoints(128), GO_ScoreHit(1), GO_ScoreDestructed(200) {
+  Enemy4(const Vector &p) : GO(), GO_Position(p), GO_FrequencyCallback(0.5), GO_Collider_Enemy(10), GO_Paintable(), GO_HitPoints(128), GO_ScoreHit(1), GO_ScoreDestructed(200) {
     static int k = 0; k++;
     blue = k & 1;
   }
@@ -196,7 +202,9 @@ public:
     glTranslatef(position.x,position.y,position.z);
     glRotatef(seconds*2,sin(seconds*3),cos(seconds*3),0);
     reColor[0xffffffff] = blue ? 0xff0000ff : 0xff000000;
+    markDebug = debugMark;
     drawMesh(enemy4);
+    markDebug = false;
     reColor.clear();
     glPopMatrix();
   }
@@ -254,7 +262,7 @@ void buildLevel1() {
   for (i = 0; i < 20; i++) {
     float z = 0;
     float kx = randomLike(i*77+33)*200.0-100.0;
-    float ky = 2000+randomLike(i*44+33)*400;
+    float ky = 2000+randomLike(i*44+33)*800;
     gameObjects.push_back(go_(new Enemy4(Vector(kx,-ky,z))));
   }
 
@@ -308,4 +316,5 @@ void buildLevel1() {
 
   // collectables
   gameObjects.push_back(go_(new Collectable(Vector(50,-400,0))));
+  gameObjects.push_back(go_(new Collectable(Vector(-50,-800,0))));
 }

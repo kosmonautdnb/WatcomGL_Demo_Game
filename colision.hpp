@@ -6,7 +6,8 @@
 #define CAPSULE_PLAYER 0
 #define CAPSULE_PLAYERSHOT 1
 #define CAPSULE_COLLIDER 2
-#define MAX_CAPSULES 3
+#define CAPSULE_ANOTHER_COLLIDER 3
+#define MAX_CAPSULES 4
 
 class Capsule {
 public:

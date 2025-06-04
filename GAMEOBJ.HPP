@@ -12,6 +12,7 @@ public:
   double seconds;
   bool activated;
   bool debugCountIt;
+  bool debugMark;
   GO() {
     deleteIt = false;
     static int k=0;
@@ -20,11 +21,15 @@ public:
     seconds = 0;
     activated = false;
     debugCountIt = true;
+    debugMark = false;
   }
   virtual ~GO() {
   }
   virtual void destruct() {
     deleteIt = true;
+  }
+  void mark(bool m) {
+    debugMark = m;
   }
 };
 

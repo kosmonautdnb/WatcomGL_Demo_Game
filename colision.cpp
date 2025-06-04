@@ -6,7 +6,9 @@ Capsule capsule[MAX_CAPSULES];
 // wickedengine.net
 Vector ClosestPointOnLineSegment(const Vector &A, const Vector &B, const Vector &Point) {
   Vector AB = B - A;
-  double t = dot(Point-A,AB);
+  double k = dot(AB,AB);
+  if (k == 0) k = 1;
+  double t = dot(Point-A,AB) / k;
   return A + saturate(t) * AB;
 }
 
@@ -20,10 +22,11 @@ bool collide(const Capsule &a, const Capsule &b) {
   double bl = length(bd);
   double ra = al < a.radius ? a.radius : al;
   double rb = bl < b.radius ? b.radius : bl;
-  if (length((a.tip+a.base)-(b.tip+b.base))>ra+rb)  // is the center of both nearer than radis of both *0.5 is implicit
+  if (length((a.tip+a.base)-(b.tip+b.base))*0.5>ra+rb)
     return false;
-  if (al==0) al = 1; // a_Normal is 0 by this
-  if (bl==0) bl = 1; // b_Normal is 0 by this
+
+  if (al == 0) al = 1;
+  if (bl == 0) bl = 1;
 
   Vector a_Normal = ad/al;
   Vector a_LineOffset = a_Normal * a.radius;
@@ -57,7 +60,7 @@ bool collide(const Capsule &a, const Capsule &b) {
 
   Vector penetration_normal = bestA - bestB;
   double len = length(penetration_normal);
-  penetration_normal /= len;
+  if (len > 0) penetration_normal /= len;
   double penetration_depth = a.radius+b.radius-len;
   bool intersects = penetration_depth > 0;
   return intersects;

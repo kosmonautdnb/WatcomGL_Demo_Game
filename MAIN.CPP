@@ -4,6 +4,7 @@
 #include "array.hpp"
 #include "vector.hpp"
 #include "object.hpp"
+#include "pair.hpp"
 #include "string.hpp"
 #include "smplobjl.hpp"
 #include "gameobj.hpp"
@@ -52,6 +53,7 @@ double fps = 0;
 int32_t score = 0;
 int32_t lives = 4;
 HashMap<uint32_t,uint32_t> reColor;
+bool markDebug = false;
 
 enum {
   WEAPON_GREEN = 1,
@@ -65,18 +67,136 @@ int weaponStrength = 1;
 
 double playerAnimDuration = 1.0;
 
+Array<GO*> getAllObjectsInCapsule(const Vector &capsuleStart, const Vector &capsuleEnd, double radius) {
+  Array<GO*> ret;
+  capsule[CAPSULE_ANOTHER_COLLIDER] = Capsule(capsuleStart, capsuleEnd, radius);
+  for (int i = 0; i < gameObjects.size(); i++) {
+    GO *o = gameObjects[i];
+    if (o->deleteIt||(!o->activated)) continue;
+    GO_Position *v0 = dynamic_cast<GO_Position*>(o);
+    GO_Collider_Enemy *v1 = dynamic_cast<GO_Collider_Enemy*>(o);
+    GO_Collider_LevelObject *v2 = dynamic_cast<GO_Collider_LevelObject*>(o);
+    if (v1 != NULL || v2 != NULL) {
+      if (v1 != NULL&&(!v1->colliderEnemyFresh)) {
+        capsule[CAPSULE_COLLIDER] = Capsule(v1->colliderEnemyPosition, v1->lastColliderEnemyPosition, v1->colliderEnemyRadius);
+      }
+      if (v2 != NULL&&(!v2->colliderLevelObjectFresh)) {
+        capsule[CAPSULE_COLLIDER] = Capsule(v2->colliderLevelObjectPosition, v2->lastColliderLevelObjectPosition, v2->colliderLevelObjectRadius);
+      }
+      if (collide(CAPSULE_COLLIDER,CAPSULE_ANOTHER_COLLIDER)) {
+        ret.push_back(o);
+      }
+    }
+  }
+  return ret;
+}
+
+void paintGreenLaser(const Vector &start,const Vector &end, bool hitObjects) {
+  Vector end2 = end;
+  bool hit = false;
+  GO *nearestEnemy = NULL;
+  if (hitObjects) {
+    static int ka = 0; ka++;
+    if ((ka & 15)==0) slideSound->play(start);
+    Array<GO*> objects = getAllObjectsInCapsule(start,end,5);
+    for (int i = 0; i < objects.size(); i++) {
+      GO *o = objects[i];
+      GO_Collider_Enemy *v1 = dynamic_cast<GO_Collider_Enemy*>(o);
+      GO_Collider_LevelObject *v2 = dynamic_cast<GO_Collider_LevelObject*>(o);
+      if (v1 != NULL || v2 != NULL) {
+        Vector pos;
+        double rad;
+        if (v1 != NULL) {
+          pos =  v1->colliderEnemyPosition;
+          rad = v1->colliderEnemyRadius;
+        }
+        if (v2 != NULL) {
+          pos = v2->colliderLevelObjectPosition;
+          rad = v2->colliderLevelObjectRadius;
+        }
+        double y = pos.y;
+        if (end2.y < y && y < start.y) {
+          end2.y = y; 
+          if(v1 != NULL)
+            nearestEnemy = o;
+          hit = true;
+        }
+      }
+    }
+  }
+  
+  if (nearestEnemy != NULL) {
+    playerShotHitObject(end2,nearestEnemy);
+    playerShotHitObject(end2,nearestEnemy);
+  }
+  Vector normal = normalize(end2-start);
+  Vector tangent = normalize(cross(normal,Vector(0,0,1)));
+  Vector dist = end2-start;
+  int tesselY = 10;
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_ONE,GL_ONE);
+  glBegin(GL_QUADS);
+  int xp[4] = {1,0,0,1};
+  int yp[4] = {0,0,1,1};
+  double radX = 5.0;
+  static uint32_t ka = 0;
+  for (int y = 0; y < tesselY; y++) {
+    for (double x = -1; x < 1 ; x+=0.5) {
+      for (int j = 0; j < 4; j++) {
+        double rx = x + xp[j]*0.5;
+        double ry = y + yp[j] + fabs(rx)*0.25;
+        ry *= ((1-fabs(rx))+tesselY)/tesselY;
+        Vector p = lerp(start,end2,ry/tesselY);
+        p += tangent * radX * rx;
+        p.x += 0.5; // OpenGL has an error here
+        if (y == 0 && yp[j]==0) {
+          if (randomLike(ka*33)<0.25)
+            placeSmallSmoke(p+tangent*(randomLike(ka*45)*2-1)*5);
+          ka++;
+        }
+        if (y == (tesselY-1) && yp[j]==1 && hit) {
+          if (randomLike(ka*33)<0.25)
+            placeEmitExplosion(p+tangent*(randomLike(ka*45)*2-1)*5);
+          ka++;
+        }
+        double k = ry - currentTime*8 + fabs(rx)*1.0;
+        k *= 1.0 - fabs(rx)*0.5;
+        float r = 0.2*sin(k)+0.2;
+        float g = 0.5*sin(k)+0.75;
+        float b = 0.4*sin(k)+0.5;
+        float s = 1.0-fabs(rx)*1.25;
+        if (y == 0 && yp[j]==0) s *= 0.1;
+        r *= s;
+        g *= s;
+        b *= s;
+        glColor4f(r,g,b,1);
+        glVertex3f(p.x,p.y,p.z);
+      }
+    }
+  }
+  glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+  glDisable(GL_BLEND);
+  glEnd();
+}
+
 void shot() {
   if (playerAnimDuration>0) return;
   static double lastShotTime = currentTime;
+
   double distance = fabs(lastShotTime - currentTime);
+
+  if (weaponStrength>=3)
+    paintGreenLaser(playerPos+Vector(0,-10,0),playerPos+Vector(0,-150,0),distance>0.1);
+
   if (distance > 0.1) {
     static int rk = 0; rk++;
     lastShotTime = currentTime;
     for (int i = -1; i <= 1; i++) {
       Vector k = playerPos;  
       k.x += i*3;
-      gameObjects.push_back(go_(new PlayerShot(k,Vector(0,-80,0))));
-      if (weaponStrength == 2 && (rk&1)) {
+      if (weaponStrength < 3)
+        gameObjects.push_back(go_(new PlayerShot(k,Vector(0,-80,0))));
+      if (weaponStrength > 1 && (rk&1)) {
         gameObjects.push_back(go_((new PlayerShot(k,Vector(-20,-80,0)))->vorlauf(i*0.025)));
         gameObjects.push_back(go_((new PlayerShot(k,Vector(+20,-80,0)))->vorlauf(-i*0.025)));
       }
@@ -123,7 +243,7 @@ int main(int argc, const char *argv) {
   glDepthFunc(GL_LEQUAL);
   installKeyboardHandler();
   auSoundDriverOn();
-  auMuteAudio(true);
+  //auMuteAudio(true);
 
   player = loadObject("player.obj");
   centerAndResizeObject(player,10.0);
@@ -187,11 +307,8 @@ int main(int argc, const char *argv) {
       playerPosScreen.x += playerSpeed*timeDelta;
       playerDestRoll = -45;
     }
-    if (isKeyPressed(SCANCODE_CTRL)) {
-      shot();
-    }      
     static bool shiftPressed = false;
-    if (isKeyPressed(SCANCODE_RSHIFT)) {
+    if (isKeyPressed(SCANCODE_RSHIFT)||isKeyPressed(SCANCODE_SHIFTLOCK)) { // LSHIFT is not usable, cursor keys emit LSHIFT, too
       if (!shiftPressed) {
         placeExplosionRing(playerPos);
         playerBlue = !playerBlue;
@@ -209,6 +326,9 @@ int main(int argc, const char *argv) {
     paintLevel();
     setCameraGame();
     drawPlayer(player,playerPos);
+    if (isKeyPressed(SCANCODE_CTRL)) {
+      shot();
+    }      
     go_onFrame(timeDelta);
     drawHud();
     if (playerAnimDuration>0) drawHudGetReady(playerAnimDuration);

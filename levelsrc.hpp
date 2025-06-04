@@ -58,6 +58,7 @@ void drawMesh(Mesh *mesh) {
       col = (!playerBlue) ? 0xff0000ff:0xffff00ff;
     }
     glColor4ubv((unsigned char*)&col);
+    if (markDebug) glColor4f(1.0,0.0,1.0,1.0);
     glNormal3f(n[0]->x,n[0]->y,n[0]->z); 
     glVertex3f(p[0]->x,p[0]->y,p[0]->z);
     glNormal3f(n[1]->x,n[1]->y,n[1]->z); 
@@ -340,7 +341,7 @@ public:
   Mesh *mesh;
   bool _randomRotate;
   Vector _scale;
-  LevelObject(const Vector &p, const Vector &r, Mesh *mesh) : GO(), GO_Position(p), GO_Paintable(), GO_Rotation(r.w,r.xyz()), GO_Collider_LevelObject(20) {
+  LevelObject(const Vector &p, const Vector &r, Mesh *mesh) : GO(), GO_Position(p), GO_Paintable(), GO_Rotation(r.w,r.xyz()), GO_Collider_LevelObject(10) {
     this->mesh = mesh;
     _randomRotate = false;
     _scale = Vector(1,1,1,1);
@@ -355,7 +356,9 @@ public:
     }
     glRotatef(angle,axis.x,axis.y,axis.z);
     glScalef(_scale.x,_scale.y,_scale.z);
+    markDebug = debugMark;
     drawMesh(mesh);
+    markDebug = false;
     glPopMatrix();
   }
   LevelObject *randomRotate() {_randomRotate=true;return this;}
@@ -436,6 +439,8 @@ void placeExplosion(const Vector &p) {
 }
 
 void playerShotHitObject(const Vector &shotPos, GO *o) {
+  if (o->deleteIt)
+    return;
   if (dynamic_cast<GO_ScoreHit*>(o)!=NULL) {
     score += dynamic_cast<GO_ScoreHit*>(o)->scoreHit;
   }

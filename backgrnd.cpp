@@ -12,6 +12,7 @@ extern int YRES;
 
 void clearFrame() {
   glClearColor(0.0,0.0,0.0,1.0);
+  glClearDepthf(1.0);
   glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 }
 
