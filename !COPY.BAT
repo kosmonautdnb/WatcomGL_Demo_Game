@@ -28,3 +28,4 @@ copy /Y c:\_STL_\SMPLOBJL.CPP
 copy /Y c:\_STL_\TRUETYPE.CPP
 copy /Y c:\_STL_\TRUETYPE.HPP
 copy /Y c:\_STL_\STBTTF.HPP
+copy /Y c:\_STL_\MINIMP3.HPP

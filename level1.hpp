@@ -84,8 +84,8 @@ public:
       GO *enemyShot = go_(new EnemyShot(position,Vector(cos(t)*sp,sin(t)*sp,0)));
       dynamic_cast<EnemyShot*>(enemyShot)->blue=blue;
       gameObjects.push_back(enemyShot);
-      enemyShotSound->play(position);
     }
+    enemyShotSound->play(position);
   }
   virtual void frequent2(int iteration) {
     double k = (seconds/2.0)-1;

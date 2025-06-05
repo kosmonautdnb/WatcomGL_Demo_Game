@@ -261,6 +261,8 @@ int main(int argc, const char *argv) {
   loadLevel1();
   buildLevel1();
 
+  //playMP3("song.mp3");
+
   bool done = false;
   do {
     currentKey = glNextKey();
@@ -335,7 +337,7 @@ int main(int argc, const char *argv) {
     go_onFrame(timeDelta);
     drawHud();
     if (playerAnimDuration>0) drawHudGetReady(playerAnimDuration);
-    glRefresh();
+    glRefresh();  auFrame();
     if (currentKey == GL_VK_F1) {
       RGBAImage m,m2;
       m.width = glFrameBufferWidth;

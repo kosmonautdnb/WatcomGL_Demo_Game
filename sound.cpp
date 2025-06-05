@@ -1,16 +1,27 @@
+#define MINIMP3_IMPLEMENTATION
+#include "minimp3.hpp"
 #include "sound.hpp"
 #include "speaker.hpp"
-#include <stdlib.h>
-#include <math.h>
 #include "util.hpp"
 #include "vector.hpp"
+#include <stdlib.h>
+#include <math.h>
 
 float randomLike(const int i);
 
-double currentSoundStartTime;
-double currentSoundDuration;
-double currentSoundPriority;
-Sample *currentSoundSample;
+static double currentSoundStartTime;
+static double currentSoundDuration;
+static double currentSoundPriority;
+static Sample *currentSoundSample;
+
+static uint8_t *currentMP3 = NULL;
+static uint8_t *mp3Buffer = NULL;
+static int mp3BufferBytes = 0;
+static short pcm[MINIMP3_MAX_SAMPLES_PER_FRAME];
+static mp3dec_t mp3d;
+static mp3dec_frame_info_t info;
+static signed int *mixBuffer = NULL;
+static bool mp3play = false;
 
 bool isInScreen(const Vector &position);
 
@@ -86,7 +97,59 @@ void auPlaySample(Sample *sample) {
   playSample32BitSigned(sample->sample,sample->sampleLength,1.0);
 }
 
-signed int *mixBuffer = NULL;
+static double sizeOfNewMp3Sample = 0;
+static double posOfNewMp3Sample = 0;
+static int lastUpdateP = 0;
+
+void decodeOneMp3Chunk() {
+  sizeOfNewMp3Sample = mp3dec_decode_frame(&mp3d, mp3Buffer, mp3BufferBytes, pcm, &info);
+  posOfNewMp3Sample = 0;
+  mp3Buffer += info.frame_bytes;
+  mp3BufferBytes -= info.frame_bytes;
+}
+
+void auFrame() {
+  if (mp3play) {
+    const int l = sampleLength();
+    int p = samplePosition();
+    double sub = (double)info.hz/speakerFrequency;
+    if (sub < 1) 
+      sub = 1;
+    while(lastUpdateP<p) {
+      short *s = &pcm[(int)posOfNewMp3Sample];
+      int *m = &mixBuffer[lastUpdateP%l];
+      *m += *s;
+      lastUpdateP++;
+      sizeOfNewMp3Sample -= sub;
+      posOfNewMp3Sample += sub;
+      if (sizeOfNewMp3Sample<=0.0) {
+        decodeOneMp3Chunk();
+      }
+    }
+  }
+}
+
+void playMP3(const String &fileName) {
+  mp3play = false;
+  if (currentMP3 != NULL) 
+    delete[] currentMP3;
+  currentMP3 = NULL;
+  FILE *in = fopen(fileName.c_str(),"rb");
+  if (in == NULL) return;
+  fseek(in,0,SEEK_END);
+  int siz = ftell(in);
+  fseek(in,0,SEEK_SET);
+  currentMP3 = new uint8_t[siz];
+  fread(currentMP3,1,siz,in);
+  mp3Buffer = currentMP3;
+  mp3BufferBytes = siz;
+  lastUpdateP = samplePosition();
+  decodeOneMp3Chunk();
+  fclose(in);
+  mp3dec_init(&mp3d);
+  memset(&info,0,sizeof(mp3dec_frame_info_t));
+  mp3play = true;
+}
 
 void auSoundDriverOn() {
   if (mixBuffer != NULL) delete[] mixBuffer;
