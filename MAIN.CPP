@@ -27,11 +27,13 @@ Sample *shotSound = NULL;
 Sample *enemyShotSound = NULL;
 Sample *exploSound = NULL;
 Sample *slideSound = NULL;
+Sample *getReadySample = NULL;
 
 //#define RECORDVIDEO
 #define ALTW
 #define videoPath "r:\\vid%04d.png"
 
+double levelLength = 3000;
 double lastTime = 0;
 double currentTime = 0;
 double timeDelta = 0;
@@ -95,7 +97,7 @@ void paintGreenLaser(const Vector &start,const Vector &end, bool hitObjects) {
   Vector end2 = end;
   bool hit = false;
   GO *nearestEnemy = NULL;
-  if (hitObjects) {
+  {
     static int ka = 0; ka++;
     if ((ka & 15)==0) slideSound->play(start);
     Array<GO*> objects = getAllObjectsInCapsule(start,end,5);
@@ -125,7 +127,7 @@ void paintGreenLaser(const Vector &start,const Vector &end, bool hitObjects) {
     }
   }
   
-  if (nearestEnemy != NULL) {
+  if (nearestEnemy != NULL && hitObjects) {
     playerShotHitObject(end2,nearestEnemy);
     playerShotHitObject(end2,nearestEnemy);
   }
@@ -189,8 +191,7 @@ void shot() {
     paintGreenLaser(playerPos+Vector(0,-10,0),playerPos+Vector(0,-150,0),distance>0.1);
 
   if (distance > 0.1) {
-    //static int k3 = 0; k3++;
-    //if ((k3 % 2)==0) shotSound->play(playerPos);
+    shotSound->play(playerPos);
     static int rk = 0; rk++;
     lastShotTime = currentTime;
     for (int i = -1; i <= 1; i++) {
@@ -212,7 +213,8 @@ void drawPlayer(Mesh *mesh, const Vector &pos) {
     glTranslatef(pos.x,pos.y,pos.z);
     glRotatef(playerRoll,0,1,0);
     drawMesh(mesh);
-  
+
+    // white "hit"points
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, shotTexture[3]);
@@ -227,12 +229,16 @@ void drawPlayer(Mesh *mesh, const Vector &pos) {
     glDisable(GL_ALPHA_TEST);
     glEnable(GL_DEPTH_TEST);
     PlayerTurbineParticle::emit();
+
   } else {
     glTranslatef(pos.x,pos.y,pos.z-pow(playerAnimDuration,0.75)*220);
     glRotatef(playerAnimDuration*45,1,0,0);
     glRotatef(pow(playerAnimDuration,0.75)*360,0,1,0);
     drawMesh(mesh);
+    double d = playerAnimDuration;
     playerAnimDuration -= timeDelta*0.5;
+    if (playerAnimDuration<0.75&&d>=0.75)
+      getReadySample->play(Vector());
   }
   glPopMatrix();
 }
@@ -245,14 +251,17 @@ int main(int argc, const char *argv) {
   glDepthFunc(GL_LEQUAL);
   installKeyboardHandler();
   auSoundDriverOn();
-  //auMuteAudio(true);
+  auMuteAudio(true);
 
   player = loadObject("player.obj");
   centerAndResizeObject(player,10.0);
+
   enemyShotSound = auLoadSample(0,0.25);
-  shotSound = auLoadSample(0,0.5);
   slideSound = auLoadSample(2,1);
+  shotSound = auLoadSample(0,5);
   exploSound = auLoadSample(1,10);
+  getReadySample = auLoadSample(3,100);
+
   loadTextures();
   initText();
 
@@ -260,8 +269,6 @@ int main(int argc, const char *argv) {
 
   loadLevel1();
   buildLevel1();
-
-  //playMP3("song.mp3");
 
   bool done = false;
   do {
@@ -284,7 +291,11 @@ int main(int argc, const char *argv) {
       lastFPSFrame = currentFrame;
     }
 
-    levelScroll += timeDelta * 10.0;
+    if (levelScroll < levelLength)
+      levelScroll += timeDelta * 10.0;
+    else
+      levelScroll = levelLength;
+
     levelScrollX = playerPosScreen.x;
     levelScrollY = levelScroll;
 
@@ -337,7 +348,7 @@ int main(int argc, const char *argv) {
     go_onFrame(timeDelta);
     drawHud();
     if (playerAnimDuration>0) drawHudGetReady(playerAnimDuration);
-    glRefresh();  auFrame();
+    glRefresh();
     if (currentKey == GL_VK_F1) {
       RGBAImage m,m2;
       m.width = glFrameBufferWidth;

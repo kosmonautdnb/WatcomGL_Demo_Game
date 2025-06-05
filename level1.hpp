@@ -19,9 +19,7 @@ public:
       dynamic_cast<EnemyShot*>(enemyShot)->blue=step&1;
       gameObjects.push_back(enemyShot);
     }
-    static int k3 = 0; k3++;
-    if (randomLike(k3)<0.05)
-      enemyShotSound->play(position);
+    enemyShotSound->play(position);
   }
   virtual void frequent2(int iteration) {
     double k2 = fmod(seconds,9);
