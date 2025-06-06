@@ -1,5 +1,5 @@
 # OpenGLDemoGame_DOS
-Just a tiny OpenGL Demo in the making..
+Just a tiny OpenGL Demo in the making.. WatcomC++
 
 https://www.youtube.com/watch?v=q8JHWQtH3B8
 
