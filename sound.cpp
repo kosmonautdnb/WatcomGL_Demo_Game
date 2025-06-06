@@ -91,7 +91,7 @@ Sample *auLoadSample(int type, double priority) {
   return ret;
 }
 
-double auSeconds() {
+volatile double &auSeconds() {
   return speakerSeconds;
 }
 

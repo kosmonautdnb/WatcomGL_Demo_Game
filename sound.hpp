@@ -13,7 +13,7 @@ public:
 
 Sample *auLoadSample(int type, double priority);
 void auPlaySample(Sample *sample);
-double auSeconds();
+volatile double &auSeconds();
 void auMuteAudio(bool mute);
 
 void auSoundDriverOn();

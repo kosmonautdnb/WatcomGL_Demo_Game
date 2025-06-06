@@ -2,6 +2,7 @@
 #include <math.h>
 #include "textures.hpp"
 #include "vector.hpp"
+#include "util.hpp"
 
 double levelScrollY = 0;
 double levelScrollX = 0;
@@ -16,7 +17,7 @@ void clearFrame() {
   glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 }
 
-static __inline const unsigned short randomLike(const unsigned short index) {
+static __inline const unsigned short randomLikex(const unsigned short index) {
     int b = (int)index ^ (index * 11) ^ (index / 17) ^ (index * 1877) ^ (index * 8332) ^ (index * 173);
     b = b ^ (b << 8) ^ (b * 23);
     b >>= 3;
@@ -24,11 +25,11 @@ static __inline const unsigned short randomLike(const unsigned short index) {
 }
 
 static __inline const float randomLike2(const int index) {
-    return (float)randomLike(index)/0x10000;
+    return (float)randomLikex(index)/0x10000;
 }
 
 static __inline const unsigned short rand2d(int x, int y) {
-  return randomLike((x*17)+randomLike(y*31));
+  return randomLikex((x*17)+randomLikex(y*31));
 }
 
 static __inline const float rand2dp(double x, double y) {
@@ -60,9 +61,62 @@ static const float perlin(double x, double y) {
   return r;
 }
 
+extern bool performanceMode;
+
+#define MAXSTARS 500
+double starX[MAXSTARS];
+double starY[MAXSTARS];
+double starSpeed[MAXSTARS];
+bool starsInited = false;
+
+extern int glFrameBufferWidth;
+extern int glFrameBufferHeight;
+extern unsigned int *glFrameBuffer;
+
+
+void paintLevelFast(double yPos) {
+  static double lastYPos = yPos;
+  if (!starsInited) {
+    for (int i = 0; i < MAXSTARS; i++) {
+      starX[i] = randomLike(i*17)*glFrameBufferWidth;
+      starY[i] = randomLike(i*77+33)*glFrameBufferHeight;
+      starSpeed[i] = randomLike(i*12+133)*2.0+1.0;
+    }
+    starsInited = true;
+  }
+
+  double speed = fabs(yPos-lastYPos)*3;
+
+  for (int i = 0; i < MAXSTARS; i++) {
+      int x = clamp((int)floor(starX[i]),0,glFrameBufferWidth-1);
+      int r,g,b;
+      for (int j = 0; j < 10; ++j) {
+        int y = (int)floor(starY[i]+j*starSpeed[i]*1.0)-30;
+        if (y < 0 || y >= glFrameBufferHeight) continue;
+        int &rgba = glFrameBuffer[x+y*glFrameBufferWidth];
+        r = rgba & 255;
+        g = (rgba>>8) & 255;
+        b = (rgba>>16) & 255;
+        double k = (starSpeed[i]-0.75)/10.0;
+        r += j * 80 * k;
+        g += j * 120 * k;
+        b += j * 255 * k;
+        if (r>255) r = 255;
+        if (g>255) g = 255;
+        if (b>255) b = 255;
+        rgba = r | (g<<8) | (b<<16) | 0xff000000;
+      }
+
+      starY[i] += starSpeed[i]*speed;
+      starY[i] = fmod(starY[i],glFrameBufferHeight+30);
+  }
+  lastYPos = yPos;
+}
+
 void paintLevel() {
   if (levelScrollY > 1000) speedUpLevelScrollY = (levelScrollY-1000)*2;
   const double levelScrollY2 = levelScrollY + speedUpLevelScrollY;
+  if (performanceMode) {paintLevelFast(levelScrollY2); return;}
   const double sc = 0.01;
   const double scale = 0.5;
   const double dY = 22.0*scale;

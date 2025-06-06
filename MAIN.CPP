@@ -18,6 +18,7 @@
 #include "meshes.hpp"
 #include "colision.hpp"
 #include "text.hpp"
+#include <dos.h>
 #include <math.h>
 
 int XRES = 320;
@@ -35,6 +36,7 @@ Sample *getReadySample = NULL;
 
 //#define BOSSTEST
 
+bool performanceMode = false;
 double levelLength = 3000;
 double lastTime = 0;
 double currentTime = 0;
@@ -246,16 +248,24 @@ void activateEndBoss() {
 
 double levelScroll = 0;
 int main(int argc, const char *argv) {
-  glVesa(XRES,YRES,32);
+  printf("Starting up..\n");
+  if (!glVesa(XRES,YRES,32)) {
+    printf("No Vesa 320x200x32 found.\n");
+    exit(0);
+  }
+  printf("Starting up..\n");
   glEnable(GL_CULL_FACE);
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LEQUAL);
   installKeyboardHandler();
+  printf("Keyboard installed..\n");
   auSoundDriverOn();
+  printf("Sound driver installed..\n");
   auMuteAudio(true);
 
   player = loadObject("player.obj");
   centerAndResizeObject(player,10.0);
+  printf("Player loaded..\n");
 
   enemyShotSound = auLoadSample(0,0.25);
   slideSound = auLoadSample(2,1);
@@ -263,19 +273,32 @@ int main(int argc, const char *argv) {
   exploSound = auLoadSample(1,10);
   getReadySample = auLoadSample(3,100);
 
+  printf("Sounds loaded..\n");
+
   loadTextures();
   initText();
+
+
+  printf("Textures loaded..\n");
 
   go_setupManagers();
 
   loadLevel1();
+  printf("Level1 loaded..\n");
   buildLevel1();
+
+
+  printf("Starting..\n");
+
+  if (argc>1) 
+    performanceMode = true;
 
 #ifdef BOSSTEST
   levelScroll = levelLength-20;
 #endif
 
   bool done = false;
+  auSeconds() = 0;
   do {
     currentKey = glNextKey();
     if (currentKey == GL_VK_ESCAPE) done = true;

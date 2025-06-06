@@ -4,22 +4,22 @@
 #define PI 3.14159265358979323846
 
 template<class T>
-T min(const T&a, const T&b) {
+__inline T min(const T&a, const T&b) {
   return a<b?a:b;
 }
 
 template<class T>
-T max(const T&a, const T&b) {
+__inline T max(const T&a, const T&b) {
   return a>b?a:b;
 }
 
 template<class T>
-T clamp(const T&a, const T &b, const T &c) {
+__inline T clamp(const T&a, const T &b, const T &c) {
   return a<b?b:(a>c?c:a);
 }
 
 template<class T>
-T saturate(const T&a) {
+__inline T saturate(const T&a) {
   return clamp(a,(T)0,(T)1);
 }
 
