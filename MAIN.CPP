@@ -330,7 +330,7 @@ int main(int argc, const char *argv) {
       playerDestRoll = -45;
     }
     static bool shiftPressed = false;
-    if (isKeyPressed(SCANCODE_RSHIFT)||isKeyPressed(SCANCODE_SHIFTLOCK)) { // LSHIFT is not usable, cursor keys emit LSHIFT, too
+    if (isKeyPressed(SCANCODE_RSHIFT)||isKeyPressed(SCANCODE_TAB)) { // LSHIFT is not usable, cursor keys emit LSHIFT, too
       if (!shiftPressed) {
         placeExplosionRing(playerPos);
         playerBlue = !playerBlue;

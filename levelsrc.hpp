@@ -7,6 +7,7 @@ Mesh *boss1; // an endboss enemy
 Mesh *collect; // a collectable object
 Mesh *object1; // hangar like <
 Mesh *object2; // grey plate with red stripe
+Mesh *object3; // a connector structure
 
 #define CAPSULE_PLAYER_RADIUS 2
 #define CAPSULE_ENEMYSHOT_RADIUS 2
@@ -395,10 +396,12 @@ public:
   Mesh *mesh;
   bool _randomRotate;
   Vector _scale;
+  Vector _rotation;
   LevelObject(const Vector &p, const Vector &r, Mesh *mesh) : GO(), GO_Position(p), GO_Paintable(), GO_Rotation(r.w,r.xyz()), GO_Collider_LevelObject(10) {
     this->mesh = mesh;
     _randomRotate = false;
     _scale = Vector(1,1,1,1);
+    _rotation = Vector(0,0,1,0);
   }
   virtual void paint(double dt) {
     glPushMatrix();
@@ -409,6 +412,7 @@ public:
       glRotatef(seconds*45,v.x,v.y,v.z);
     }
     glRotatef(angle,axis.x,axis.y,axis.z);
+    glRotatef(_rotation.x,_rotation.y,_rotation.z,_rotation.w);
     glScalef(_scale.x,_scale.y,_scale.z);
     markDebug = debugMark;
     drawMesh(mesh);
@@ -417,6 +421,7 @@ public:
   }
   LevelObject *randomRotate() {_randomRotate=true;return this;}
   LevelObject *scale(const Vector &_scale) {this->_scale=_scale;return this;}
+  LevelObject *rotate(const Vector &_rotation) {this->_rotation=_rotation;return this;}
 };
 
 class Collectable : public GO, public GO_Position, public GO_Paintable, public GO_Rotation, public GO_Collider_LevelObject {

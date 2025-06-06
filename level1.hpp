@@ -178,25 +178,29 @@ public:
 // a mine
 class Enemy4 : public GO, public GO_Position, public GO_FrequencyCallback, public GO_Collider_Enemy, public GO_Paintable, public GO_HitPoints, public GO_ScoreHit, public GO_ScoreDestructed {
 public:
-  bool blue;
+  bool blue;                       
+  int a;
   Enemy4(const Vector &p) : GO(), GO_Position(p), GO_FrequencyCallback(0.5), GO_Collider_Enemy(10), GO_Paintable(), GO_HitPoints(128), GO_ScoreHit(1), GO_ScoreDestructed(200) {
     static int k = 0; k++;
     blue = k & 1;
+    a = 0;
   }
   virtual void frequent(int iteration) {
     if (length(playerPos-position)<40.0) {
-      float speed = 10.0;
-      int sectors = 30;
-      float shotSpeed = 10;
-      for (int i = 0; i < sectors; i++) {
-        float a = i * 2 * PI / sectors;
-        Vector dir(sin(a)*shotSpeed,cos(a)*shotSpeed,0);
-        placeEmitExplosion(position+Vector(cos(a)*10,sin(a)*10,0));
-        GO *enemyShot = go_(new EnemyShot(position,dir));
-        dynamic_cast<EnemyShot*>(enemyShot)->blue=blue;
-        gameObjects.push_back(enemyShot);
+      a++;if ((a%10)<5+1) {
+        float speed = 10.0;
+        int sectors = 30;
+        float shotSpeed = 10;
+        for (int i = 0; i < sectors; i++) {
+          float a = i * 2 * PI / sectors;
+          Vector dir(sin(a)*shotSpeed,cos(a)*shotSpeed,0);
+          placeEmitExplosion(position+Vector(cos(a)*10,sin(a)*10,0));
+          GO *enemyShot = go_(new EnemyShot(position+normalize(dir)*10,dir));
+          dynamic_cast<EnemyShot*>(enemyShot)->blue=blue;
+          gameObjects.push_back(enemyShot);
+        }
+        enemyShotSound->play(position);
       }
-      enemyShotSound->play(position);
     }
   }
   virtual void paint(double dt) {
@@ -227,6 +231,28 @@ public:
     position.y -= dt * 128;
     markDebug = debugMark;
     drawMesh(boss1);
+    markDebug = false;
+    glPopMatrix();
+  }
+  virtual void activated() {
+    position.y += 190;
+  }
+  virtual void deActivated() {
+    deleteIt = false;
+    active = true;
+  }
+};
+
+class ShipFlyOver : public GO, public GO_Position, public GO_Paintable, public GO_LifeTime {
+public:
+  ShipFlyOver(const Vector &p) : GO(), GO_Position(p), GO_Paintable(), GO_LifeTime(4) {
+  }
+  virtual void paint(double dt) {
+    glPushMatrix();
+    glTranslatef(position.x,position.y,position.z);
+    position.y -= dt * 64;
+    markDebug = debugMark;
+    drawMesh(player);
     markDebug = false;
     glPopMatrix();
   }
@@ -335,6 +361,7 @@ void loadLevel1() {
   collect = loadObject("collect.obj");
   object1 = loadObject("object1.obj");
   object2 = loadObject("object2.obj");
+  object3 = loadObject("object3.obj");
   centerAndResizeObject(enemy1,10.0);
   centerAndResizeObject(enemy2,15.0);
   centerAndResizeObject(enemy3,10.0);
@@ -343,6 +370,7 @@ void loadLevel1() {
   centerAndResizeObject(collect,7.5);
   centerAndResizeObject(object1,30.0);
   centerAndResizeObject(object2,15.0);
+  centerAndResizeObject(object3,10.0);
 }
 
 void buildLevel1() {
@@ -396,6 +424,13 @@ void buildLevel1() {
     gameObjects.push_back(go_((new LevelObject(Vector(xp,-1100-i*5,0), Vector(0,1,0,180), object1))->randomRotate()));
   }
 
+  for (i=-45*2;i<=45*2;i+=45) {
+    gameObjects.push_back(go_((new LevelObject(Vector(i,-1050,-20), Vector(0,0,0,0), object3))->scale(Vector(4.5,3,3))->rotate(Vector(45,1,0,0))));
+    gameObjects.push_back(go_((new LevelObject(Vector(i,-2050,-20), Vector(0,0,0,0), object3))->scale(Vector(4.5,3,3))->rotate(Vector(45,1,0,0))));
+    gameObjects.push_back(go_((new LevelObject(Vector(i,-2850,-20), Vector(0,0,0,0), object3))->scale(Vector(4.5,3,3))->rotate(Vector(45,1,0,0))));
+  }
+
+
   for (i = 0; i < 100; i++) {
     float z = 40;
     int secs = 7;
@@ -430,6 +465,8 @@ void buildLevel1() {
   
   // cutscene stuff
   gameObjects.push_back(go_(new Boss1FlyOver(Vector(0,-200,-50))));
+  gameObjects.push_back(go_(new ShipFlyOver(Vector(-30,-2700,-150))));
+  gameObjects.push_back(go_(new ShipFlyOver(Vector(+30,-2725,-120))));
 
   // collectables
   gameObjects.push_back(go_(new Collectable(Vector(50,-400,0))));
