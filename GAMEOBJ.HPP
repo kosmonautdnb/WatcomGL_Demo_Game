@@ -2,6 +2,7 @@
 #define __GAMEOBJ_HPP__
 
 #include "vector.hpp"
+#include "colision.hpp"
 
 #define go_(__v__) dynamic_cast<GO*>(__v__)
 
@@ -10,7 +11,7 @@ public:
   bool deleteIt;
   int index;
   double seconds;
-  bool activated;
+  bool active;
   bool debugCountIt;
   bool debugMark;
   GO() {
@@ -19,7 +20,7 @@ public:
     index = k; 
     k++;
     seconds = 0;
-    activated = false;
+    active = false;
     debugCountIt = true;
     debugMark = false;
   }
@@ -30,6 +31,10 @@ public:
   }
   void mark(bool m) {
     debugMark = m;
+  }
+  virtual void activated() {
+  }
+  virtual void deActivated() {
   }
 };
 
@@ -178,6 +183,11 @@ public:
   virtual void collidedWithPlayer() {
     playerHit(true);
   }
+  virtual bool collideWithCapsule(int capsuleSlot) {
+    if (colliderEnemyFresh) return false;
+    capsule[CAPSULE_COLLIDER] = Capsule(colliderEnemyPosition, lastColliderEnemyPosition, colliderEnemyRadius);
+    return collide(CAPSULE_COLLIDER,capsuleSlot);
+  }
 };
 
 class GO_Collider_LevelObject {
@@ -193,6 +203,11 @@ public:
   }
   virtual void collidedWithPlayer() {
     playerHit(true);
+  }
+  virtual bool collideWithCapsule(int capsuleSlot) {
+    if (colliderLevelObjectFresh) return false;
+    capsule[CAPSULE_COLLIDER] = Capsule(colliderLevelObjectPosition, lastColliderLevelObjectPosition, colliderLevelObjectRadius);
+    return collide(CAPSULE_COLLIDER,capsuleSlot);
   }
 };
 

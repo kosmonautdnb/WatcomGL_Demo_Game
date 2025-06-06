@@ -2,6 +2,9 @@
 #define __GAMEOMGR_HPP__
 
 #include "array.hpp"
+#include "gameobj.hpp"
+
+#define __RUNNING ((o->active)&&(!o->deleteIt))
 
 class GO_Manager {
 public:
@@ -10,7 +13,7 @@ public:
   }
   virtual ~GO_Manager() {
   }
-  Array<class GO*> managed;
+  Array<GO*> managed;
   double dt;
   virtual void clear() {
     managed.clear();

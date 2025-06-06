@@ -214,11 +214,34 @@ public:
   }
 };
 
+class Boss1FlyOver : public GO, public GO_Position, public GO_Paintable, public GO_LifeTime {
+public:
+  Boss1FlyOver(const Vector &p) : GO(), GO_Position(p), GO_Paintable(), GO_LifeTime(2) {
+  }
+  virtual void paint(double dt) {
+    glPushMatrix();
+    glTranslatef(position.x,position.y,position.z);
+    position.y -= dt * 128;
+    markDebug = debugMark;
+    drawMesh(boss1);
+    markDebug = false;
+    glPopMatrix();
+  }
+  virtual void activated() {
+    position.y += 190;
+  }
+  virtual void deActivated() {
+    deleteIt = false;
+    active = true;
+  }
+};
+
 void loadLevel1() {
   enemy1 = loadObject("enemy1.obj");
   enemy2 = loadObject("enemy2.obj");
   enemy3 = loadObject("enemy3.obj");
   enemy4 = loadObject("enemy4.obj");
+  boss1 = loadObject("boss1.obj");
   collect = loadObject("collect.obj");
   object1 = loadObject("object1.obj");
   object2 = loadObject("object2.obj");
@@ -226,6 +249,7 @@ void loadLevel1() {
   centerAndResizeObject(enemy2,15.0);
   centerAndResizeObject(enemy3,10.0);
   centerAndResizeObject(enemy4,10.0);
+  centerAndResizeObject(boss1,100.0);
   centerAndResizeObject(collect,7.5);
   centerAndResizeObject(object1,30.0);
   centerAndResizeObject(object2,15.0);
@@ -313,6 +337,9 @@ void buildLevel1() {
       gameObjects.push_back(go_(new LevelObject(Vector(sin(a2+PI)*xp,lp-i*4,cos(a2+PI)*xp*0.2), Vector(0,1,0,180+a), object1)));
     }
   }
+  
+  // cutscene stuff
+  gameObjects.push_back(go_(new Boss1FlyOver(Vector(0,-200,-50))));
 
   // collectables
   gameObjects.push_back(go_(new Collectable(Vector(50,-400,0))));

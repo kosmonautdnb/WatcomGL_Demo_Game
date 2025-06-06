@@ -74,20 +74,14 @@ Array<GO*> getAllObjectsInCapsule(const Vector &capsuleStart, const Vector &caps
   capsule[CAPSULE_ANOTHER_COLLIDER] = Capsule(capsuleStart, capsuleEnd, radius);
   for (int i = 0; i < gameObjects.size(); i++) {
     GO *o = gameObjects[i];
-    if (o->deleteIt||(!o->activated)) continue;
-    GO_Position *v0 = dynamic_cast<GO_Position*>(o);
+    if (!__RUNNING) continue;
     GO_Collider_Enemy *v1 = dynamic_cast<GO_Collider_Enemy*>(o);
-    GO_Collider_LevelObject *v2 = dynamic_cast<GO_Collider_LevelObject*>(o);
-    if (v1 != NULL || v2 != NULL) {
-      if (v1 != NULL&&(!v1->colliderEnemyFresh)) {
-        capsule[CAPSULE_COLLIDER] = Capsule(v1->colliderEnemyPosition, v1->lastColliderEnemyPosition, v1->colliderEnemyRadius);
-      }
-      if (v2 != NULL&&(!v2->colliderLevelObjectFresh)) {
-        capsule[CAPSULE_COLLIDER] = Capsule(v2->colliderLevelObjectPosition, v2->lastColliderLevelObjectPosition, v2->colliderLevelObjectRadius);
-      }
-      if (collide(CAPSULE_COLLIDER,CAPSULE_ANOTHER_COLLIDER)) {
+    if (v1 != NULL && v1->collideWithCapsule(CAPSULE_ANOTHER_COLLIDER)) {
         ret.push_back(o);
-      }
+    }
+    GO_Collider_LevelObject *v2 = dynamic_cast<GO_Collider_LevelObject*>(o);
+    if (v2 != NULL && v2->collideWithCapsule(CAPSULE_ANOTHER_COLLIDER)) {
+        ret.push_back(o);
     }
   }
   return ret;

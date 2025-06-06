@@ -3,11 +3,13 @@ Mesh *enemy1; // round/circular object
 Mesh *enemy2; // ship red wings
 Mesh *enemy3; // a white black ball
 Mesh *enemy4; // a ball mine
+Mesh *boss1; // an endboss enemy
 Mesh *collect; // a collectable object
 Mesh *object1; // hangar like <
 Mesh *object2; // grey plate with red stripe
 
 #define CAPSULE_PLAYER_RADIUS 2
+#define CAPSULE_ENEMYSHOT_RADIUS 2
 
 void placeSmallSmoke(const Vector &p);
 void placeEmitExplosion(const Vector &p);
@@ -78,7 +80,7 @@ public:
   bool smoke;
   bool black;
   Explosion(const Vector &p, const Vector &v, double size, double lifeTime, bool smoke, bool black) : GO(), GO_Position(p), GO_LifeTime(lifeTime), GO_Physical(v), GO_Paintable() {
-    activated = true;
+    active = true;
     this->size = size;
     this->smoke = smoke;
     this->black = black;
@@ -193,7 +195,7 @@ public:
   Vector displace;
   bool white;
   PlayerTurbineParticle(const Vector &p, bool white) : displace(p), white(white), GO(), GO_LifeTime(0.5), GO_Paintable() {
-    activated = true;
+    active = true;
     static int k = 0; k++;
     lifeTime+=randomLike(k*111)*0.25;
     debugCountIt=false;
@@ -238,7 +240,7 @@ public:
   Vector lastPosition;
   bool fresh;
   PlayerShot(const Vector &p, const Vector &v) : GO(), GO_Position(), GO_Physical(), GO_Paintable(), GO_AliveDistance(180) {
-    activated = true;
+    active = true;
     position = p;
     velocity = v;
     fresh = true;
@@ -251,20 +253,14 @@ public:
           GO *o = go_(gameObjects[i]);
           if (o->deleteIt) continue;
           GO_Collider_Enemy *v0 = dynamic_cast<GO_Collider_Enemy*>(o);
-          if (v0 != NULL && (!v0->colliderEnemyFresh)) {
-            capsule[CAPSULE_COLLIDER] = Capsule(v0->colliderEnemyPosition, v0->lastColliderEnemyPosition, v0->colliderEnemyRadius);
-            if (collide(CAPSULE_COLLIDER,CAPSULE_PLAYERSHOT)) {
-              destruct();
-              playerShotHitObject(position,o);
-            }
+          if (v0 != NULL && v0->collideWithCapsule(CAPSULE_PLAYERSHOT)) {
+            destruct();
+            playerShotHitObject(position,o);
           }
           GO_Collider_LevelObject *v1 = dynamic_cast<GO_Collider_LevelObject*>(o);
-          if (v1 != NULL && (!v1->colliderLevelObjectFresh)) {
-            capsule[CAPSULE_COLLIDER] = Capsule(v1->colliderLevelObjectPosition, v1->lastColliderLevelObjectPosition, v1->colliderLevelObjectRadius);
-            if (collide(CAPSULE_COLLIDER,CAPSULE_PLAYERSHOT)) {
-              destruct();
-              playerShotHitObject(position,o);
-            }
+          if (v1 != NULL && v1->collideWithCapsule(CAPSULE_PLAYERSHOT)) {
+            destruct();
+            playerShotHitObject(position,o);
           }
         }
       }
@@ -296,7 +292,7 @@ public:
   Vector lastPosition;
   bool fresh;
   EnemyShot(const Vector &p, const Vector &v) : GO(), GO_Position(), GO_Physical(), GO_Paintable(), GO_AliveDistance(180), GO_LifeTime(100) {
-    activated = true;
+    active = true;
     initialPosition = p;
     position = p;
     velocity = v;
@@ -304,7 +300,7 @@ public:
     fresh = true;
   }
   virtual void paint(double dt) {
-    capsule[CAPSULE_COLLIDER] = Capsule(position, lastPosition, CAPSULE_PLAYER_RADIUS);
+    capsule[CAPSULE_COLLIDER] = Capsule(position, lastPosition, CAPSULE_ENEMYSHOT_RADIUS);
     if ((blue==playerBlue) && (fresh == false) && collide(CAPSULE_COLLIDER,CAPSULE_PLAYER)) {
       destruct();
       placeExplosion(position);
@@ -377,7 +373,7 @@ public:
     int g = (int)clamp(l*255.f,0.f,255.f);
     int b = (int)clamp(l*155.f,0.f,255.f);
     reColor[0xff00ff00] = r|(g<<8)|(b<<16)|0xff000000;
-    glScalef(1,1,0.75);
+    glScalef(0.75,0.75,0.625);
     glRotatef(seconds*90,0,0,1);
     drawMesh(collect);
     reColor.clear();
