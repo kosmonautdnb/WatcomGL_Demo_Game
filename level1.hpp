@@ -1,3 +1,5 @@
+GO *endBoss1 = NULL;
+
 // a round thing which rotates and changes shottype by that
 class Enemy1 : public GO, public GO_Position, public GO_FrequencyCallback, public GO_FrequencyCallback2, public GO_Collider_Enemy, public GO_Paintable, public GO_HitPoints, public GO_ScoreHit, public GO_ScoreDestructed {
 public:
@@ -221,6 +223,7 @@ public:
   virtual void paint(double dt) {
     glPushMatrix();
     glTranslatef(position.x,position.y,position.z);
+    glRotatef(seconds*90,0,1,0);
     position.y -= dt * 128;
     markDebug = debugMark;
     drawMesh(boss1);
@@ -233,6 +236,93 @@ public:
   virtual void deActivated() {
     deleteIt = false;
     active = true;
+  }
+};
+
+class Boss1 : public GO, public GO_Paintable, public GO_FrequencyCallback, public GO_Collider_Enemy {
+public:
+  Vector position;
+  int state;
+  int playerShotHit;
+  Boss1() : GO(), GO_Paintable(), GO_FrequencyCallback(0.5), GO_Collider_Enemy(20) {
+    state = 0;                                     
+    playerShotHit = 0;
+  }
+
+  void shootSlow1(const Vector &p,bool blue) {
+    for(double i = -1;i<=1; i+=0.25) {
+      Vector dir;
+      double speed = 25;
+      dir.x = sin((i*40+0)*PI*2/360.0)*speed;
+      dir.y = cos((i*40+0)*PI*2/360.0)*speed;
+      dir.z = 0;
+      GO *enemyShot = go_(new EnemyShot2(p,dir));
+      dynamic_cast<EnemyShot2*>(enemyShot)->blue=blue;
+      gameObjects.push_back(enemyShot);
+    }
+  }
+
+  virtual void frequent(int iteration) {
+    double posisX[6] = {-70,-45,-20,20,45,70};
+    double posisY[6] = {7.5,7.5,12.5,12.5,7.5,7.5};
+    if (state == 1) {
+      if ((iteration & 15) < 12) {
+        for (int i = 0; i < 6; i++) {
+          if (((iteration+i)%3)==0)
+            shootSlow1(position+Vector(posisX[i]*1.25,posisY[i],0),(i+iteration) & 4);
+        }
+      } else {
+        if ((iteration & 15) == 12) {
+          for (int i = 0; i < 6; i++) {
+            if (((iteration+i)%3)==0)
+              shootSlow1(position+Vector(posisX[i]*1.25,posisY[i],0),true);
+          }
+        }
+      }
+    }
+  }
+  virtual void paint(double dt) {
+    glPushMatrix();
+    switch(state) {
+    case 0: {
+        position.y += dt * 30;
+        if (position.y > -levelScrollY-50) {position.y = -levelScrollY-50; state = 1; seconds = 0;}
+        glRotatef(((-levelScrollY-50)-position.y)*5.f,0,1,0);
+      } break;
+    case 1: {
+        position.x = sin(seconds)*50;
+      } break;
+    }
+    glTranslatef(position.x,position.y,position.z);
+    if (state == 1) {
+      glRotatef(sin(seconds*1.5)*2.5,0,0,1);
+      glRotatef(sin(seconds*2)*2.5,0,1,0);
+      glRotatef(sin(seconds*0.5)*2.5,1,0,0);
+    }
+    markDebug = debugMark;
+    glRotatef(180,0,0,1);
+    glScalef(1.25,1,1);
+    if (playerShotHit>0) {
+      reColor[0xff000000] = 0xffffffff;
+      playerShotHit=0;
+    }
+    drawMesh(boss1);
+    reColor.clear();
+    markDebug = false;
+    glPopMatrix();
+  }
+  virtual void activated() {
+    position = Vector(0,-levelScrollY-120,0); // no GO_Position
+    state = 0;
+  }
+
+  virtual bool collideWithCapsule(int capsuleSlot) {
+    if (!__RUNNING(this)) return false;
+    capsule[CAPSULE_COLLIDER] = Capsule(position+Vector(0,-30,0),position+Vector(0,50,0),5);
+    if (collide(CAPSULE_COLLIDER,capsuleSlot)) {colliderEnemyPosition=position+Vector(0,50,0); colliderEnemyRadius = 10; if (capsuleSlot==CAPSULE_PLAYERSHOT) playerShotHit++;return true;}
+    capsule[CAPSULE_COLLIDER] = Capsule(position+Vector(-110,-30,0),position+Vector(110,-30,0),40);
+    if (collide(CAPSULE_COLLIDER,capsuleSlot)) {colliderEnemyPosition=Vector(collisionCenter.x,position.y+10,collisionCenter.z); colliderEnemyRadius = 10; return true;}
+    return false;
   }
 };
 
@@ -344,4 +434,8 @@ void buildLevel1() {
   // collectables
   gameObjects.push_back(go_(new Collectable(Vector(50,-400,0))));
   gameObjects.push_back(go_(new Collectable(Vector(-50,-800,0))));
+
+  // endboss
+  endBoss1 = go_(new Boss1());
+  gameObjects.push_back(endBoss1);
 }

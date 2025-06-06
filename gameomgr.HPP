@@ -4,8 +4,6 @@
 #include "array.hpp"
 #include "gameobj.hpp"
 
-#define __RUNNING ((o->active)&&(!o->deleteIt))
-
 class GO_Manager {
 public:
   GO_Manager() {

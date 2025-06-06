@@ -5,6 +5,7 @@
 #include "colision.hpp"
 
 #define go_(__v__) dynamic_cast<GO*>(__v__)
+#define __RUNNING(__o__) ((go_(__o__)->active)&&(!go_(__o__)->deleteIt))
 
 class GO {
 public:
@@ -184,7 +185,8 @@ public:
     playerHit(true);
   }
   virtual bool collideWithCapsule(int capsuleSlot) {
-    if (colliderEnemyFresh) return false;
+    if (!__RUNNING(this)) return false;
+    if (colliderEnemyFresh>0) return false;
     capsule[CAPSULE_COLLIDER] = Capsule(colliderEnemyPosition, lastColliderEnemyPosition, colliderEnemyRadius);
     return collide(CAPSULE_COLLIDER,capsuleSlot);
   }
@@ -205,7 +207,8 @@ public:
     playerHit(true);
   }
   virtual bool collideWithCapsule(int capsuleSlot) {
-    if (colliderLevelObjectFresh) return false;
+    if (!__RUNNING(this)) return false;
+    if (colliderLevelObjectFresh>0) return false;
     capsule[CAPSULE_COLLIDER] = Capsule(colliderLevelObjectPosition, lastColliderLevelObjectPosition, colliderLevelObjectRadius);
     return collide(CAPSULE_COLLIDER,capsuleSlot);
   }

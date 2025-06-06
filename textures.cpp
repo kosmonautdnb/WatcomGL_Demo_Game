@@ -2,10 +2,11 @@
 #include "gl.h"
 #include <math.h>
 #include "image.hpp"
+#include "util.hpp"
 
 unsigned int glowTexture = 0;
 unsigned int cloudTexture = 0;
-unsigned int shotTexture[4] = {0};
+unsigned int shotTexture[6] = {0};
 unsigned int explosionTexture = 0;
 unsigned int smokeTexture = 0;
 
@@ -165,6 +166,66 @@ void loadTextures() {
   }
   glGenTextures(1, &shotTexture[3]);
   glBindTexture(GL_TEXTURE_2D, shotTexture[3]);
+  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,32,32,0,GL_RGBA,GL_UNSIGNED_BYTE,buffer);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+
+  // dark2
+  for (y = 0; y < 32; y++) {
+    float fy = y / 31.f * 2.f - 1.f;
+    for (x = 0; x < 32; x++) {
+      float fx = x / 31.f * 2.f - 1.f;
+      float d = 1.f-sqrt(fx*fx+fy*fy);
+      float q = 1.f-sqrt((fx+0.25)*(fx+0.25)+(fy+0.25)*(fy+0.25));
+      int r,g,b,a;
+      int k = q * 300;     
+      r = 160+k;
+      g = 90+k;
+      b = 160+k;
+      a = 255*sin(d*PI);
+      if (d < 0) a = 0;
+      r = clamp(r,0,255);
+      g = clamp(g,0,255);
+      b = clamp(b,0,255);
+      a = clamp(a,0,255);
+      buffer[x+y*32] = r | (g<<8) | (b<<16) | (a<<24);
+    }
+  }
+  glGenTextures(1, &shotTexture[4]);
+  glBindTexture(GL_TEXTURE_2D, shotTexture[4]);
+  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,32,32,0,GL_RGBA,GL_UNSIGNED_BYTE,buffer);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+  // blue2
+  for (y = 0; y < 32; y++) {
+    float fy = y / 31.f * 2.f - 1.f;
+    for (x = 0; x < 32; x++) {
+      float fx = x / 31.f * 2.f - 1.f;
+      float d = 1.f-sqrt(fx*fx+fy*fy);
+      float q = 1.f-sqrt((fx+0.25)*(fx+0.25)+(fy+0.25)*(fy+0.25));
+      q=clamp(q,0.f,1.f);
+      int r,g,b,a;
+      int k = pow(q,4.0)*255;
+      r = 160+k;
+      g = 0+k;
+      b = 0+k;
+      a = 255*saturate(d*3.f);
+      if (d < 0) a = 0;
+      r = clamp(r,0,255);
+      g = clamp(g,0,255);
+      b = clamp(b,0,255);
+      a = clamp(a,0,255);
+      buffer[x+y*32] = r | (g<<8) | (b<<16) | (a<<24);
+    }
+  }
+  glGenTextures(1, &shotTexture[5]);
+  glBindTexture(GL_TEXTURE_2D, shotTexture[5]);
   glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,32,32,0,GL_RGBA,GL_UNSIGNED_BYTE,buffer);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);

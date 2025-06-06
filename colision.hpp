@@ -19,6 +19,9 @@ public:
 };
 
 extern Capsule capsule[MAX_CAPSULES];
+extern Vector collisionCenter;
+extern Vector collisionPositionA;
+extern Vector collisionPositionB;
 
 bool collide(const Capsule &a, const Capsule &b);
 bool collide(int capsuleIndexA, int capsuleIndexB);

@@ -29,17 +29,17 @@ Sample *exploSound = NULL;
 Sample *slideSound = NULL;
 Sample *getReadySample = NULL;
 
-//#define RECORDVIDEO
 #define ALTW
+//#define RECORDVIDEO
 #define videoPath "r:\\vid%04d.png"
+
+//#define BOSSTEST
 
 double levelLength = 3000;
 double lastTime = 0;
 double currentTime = 0;
 double timeDelta = 0;
 int currentKey = 0;
-double scrollPosX=0;
-double scrollPosY=0;
 double walkingAngle=0;
 Vector playerPosScreen;
 Vector playerPos;
@@ -71,16 +71,16 @@ double playerAnimDuration = 1.0;
 
 Array<GO*> getAllObjectsInCapsule(const Vector &capsuleStart, const Vector &capsuleEnd, double radius) {
   Array<GO*> ret;
-  capsule[CAPSULE_ANOTHER_COLLIDER] = Capsule(capsuleStart, capsuleEnd, radius);
+  capsule[CAPSULE_PLAYERSHOT] = Capsule(capsuleStart, capsuleEnd, radius);
   for (int i = 0; i < gameObjects.size(); i++) {
     GO *o = gameObjects[i];
-    if (!__RUNNING) continue;
+    if (!__RUNNING(o)) continue;
     GO_Collider_Enemy *v1 = dynamic_cast<GO_Collider_Enemy*>(o);
-    if (v1 != NULL && v1->collideWithCapsule(CAPSULE_ANOTHER_COLLIDER)) {
+    if (v1 != NULL && v1->collideWithCapsule(CAPSULE_PLAYERSHOT)) {
         ret.push_back(o);
     }
     GO_Collider_LevelObject *v2 = dynamic_cast<GO_Collider_LevelObject*>(o);
-    if (v2 != NULL && v2->collideWithCapsule(CAPSULE_ANOTHER_COLLIDER)) {
+    if (v2 != NULL && v2->collideWithCapsule(CAPSULE_PLAYERSHOT)) {
         ret.push_back(o);
     }
   }
@@ -237,6 +237,13 @@ void drawPlayer(Mesh *mesh, const Vector &pos) {
   glPopMatrix();
 }
 
+void activateEndBoss() {
+  if (!endBoss1->active) {
+    endBoss1->activated();
+    endBoss1->active = true;
+  }
+}
+
 double levelScroll = 0;
 int main(int argc, const char *argv) {
   glVesa(XRES,YRES,32);
@@ -264,6 +271,10 @@ int main(int argc, const char *argv) {
   loadLevel1();
   buildLevel1();
 
+#ifdef BOSSTEST
+  levelScroll = levelLength-20;
+#endif
+
   bool done = false;
   do {
     currentKey = glNextKey();
@@ -287,8 +298,10 @@ int main(int argc, const char *argv) {
 
     if (levelScroll < levelLength)
       levelScroll += timeDelta * 10.0;
-    else
+    else {
       levelScroll = levelLength;
+      activateEndBoss();
+    }
 
     levelScrollX = playerPosScreen.x;
     levelScrollY = levelScroll;

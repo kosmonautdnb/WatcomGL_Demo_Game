@@ -307,10 +307,6 @@ public:
       playerHit(false);
     }
     Vector position2 = position;
-    Vector z = position2 - initialPosition;
-    float ang = atan2(z.x,z.y) + lifeTime*0;
-    float dist = length(z);
-    position2 = Vector(sin(ang)*dist,cos(ang)*dist) + initialPosition;
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, shotTexture[blue?1:0]);
     glEnable(GL_ALPHA_TEST);
@@ -320,6 +316,69 @@ public:
     glPointSize(XRES*5/320);
     glVertex3f(position2.x,position2.y,position2.z);
     glEnd();
+    glDisable(GL_TEXTURE_2D);
+    glDisable(GL_ALPHA_TEST);
+    lastPosition = position;
+    fresh = false;
+  }
+  virtual void destruct() {
+    placeEmitExplosion(position);
+    GO::destruct();
+  }
+};
+
+class EnemyShot2 : public GO, public GO_Position, public GO_Physical, public GO_Paintable, public GO_AliveDistance, public GO_LifeTime {
+public:
+  Vector initialPosition;
+  bool blue;
+  Vector lastPosition;
+  bool fresh;
+  EnemyShot2(const Vector &p, const Vector &v) : GO(), GO_Position(), GO_Physical(), GO_Paintable(), GO_AliveDistance(180), GO_LifeTime(100) {
+    active = true;
+    initialPosition = p;
+    position = p;
+    velocity = v;
+    blue = false;
+    fresh = true;
+  }
+  Vector rotate(const Vector &v, double ang) {
+    ang = ang * PI / 180.0;
+    Vector r;
+    r.x = cos(ang)*v.x-sin(ang)*v.y;
+    r.y = sin(ang)*v.x+cos(ang)*v.y;
+    r.z = v.z;
+    return r;
+  }
+  virtual void paint(double dt) {
+    capsule[CAPSULE_COLLIDER] = Capsule(position, lastPosition, CAPSULE_ENEMYSHOT_RADIUS);
+    if ((blue==playerBlue) && (fresh == false) && collide(CAPSULE_COLLIDER,CAPSULE_PLAYER)) {
+      destruct();
+      placeExplosion(position);
+      playerHit(false);
+    }
+    Vector position2 = position;
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, shotTexture[blue?5:4]);
+    glEnable(GL_ALPHA_TEST);
+    glAlphaFunc(GL_GREATER,0.1f);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+    double shotSize = 2;
+    double k = seconds*180.0+randomLike(index*100)*90;
+    Vector n = rotate(Vector(0,3,0)*shotSize, k);
+    Vector t = rotate(Vector(1.0,0,0)*shotSize, k);
+    glBegin(GL_QUADS);
+    glColor4f(1,1,1,1);
+    glTexCoord2f(1,0);
+    glVertex3f(position2.x+t.x-n.x,position2.y+t.y-n.y,position2.z+t.z-n.z);
+    glTexCoord2f(0,0);
+    glVertex3f(position2.x-t.x-n.x,position2.y-t.y-n.y,position2.z-t.z-n.z);
+    glTexCoord2f(0,1);
+    glVertex3f(position2.x-t.x+n.x,position2.y-t.y+n.y,position2.z-t.z+n.z);
+    glTexCoord2f(1,1);
+    glVertex3f(position2.x+t.x+n.x,position2.y+t.y+n.y,position2.z+t.z+n.z);
+    glEnd();
+    glDisable(GL_BLEND);
     glDisable(GL_TEXTURE_2D);
     glDisable(GL_ALPHA_TEST);
     lastPosition = position;

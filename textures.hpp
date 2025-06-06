@@ -3,7 +3,7 @@
 
 extern unsigned int glowTexture;
 extern unsigned int cloudTexture;
-extern unsigned int shotTexture[4];
+extern unsigned int shotTexture[6];
 extern unsigned int explosionTexture;
 extern unsigned int smokeTexture;
 

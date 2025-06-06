@@ -35,7 +35,7 @@ void GO_GOManager::manage() {
         }
       }
     }
-    if (__RUNNING) {
+    if (__RUNNING(o)) {
       GO_Position *v1 = dynamic_cast<GO_Position*>(o);
       if (v1 != NULL) {
         if (!isInActiveScreen(v1->position)) {
@@ -59,7 +59,7 @@ bool GO_CallbackManager::addObject(GO *o) {
 void GO_CallbackManager::manage() {
   for (int i = 0; i < managed.size(); i++) {
     GO *o = managed[i];
-    if (!__RUNNING) continue;
+    if (!__RUNNING(o)) continue;
     GO_Callback *v0 = dynamic_cast<GO_Callback*>(o);
     v0->callback(dt);
   }
@@ -74,7 +74,7 @@ bool GO_FrequencyCallbackManager::addObject(GO *o) {
 void GO_FrequencyCallbackManager::manage() {
   for (int i = 0; i < managed.size(); i++) {
     GO *o = managed[i];
-    if (!__RUNNING) continue;
+    if (!__RUNNING(o)) continue;
 
     GO_FrequencyCallback *v0 = dynamic_cast<GO_FrequencyCallback*>(o);
     if (v0 != NULL) {
@@ -107,7 +107,7 @@ bool GO_RotationManager::addObject(GO *o) {
 void GO_RotationManager::manage() {
   for (int i = 0; i < managed.size(); i++) {
     GO *o = managed[i];
-    if (!__RUNNING) continue;
+    if (!__RUNNING(o)) continue;
     GO_Rotation *v0 = dynamic_cast<GO_Rotation*>(o);
     v0->angle += v0->angleAddPerSecond * dt;
   }
@@ -123,7 +123,7 @@ bool GO_SimplePhysicsManager::addObject(GO *o) {
 void GO_SimplePhysicsManager::manage() {
   for (int i = 0; i < managed.size(); i++) {
     GO *o = managed[i];
-    if (!__RUNNING) continue;
+    if (!__RUNNING(o)) continue;
     GO_Position *v0 = dynamic_cast<GO_Position*>(o);
     GO_Physical *v1 = dynamic_cast<GO_Physical*>(o);
     v1->velocity += v1->force * dt;
@@ -141,7 +141,7 @@ bool GO_LifeTimeManager::addObject(GO *o) {
 void GO_LifeTimeManager::manage() {
   for (int i = 0; i < managed.size(); i++) {
     GO *o = managed[i];
-    if (!__RUNNING) continue;
+    if (!__RUNNING(o)) continue;
     GO_LifeTime *v0 = dynamic_cast<GO_LifeTime*>(o);
     v0->lifeTime -= dt;
     if (v0->lifeTime < 0) {o->destruct();}
@@ -158,7 +158,7 @@ bool GO_AliveDistanceManager::addObject(GO *o) {
 void GO_AliveDistanceManager::manage() {
   for (int i = 0; i < managed.size(); i++) {
     GO *o = managed[i];
-    if (!__RUNNING) continue;
+    if (!__RUNNING(o)) continue;
     GO_Position *v0 = dynamic_cast<GO_Position*>(o);
     GO_AliveDistance *v1 = dynamic_cast<GO_AliveDistance*>(o);
     Vector lastPosition = v1->aliveLastPosition;
@@ -179,7 +179,7 @@ bool GO_PaintableManager::addObject(GO *o) {
 void GO_PaintableManager::manage() {
   for (int i = 0; i < managed.size(); i++) {
     GO *o = managed[i];
-    if (!__RUNNING) continue;
+    if (!__RUNNING(o)) continue;
     GO_Paintable *v0 = dynamic_cast<GO_Paintable*>(o);
     v0->paint(dt);
   }
@@ -187,7 +187,7 @@ void GO_PaintableManager::manage() {
 
 bool GO_Collider_Enemy_Manager::addObject(GO *o) {
   if (dynamic_cast<GO_Collider_Enemy*>(o)==NULL) return false;
-  if (dynamic_cast<GO_Position*>(o)==NULL) return false;
+  //if (dynamic_cast<GO_Position*>(o)==NULL) return false;
   managed.push_back(o);
   return true;
 }
@@ -195,12 +195,14 @@ bool GO_Collider_Enemy_Manager::addObject(GO *o) {
 void GO_Collider_Enemy_Manager::manage() {
   for (int i = 0; i < managed.size(); i++) {
     GO *o = managed[i];
-    if (!__RUNNING) continue;
+    if (!__RUNNING(o)) continue;
     GO_Position *v0 = dynamic_cast<GO_Position*>(o);
     GO_Collider_Enemy *v1 = dynamic_cast<GO_Collider_Enemy*>(o);
-    v1->lastColliderEnemyPosition = v1->colliderEnemyPosition;
-    v1->colliderEnemyPosition = v0->position;
-    if (v1->colliderEnemyFresh>0) v1->colliderEnemyFresh--;
+    if (v0!=NULL) {
+      v1->lastColliderEnemyPosition = v1->colliderEnemyPosition;
+      v1->colliderEnemyPosition = v0->position;
+      if (v1->colliderEnemyFresh>0) v1->colliderEnemyFresh--;
+    }
     if (v1->collideWithCapsule(CAPSULE_PLAYER)) {
       v1->collidedWithPlayer();
     }
@@ -209,7 +211,7 @@ void GO_Collider_Enemy_Manager::manage() {
 
 bool GO_Collider_LevelObject_Manager::addObject(GO *o) {
   if (dynamic_cast<GO_Collider_LevelObject*>(o)==NULL) return false;
-  if (dynamic_cast<GO_Position*>(o)==NULL) return false;
+  //if (dynamic_cast<GO_Position*>(o)==NULL) return false;
   managed.push_back(o);
   return true;
 }
@@ -217,12 +219,14 @@ bool GO_Collider_LevelObject_Manager::addObject(GO *o) {
 void GO_Collider_LevelObject_Manager::manage() {
   for (int i = 0; i < managed.size(); i++) {
     GO *o = managed[i];
-    if (!__RUNNING) continue;
+    if (!__RUNNING(o)) continue;
     GO_Position *v0 = dynamic_cast<GO_Position*>(o);
     GO_Collider_LevelObject *v1 = dynamic_cast<GO_Collider_LevelObject*>(o);
-    v1->lastColliderLevelObjectPosition = v1->colliderLevelObjectPosition;
-    v1->colliderLevelObjectPosition = v0->position;
-    if (v1->colliderLevelObjectFresh>0) v1->colliderLevelObjectFresh--;
+    if (v0!=NULL) {
+      v1->lastColliderLevelObjectPosition = v1->colliderLevelObjectPosition;
+      v1->colliderLevelObjectPosition = v0->position;
+      if (v1->colliderLevelObjectFresh>0) v1->colliderLevelObjectFresh--;
+    }
     if (v1->collideWithCapsule(CAPSULE_PLAYER)) {
       v1->collidedWithPlayer();
     }

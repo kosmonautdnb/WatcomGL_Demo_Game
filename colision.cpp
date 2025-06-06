@@ -12,6 +12,10 @@ Vector ClosestPointOnLineSegment(const Vector &A, const Vector &B, const Vector 
   return A + saturate(t) * AB;
 }
 
+Vector collisionCenter;
+Vector collisionPositionA;
+Vector collisionPositionB;
+
 // wickedengine.net
 bool collide(const Capsule &a, const Capsule &b) {
   if ((!a.initialized) || (!b.initialized))
@@ -63,6 +67,11 @@ bool collide(const Capsule &a, const Capsule &b) {
   if (len > 0) penetration_normal /= len;
   double penetration_depth = a.radius+b.radius-len;
   bool intersects = penetration_depth > 0;
+  if (intersects) {
+    collisionCenter = (bestA+bestB)*0.5;
+    collisionPositionA = bestA;
+    collisionPositionB = bestB;
+  }
   return intersects;
 }
 
