@@ -86,12 +86,14 @@ void paintLevelFast(double yPos) {
   }
 
   double speed = fabs(yPos-lastYPos)*3;
+  double k = 1;
+  if (speed<0.01) k = 0;
 
   for (int i = 0; i < MAXSTARS; i++) {
       int x = clamp((int)floor(starX[i]),0,glFrameBufferWidth-1);
       int r,g,b;
       for (int j = 0; j < 10; ++j) {
-        int y = (int)floor(starY[i]+j*starSpeed[i]*1.0)-30;
+        int y = (int)floor(starY[i]+j*starSpeed[i]*0.25*k)-30;
         if (y < 0 || y >= glFrameBufferHeight) continue;
         int &rgba = glFrameBuffer[x+y*glFrameBufferWidth];
         r = rgba & 255;
