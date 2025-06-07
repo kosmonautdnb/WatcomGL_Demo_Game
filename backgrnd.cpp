@@ -131,6 +131,7 @@ void paintLevel() {
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D,glowTexture);
   glDepthMask(GL_FALSE);
+  glDisable(GL_DEPTH_TEST);
   glBegin(GL_POINTS);
   glColor3f(1,1,1);
   int yNear = 5+2;
@@ -176,6 +177,7 @@ void paintLevel() {
   }
   glEnd();
   glDepthMask(GL_TRUE);
+  glEnable(GL_DEPTH_TEST);
   glDisable(GL_TEXTURE_2D);
   glDisable(GL_BLEND);
 }
