@@ -251,7 +251,12 @@ int main(int argc, const char *argv) {
   printf("Starting up..\n");
   if (!glVesa(XRES,YRES,32)) {
     printf("No Vesa 320x200x32 found.\n");
-    exit(0);
+    sleep(1);
+    if (!glVGA())
+    {
+      printf("No VGA device found.\n");
+      exit(0);
+    }
   }
   printf("Starting up..\n");
   glEnable(GL_CULL_FACE);
