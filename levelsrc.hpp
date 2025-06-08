@@ -5,6 +5,7 @@ Mesh *enemy3; // a white black ball
 Mesh *enemy4; // a ball mine
 Mesh *boss1; // an endboss enemy
 Mesh *collect; // a collectable object
+Mesh *heart; // a energy fillup heart
 Mesh *object1; // hangar like <
 Mesh *object2; // grey plate with red stripe
 Mesh *object3; // a connector structure
@@ -426,7 +427,11 @@ public:
 
 class Collectable : public GO, public GO_Position, public GO_Paintable, public GO_Rotation, public GO_Collider_LevelObject {
 public:
+  bool _heart;
+  bool _weaponGreen;
   Collectable(const Vector &p) : GO(), GO_Position(p), GO_Paintable(), GO_Collider_LevelObject(10) {
+    _heart = false;
+    _weaponGreen = false;
   }
   virtual void paint(double dt) {
     glPushMatrix();
@@ -439,17 +444,24 @@ public:
     reColor[0xff00ff00] = r|(g<<8)|(b<<16)|0xff000000;
     glScalef(0.75,0.75,0.625);
     glRotatef(seconds*90,0,0,1);
-    drawMesh(collect);
+    drawMesh(_heart ? heart : collect);
     reColor.clear();
     glPopMatrix();
   }
   virtual void collidedWithPlayer() {
     placeExplosionRing(playerPos);
     deleteIt = true;
-    weaponColor = WEAPON_GREEN;
-    weaponStrength++;
+    if (_weaponGreen) {
+      weaponColor = WEAPON_GREEN;
+      weaponStrength++;
+    }
+    if (_heart) {
+      playerHits = 0;
+    }
     slideSound->play(position);
   }
+  Collectable *weaponGreen() {_weaponGreen=true; return this;}
+  Collectable *life() {_heart=true; return this;}
 };
 
 void placeSmallSmoke(const Vector &p) {

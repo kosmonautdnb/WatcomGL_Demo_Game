@@ -286,6 +286,7 @@ public:
       dynamic_cast<EnemyShot2*>(enemyShot)->blue=blue;
       gameObjects.push_back(enemyShot);
     }
+    placeEmitExplosion(p);
   }
 
   virtual void frequent(int iteration) {
@@ -359,6 +360,7 @@ void loadLevel1() {
   enemy4 = loadObject("enemy4.obj");
   boss1 = loadObject("boss1.obj");
   collect = loadObject("collect.obj");
+  heart = loadObject("heart.obj");
   object1 = loadObject("object1.obj");
   object2 = loadObject("object2.obj");
   object3 = loadObject("object3.obj");
@@ -368,6 +370,7 @@ void loadLevel1() {
   centerAndResizeObject(enemy4,10.0);
   centerAndResizeObject(boss1,100.0);
   centerAndResizeObject(collect,7.5);
+  centerAndResizeObject(heart,10.0);
   centerAndResizeObject(object1,30.0);
   centerAndResizeObject(object2,15.0);
   centerAndResizeObject(object3,10.0);
@@ -469,8 +472,10 @@ void buildLevel1() {
   gameObjects.push_back(go_(new ShipFlyOver(Vector(+30,-2725,-120))));
 
   // collectables
-  gameObjects.push_back(go_(new Collectable(Vector(50,-400,0))));
-  gameObjects.push_back(go_(new Collectable(Vector(-50,-800,0))));
+  gameObjects.push_back(go_((new Collectable(Vector(50,-400,0)))->weaponGreen()));
+  gameObjects.push_back(go_((new Collectable(Vector(-50,-800,0)))->weaponGreen()));
+  gameObjects.push_back(go_((new Collectable(Vector(0,-500,0)))->life()));
+  gameObjects.push_back(go_((new Collectable(Vector(0,-1500,0)))->life()));
 
   // endboss
   endBoss1 = go_(new Boss1());
