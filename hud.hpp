@@ -1,3 +1,6 @@
+double hudEnergyBarValue = 0;
+double hudEnergyBarDuration = 0;
+
 void hudStart() {
   glMatrixMode(GL_PROJECTION);
   glPushMatrix();
@@ -41,6 +44,33 @@ void drawEnergyBar(double xp, double yp, double w, double h) {
   glEnd();
 }
 
+void drawEnemyEnergyBar(double xp, double yp, double w, double h) {
+  if (hudEnergyBarDuration<=0) return;
+  hudEnergyBarDuration -= timeDelta;
+  float v = hudEnergyBarValue;
+  float r2 = 1-v;
+  float g2 = 0;
+  float b2 = saturate(v+0.5);
+  float r1 = 1-v;
+  float g1 = 0;
+  float b1 = v;  
+  double aw = w;
+  w *= v;
+  xp += aw*(1-v);
+  float k = 5.0;
+  glBegin(GL_QUADS);
+  glColor4f(1,1,1,1);
+  glColor3f(r2*k,g2*k,b2*k);
+  glVertex3f(xp+w,yp,0);
+  glColor3f(r1*k,g1*k,b1*k);
+  glVertex3f(xp,yp,0);
+  glColor3f(r1,g1,b1);
+  glVertex3f(xp,yp+h,0);
+  glColor3f(r2,g2,b2);
+  glVertex3f(xp+w,yp+h,0);
+  glEnd();
+}
+
 void drawHudGetReady(double anim) {
   hudStart();
   drawText(1280/2,720/2,"Get Ready",0x00ffffff+((uint32_t)(pow(anim,0.5)*0xff000000)&0xff000000),1.0,0.5,0.5);
@@ -69,6 +99,6 @@ void drawHud() {
 
 
   drawEnergyBar(1280-250,5,150,20);
-
+  drawEnemyEnergyBar(1280-250-170,5,150,10);
   hudEnd();
 }

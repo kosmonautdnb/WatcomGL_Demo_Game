@@ -65,9 +65,9 @@ enum {
 int weaponColor = WEAPON_GREEN;
 int weaponStrength = 1;
 
+#include "hud.hpp"
 #include "levelsrc.hpp"
 #include "level1.hpp"
-#include "hud.hpp"
 
 double playerAnimDuration = 1.0;
 

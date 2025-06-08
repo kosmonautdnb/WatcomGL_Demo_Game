@@ -332,6 +332,10 @@ public:
     if (playerShotHit>0) {
       reColor[0xff000000] = 0xffffffff;
       playerShotHit=0;
+      for (int i = 0; i < 1; i++) {
+        static int ka = 0; ka++;
+        placeExplosion(position+Vector(randomLike(ka*33)*100.0-50.0,randomLike(ka*77)*40.0-20.0,-25));
+      }
     }
     drawMesh(boss1);
     reColor.clear();
@@ -370,7 +374,7 @@ void loadLevel1() {
   centerAndResizeObject(enemy4,10.0);
   centerAndResizeObject(boss1,100.0);
   centerAndResizeObject(collect,7.5);
-  centerAndResizeObject(heart,10.0);
+  centerAndResizeObject(heart,7.5);
   centerAndResizeObject(object1,30.0);
   centerAndResizeObject(object2,15.0);
   centerAndResizeObject(object3,10.0);
@@ -476,6 +480,7 @@ void buildLevel1() {
   gameObjects.push_back(go_((new Collectable(Vector(-50,-800,0)))->weaponGreen()));
   gameObjects.push_back(go_((new Collectable(Vector(0,-500,0)))->life()));
   gameObjects.push_back(go_((new Collectable(Vector(0,-1500,0)))->life()));
+  gameObjects.push_back(go_((new Collectable(Vector(0,-2900,0)))->life()));
 
   // endboss
   endBoss1 = go_(new Boss1());

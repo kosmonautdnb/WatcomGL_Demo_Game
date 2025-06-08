@@ -21,6 +21,7 @@ void placeExplosion(const Vector &p);
 void playerShotHitObject(const Vector &shotPos, GO *o);
 bool isInScreen(const Vector &position);
 void playerHit(bool explosion);
+void enemyEnergyBar(double energy);
 
 void drawMesh(Mesh *mesh) {
   glEnable(GL_LIGHTING);
@@ -436,14 +437,20 @@ public:
   virtual void paint(double dt) {
     glPushMatrix();
     glTranslatef(position.x,position.y,position.z);
-    glRotatef(seconds*120,sin(seconds),cos(seconds),0);
     float l = sin(seconds*2*PI*1.5)*0.5f+0.75f;
-    int r = (int)clamp(l*55,0.f,255.f);
-    int g = (int)clamp(l*255.f,0.f,255.f);
-    int b = (int)clamp(l*155.f,0.f,255.f);
+    int r = (int)clamp(l*55*2,0.f,255.f);
+    int g = (int)clamp(l*255.f*2,0.f,255.f);
+    int b = (int)clamp(l*155.f*2,0.f,255.f);
     reColor[0xff00ff00] = r|(g<<8)|(b<<16)|0xff000000;
-    glScalef(0.75,0.75,0.625);
-    glRotatef(seconds*90,0,0,1);
+    if (_weaponGreen) {
+      glRotatef(seconds*120,sin(seconds),cos(seconds),0);
+      glScalef(0.75,0.75,0.625);
+      glRotatef(seconds*90,0,0,1);
+    }
+    if (_heart) {
+      glRotatef(-60,1,0,0);
+      glRotatef(seconds*90,0,0,1);
+    }
     drawMesh(_heart ? heart : collect);
     reColor.clear();
     glPopMatrix();
@@ -518,6 +525,7 @@ void playerShotHitObject(const Vector &shotPos, GO *o) {
 
   if (dynamic_cast<GO_HitPoints*>(o) != NULL) {
     dynamic_cast<GO_HitPoints*>(o)->hitPoints--;
+    enemyEnergyBar((double)dynamic_cast<GO_HitPoints*>(o)->hitPoints/dynamic_cast<GO_HitPoints*>(o)->initialHitPoints);
     if (dynamic_cast<GO_HitPoints*>(o)->hitPoints>0) {
       placeSmallSmoke(shotPos);
       return;
@@ -544,6 +552,7 @@ void playerHit(bool explosion) {
     placeExplosion(playerPos);
 }
 
-
-
-
+void enemyEnergyBar(double energy) {
+  hudEnergyBarValue = energy;
+  hudEnergyBarDuration = 1;
+}
