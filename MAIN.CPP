@@ -18,6 +18,7 @@
 #include "meshes.hpp"
 #include "colision.hpp"
 #include "text.hpp"
+#include "intro.hpp"
 #include <dos.h>
 #include <math.h>
 
@@ -52,7 +53,7 @@ double playerRollSpeed = 100.0;
 int playerHits=0;
 int maxPlayerHits=20;
 bool playerBlue = true;
-int currentFrame = 0;
+unsigned int currentFrame = 0;
 double fps = 0;
 int32_t score = 0;
 int32_t lives = 4;
@@ -94,7 +95,7 @@ void paintGreenLaser(const Vector &start,const Vector &end, bool hitObjects) {
   bool hit = false;
   GO *nearestEnemy = NULL;
   {
-    static int ka = 0; ka++;
+    static unsigned int ka = 0; ka++;
     if ((ka & 15)==0) slideSound->play(start);
     Array<GO*> objects = getAllObjectsInCapsule(start,end,5);
     for (int i = 0; i < objects.size(); i++) {
@@ -137,7 +138,7 @@ void paintGreenLaser(const Vector &start,const Vector &end, bool hitObjects) {
   int xp[4] = {1,0,0,1};
   int yp[4] = {0,0,1,1};
   double radX = 5.0;
-  static uint32_t ka = 0;
+  static unsigned int ka = 0;
   for (int y = 0; y < tesselY; y++) {
     for (double x = -1; x < 1 ; x+=0.5) {
       for (int j = 0; j < 4; j++) {
@@ -188,7 +189,7 @@ void shot() {
 
   if (distance > 0.1) {
     shotSound->play(playerPos);
-    static int rk = 0; rk++;
+    static unsigned int rk = 0; rk++;
     lastShotTime = currentTime;
     for (int i = -1; i <= 1; i++) {
       Vector k = playerPos;  
@@ -288,14 +289,15 @@ int main(int argc, const char *argv) {
 
   loadTextures();
   initText();
-
-
   printf("Textures loaded..\n");
+  loadStartScreen();
+  printf("StartScreen loaded..\n");
 
   go_setupManagers();
 
   loadLevel1();
   printf("Level1 loaded..\n");
+ 
   buildLevel1();
 
 
@@ -323,7 +325,7 @@ int main(int argc, const char *argv) {
     lastTime = currentTime;
     currentFrame++;
     static double lastFPSTime = 0;
-    static int lastFPSFrame = currentFrame;
+    static unsigned int lastFPSFrame = currentFrame;
     if (fabs(lastFPSTime-currentTime)>1.0) {
       lastFPSTime = currentTime;
       fps = currentFrame-lastFPSFrame;
@@ -389,6 +391,7 @@ int main(int argc, const char *argv) {
     go_onFrame(timeDelta);
     drawHud();
     if (playerAnimDuration>0) drawHudGetReady(playerAnimDuration);
+    displayStartScreen();
     glRefresh();
     if (currentKey == GL_VK_F1) {
       RGBAImage m,m2;
@@ -401,7 +404,7 @@ int main(int argc, const char *argv) {
     }
 #ifdef RECORDVIDEO
   {
-    static int currentFrame = 0;
+    static unsigned int currentFrame = 0;
     RGBAImage m;
     m.width = glFrameBufferWidth;
     m.height = glFrameBufferHeight;

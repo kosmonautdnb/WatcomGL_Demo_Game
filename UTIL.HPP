@@ -23,6 +23,8 @@ __inline T saturate(const T&a) {
   return clamp(a,(T)0,(T)1);
 }
 
-float randomLike(const int index);
+float randomLike(const unsigned int index);
+
+void ERROR(const class String &error);
 
 #endif //__UTIL_HPP__

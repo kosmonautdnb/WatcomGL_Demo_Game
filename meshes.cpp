@@ -1,6 +1,7 @@
 #include "meshes.hpp"
 #include "smplobjl.hpp"
 #include "gl.h"
+#include "util.hpp"
 
 static unsigned int translateToColor(const String &c) {
   String k = toLower(c);
@@ -26,9 +27,7 @@ Mesh *loadObject(const String &fileName) {
   Mesh *ret = NULL;
   SMPL_File *f = loadObj(fileName,true);
   if (f == NULL) {
-    glDone();
-    printf("ReadError\n");
-    exit(0);
+    ERROR("Error reading:"+fileName);
   }
   ret = new Mesh();
   int i;

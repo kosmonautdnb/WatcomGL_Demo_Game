@@ -17,4 +17,5 @@ meshes.cpp meshes.obj
 colision.cpp colision.obj
 text.cpp text.obj
 truetype.cpp truetype.obj
+intro.cpp intro.obj
 main.cpp main.OBJ

@@ -136,7 +136,7 @@ public:
   int sectors;
   int type;
   Enemy3(const Vector &p) : GO(), GO_Position(p), GO_FrequencyCallback(0.35), GO_Collider_Enemy(10), GO_Paintable(), GO_HitPoints(64), GO_ScoreHit(1), GO_ScoreDestructed(200) {
-    static int k = 0; k++;
+    static unsigned int k = 0; k++;
     type = k & 1;
     shotSpeed = 10;
     sectors = 20;
@@ -181,7 +181,7 @@ public:
   bool blue;                       
   int a;
   Enemy4(const Vector &p) : GO(), GO_Position(p), GO_FrequencyCallback(0.5), GO_Collider_Enemy(10), GO_Paintable(), GO_HitPoints(128), GO_ScoreHit(1), GO_ScoreDestructed(200) {
-    static int k = 0; k++;
+    static unsigned int k = 0; k++;
     blue = k & 1;
     a = 0;
   }
@@ -333,8 +333,9 @@ public:
       reColor[0xff000000] = 0xffffffff;
       playerShotHit=0;
       for (int i = 0; i < 1; i++) {
-        static int ka = 0; ka++;
-        placeExplosion(position+Vector(randomLike(ka*33)*100.0-50.0,randomLike(ka*77)*40.0-20.0,-25));
+        static unsigned int ka = 0; ka++;
+        if ((ka &3)==1)
+          placeExplosion(position+Vector(randomLike(ka*33)*100.0-50.0,randomLike(ka*77)*40.0-20.0,-25));
       }
     }
     drawMesh(boss1);

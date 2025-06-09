@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-float randomLike(const int i);
+float randomLike(const unsigned int i);
 
 static double currentSoundStartTime;
 static double currentSoundDuration;
@@ -71,6 +71,7 @@ Sample *auLoadSample(int type, double priority) {
   }
   if (type == 3) {
     FILE *in = fopen("getready.raw","rb");
+    if (in == NULL) ERROR("Error loading: getready.raw");
     fseek(in,0,SEEK_END);
     int siz = ftell(in);
     fseek(in,0,SEEK_SET);

@@ -2,6 +2,7 @@
 #define __TEXTURES_HPP__
 
 extern unsigned int glowTexture;
+extern unsigned int glowTexture2;
 extern unsigned int cloudTexture;
 extern unsigned int shotTexture[6];
 extern unsigned int explosionTexture;

@@ -3,7 +3,8 @@
 #include <math.h>
 
 #define FOV 30
-#define ASPECT (16.0/9.0)
+#define ASPECT (320.0/200.0) //(16.0/9.0) sadly we can't use (16.0/9.0) here since the point sprites would be ellipsoid and not circular
+#define MONITORASPECT (16.0/9.0) // we need this for perfectly round GL_POINT point sprites
 #define NEARPLANE 0.1
 #define FARPLANE 1000.0
 #define CAMPOSZ -120.0
@@ -18,6 +19,7 @@ void setCameraBackground() {
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
   gluPerspective(FOV,ASPECT,NEARPLANE,FARPLANE);
+  glSetMonitorAspectRatio(MONITORASPECT);
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
   gluLookAt(0,CAMPOSY,CAMPOSZ-playerPosScreen.y*0.1,0,0,0,0,-1,0);
@@ -35,6 +37,7 @@ void setCameraGame() {
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
   gluPerspective(FOV,ASPECT,NEARPLANE,FARPLANE);
+  glSetMonitorAspectRatio(MONITORASPECT);
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
   gluLookAt(0,-levelScrollY,CAMPOSZ*2,0,-levelScrollY,0,0,-1,0);

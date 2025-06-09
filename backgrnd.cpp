@@ -8,6 +8,7 @@ double levelScrollY = 0;
 double levelScrollX = 0;
 double speedUpLevelScrollY = 0;
 
+
 extern int XRES;
 extern int YRES;
 
@@ -169,7 +170,10 @@ void paintLevel() {
       if (p<0.9&&p>0.8) {
         glColor3f(0,10,10);
       }
-      glPointSize(XRES*(particleSize*((x&1)*0.25+0.75)+randomLike2(k.y-tY-fY+randomLike2(k.x*13.0))*10.0)/640);
+      bool bigStar = ((int)(k.y-tY-fY+k.x)&127)==0;
+      glBindTexture(GL_TEXTURE_2D,bigStar?glowTexture2:glowTexture);
+      glPointSize((bigStar?3.0:1.0)*XRES*(particleSize*((x&1)*0.25+0.75)+randomLike2(k.y-tY-fY+randomLike2(k.x*13.0))*10.0)/640);
+      if (bigStar) glColor3f(0.0,10,10);
       k.x -= levelScrollX*0.25;
       glVertex3f(k.x,k.y,k.z);
       lp = p;

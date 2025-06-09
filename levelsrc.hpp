@@ -199,7 +199,7 @@ public:
   bool white;
   PlayerTurbineParticle(const Vector &p, bool white) : displace(p), white(white), GO(), GO_LifeTime(0.5), GO_Paintable() {
     active = true;
-    static int k = 0; k++;
+    static unsigned int k = 0; k++;
     lifeTime+=randomLike(k*111)*0.25;
     debugCountIt=false;
   }
@@ -227,7 +227,7 @@ public:
     t += timeDelta;
     if (fabs(t)>0.0125) {
       for (int i = 0; i < 4; i++) {
-        static int k=0; k++;
+        static unsigned int k=0; k++;
         t = 0;
         double r = 1.0;
         double x = 0;
@@ -481,7 +481,7 @@ void placeEmitExplosion(const Vector &p) {
 }
 
 void placeTailExplosion(const Vector &p) {
-  static int k = 0; k++;
+  static unsigned int k = 0; k++; k &= 0xffff;
   double a = k*2*PI/20;
   double sp = 10.0;
   gameObjects.push_back(go_(new Explosion(p,Vector(sin(a)*sp,cos(a)*sp,0),randomLike(k*33)*2.5+1.5,1.5,false,false)));
@@ -492,7 +492,7 @@ void placeExplosionRing(const Vector &p) {
 }
 
 void placeExplosion(const Vector &p) {
-  static int k;
+  static unsigned int k;
   int i;
   gameObjects.push_back(go_(new Explosion(p,Vector(),25,0.125,false,false)));
   gameObjects.push_back(go_(new ExplosionRing(p)));
@@ -514,6 +514,7 @@ void placeExplosion(const Vector &p) {
   }
   gameObjects.push_back(go_(new ExplosionFlare(p)));
   exploSound->play(p);
+  k &= 0xffff;
 }
 
 void playerShotHitObject(const Vector &shotPos, GO *o) {

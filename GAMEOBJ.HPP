@@ -10,14 +10,14 @@
 class GO {
 public:
   bool deleteIt;
-  int index;
+  unsigned int index;
   double seconds;
   bool active;
   bool debugCountIt;
   bool debugMark;
   GO() {
     deleteIt = false;
-    static int k=0;
+    static unsigned int k=0;
     index = k; 
     k++;
     seconds = 0;
