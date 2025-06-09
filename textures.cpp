@@ -22,12 +22,13 @@ void loadTextures() {
     for (x = 0; x < 32; x++) {
       float fx = x / 31.f * 2.f - 1.f;
       float d = 1.f-sqrt(fx*fx+fy*fy);
-      if (d < 0) d = 0;
+      int a = 255;
+      if (d < 0) {d = 0;a=0;}
       d = pow(d,2);
       int r = d * 255.f;
-      if (r < 0) r = 0;
+      if (r <= 0) {r = 0; a=0;}
       if (r > 255) r = 255;
-      buffer[x+y*32] = r | (r<<8) | (r<<16) | 0xff000000;
+      buffer[x+y*32] = r | (r<<8) | (r<<16) | (a<<24);
     }
   }
   glGenTextures(1, &glowTexture);
@@ -43,7 +44,8 @@ void loadTextures() {
     for (x = 0; x < 32; x++) {
       float fx = x / 31.f * 2.f - 1.f;
       float d = 1.f-sqrt(fx*fx+fy*fy);
-      if (d < 0) d = 0;
+      int a = 255;
+      if (d < 0) {d = 0;a=0;}
       d = pow(d,2);
       if ((x>=14&&x<=16)||(y>=14&&y<=16)) {
         int absx = abs(x-15);
@@ -53,16 +55,16 @@ void loadTextures() {
       }
       else d *= 0.5f;
       int r = d * 255.f;
-      if (r < 0) r = 0;
+      if (r <= 0) {r = 0; a=0;}
       if (r > 255) r = 255;
-      buffer[x+y*32] = r | (r<<8) | (r<<16) | 0xff000000;
+      buffer[x+y*32] = r | (r<<8) | (r<<16) | (a<<24);
     }
   }
   glGenTextures(1, &glowTexture2);
   glBindTexture(GL_TEXTURE_2D, glowTexture2);
   glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,32,32,0,GL_RGBA,GL_UNSIGNED_BYTE,buffer);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); // also linear
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 

@@ -13,6 +13,6 @@ void initText() {
   if (font1==0) ERROR("File: aicon-vf.ttf");
 }
 
-void drawText(float xp, float yp, const char *text, uint32_t color, const float scale, float anchorX, float anchorY) {
-  glDrawTextTTF(false,xp, yp, 0, scale, text, color, anchorX, anchorY);
+void drawText(float xp, float yp, const String &text, uint32_t color, const float scale, float anchorX, float anchorY) {
+  glDrawTextTTF(false,xp, yp, 0, scale, text.c_str(), color, anchorX, anchorY);
 }

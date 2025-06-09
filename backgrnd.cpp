@@ -126,6 +126,8 @@ void paintLevel() {
   const double fY =  fmod(levelScrollY2,dY);
   const double tY = levelScrollY2 - fY;
   const double particleSize = 7.5;
+  glEnable(GL_ALPHA_TEST);
+  glAlphaFunc(GL_GREATER,2.f/255.f);
   glEnable(GL_TEXTURE_2D);
   glEnable(GL_BLEND);
   glBlendFunc(GL_ONE,GL_ONE);
@@ -170,7 +172,7 @@ void paintLevel() {
       if (p<0.9&&p>0.8) {
         glColor3f(0,10,10);
       }
-      bool bigStar = ((int)(k.y-tY-fY+k.x)&127)==0;
+      bool bigStar = ((int)(k.y-tY-fY+k.x*33)&511)==0;
       glBindTexture(GL_TEXTURE_2D,bigStar?glowTexture2:glowTexture);
       glPointSize((bigStar?3.0:1.0)*XRES*(particleSize*((x&1)*0.25+0.75)+randomLike2(k.y-tY-fY+randomLike2(k.x*13.0))*10.0)/640);
       if (bigStar) glColor3f(0.0,10,10);
@@ -184,4 +186,5 @@ void paintLevel() {
   glEnable(GL_DEPTH_TEST);
   glDisable(GL_TEXTURE_2D);
   glDisable(GL_BLEND);
+  glDisable(GL_ALPHA_TEST);
 }

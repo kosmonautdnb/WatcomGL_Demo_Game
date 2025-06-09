@@ -24,6 +24,7 @@ void playerHit(bool explosion);
 void enemyEnergyBar(double energy);
 
 void drawMesh(Mesh *mesh) {
+  glDisable(GL_TEXTURE_2D);
   glEnable(GL_LIGHTING);
   glEnable(GL_LIGHT0);
   glEnable(GL_COLOR_MATERIAL);

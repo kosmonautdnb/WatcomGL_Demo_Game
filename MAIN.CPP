@@ -310,6 +310,8 @@ int main(int argc, const char *argv) {
   levelScroll = levelLength-20;
 #endif
 
+  displayStartScreen();
+
   bool done = false;
   auSeconds() = 0;
   do {
@@ -391,7 +393,6 @@ int main(int argc, const char *argv) {
     go_onFrame(timeDelta);
     drawHud();
     if (playerAnimDuration>0) drawHudGetReady(playerAnimDuration);
-    displayStartScreen();
     glRefresh();
     if (currentKey == GL_VK_F1) {
       RGBAImage m,m2;
