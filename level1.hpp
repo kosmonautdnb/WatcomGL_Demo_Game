@@ -230,7 +230,9 @@ public:
     glRotatef(seconds*90,0,1,0);
     position.y -= dt * 128;
     markDebug = debugMark;
+    reColor[0x80ffc000] = 0xffffff00;
     drawMesh(boss1);
+    reColor.clear();
     markDebug = false;
     glPopMatrix();
   }
@@ -265,14 +267,16 @@ public:
   }
 };
 
-class Boss1 : public GO, public GO_Paintable, public GO_FrequencyCallback, public GO_Collider_Enemy {
+class Boss1 : public GO, public GO_Paintable, public GO_FrequencyCallback, public GO_Collider_Enemy, public GO_HitPoints, public GO_ScoreHit,  public GO_ScoreDestructed, public GO_IdleCallback {
 public:
   Vector position;
   int state;
-  int playerShotHit;
-  Boss1() : GO(), GO_Paintable(), GO_FrequencyCallback(0.5), GO_Collider_Enemy(20) {
+  bool playerShotHit;
+  bool flash;
+  Boss1() : GO(), GO_Paintable(), GO_FrequencyCallback(0.5), GO_Collider_Enemy(20), GO_HitPoints(1024), GO_ScoreHit(15),  GO_ScoreDestructed(10000), GO_IdleCallback() {
     state = 0;                                     
-    playerShotHit = 0;
+    playerShotHit = false;
+    flash = false;
   }
 
   void shootSlow1(const Vector &p,bool blue) {
@@ -287,6 +291,13 @@ public:
       gameObjects.push_back(enemyShot);
     }
     placeEmitExplosion(p);
+  }
+
+  virtual void idleCallback(double dt) {
+    if (levelScroll == levelLength) {
+      activated();
+      active=true; // removes idle
+    }
   }
 
   virtual void frequent(int iteration) {
@@ -329,9 +340,11 @@ public:
     markDebug = debugMark;
     glRotatef(180,0,0,1);
     glScalef(1.25,1,1);
-    if (playerShotHit>0) {
+    reColor[0x80ffc000] = 0xffffff00;
+    if (flash) {
       reColor[0xff000000] = 0xffffffff;
-      playerShotHit=0;
+      reColor[0x80ffc000] = 0xffffff80;
+      flash=false;
       for (int i = 0; i < 1; i++) {
         static unsigned int ka = 0; ka++;
         if ((ka &3)==1)
@@ -351,10 +364,26 @@ public:
   virtual bool collideWithCapsule(int capsuleSlot) {
     if (!__RUNNING(this)) return false;
     capsule[CAPSULE_COLLIDER] = Capsule(position+Vector(0,-30,0),position+Vector(0,50,0),5);
-    if (collide(CAPSULE_COLLIDER,capsuleSlot)) {colliderEnemyPosition=position+Vector(0,50,0); colliderEnemyRadius = 10; if (capsuleSlot==CAPSULE_PLAYERSHOT) playerShotHit++;return true;}
+    if (collide(CAPSULE_COLLIDER,capsuleSlot)) {colliderEnemyPosition=position+Vector(0,50,0); colliderEnemyRadius = 10; if (capsuleSlot==CAPSULE_PLAYERSHOT) playerShotHit=true;return true;}
     capsule[CAPSULE_COLLIDER] = Capsule(position+Vector(-110,-30,0),position+Vector(110,-30,0),40);
     if (collide(CAPSULE_COLLIDER,capsuleSlot)) {colliderEnemyPosition=Vector(collisionCenter.x,position.y+10,collisionCenter.z); colliderEnemyRadius = 10; return true;}
     return false;
+  }
+
+  virtual void subtractHitPoints(int count) {
+    if (!__RUNNING(this)) return;
+    if (playerShotHit) {
+      playerShotHit=false;
+      flash = true;
+      GO_HitPoints::subtractHitPoints(count);
+    }
+  }
+  virtual void destruct() {
+    for (int i = 0; i < 10; i++) {
+      static unsigned int ka = 0; ka++;
+      placeExplosion(position+Vector(randomLike(ka*33)*100.0-50.0,randomLike(ka*77)*40.0-20.0,-25));
+    }
+    GO::destruct();
   }
 };
 
@@ -384,6 +413,7 @@ void loadLevel1() {
 void buildLevel1() {
   // level enemies   
   int i,j;
+
   for (i = 0; i < 10; i++) {
     gameObjects.push_back(go_(new Enemy1(Vector(randomLike(i*33)*150-75,-100-i*20,0))));
   }
@@ -470,11 +500,12 @@ void buildLevel1() {
       gameObjects.push_back(go_(new LevelObject(Vector(sin(a2+PI)*xp,lp-i*4,cos(a2+PI)*xp*0.2), Vector(0,1,0,180+a), object1)));
     }
   }
-  
+
   // cutscene stuff
   gameObjects.push_back(go_(new Boss1FlyOver(Vector(0,-200,-50))));
   gameObjects.push_back(go_(new ShipFlyOver(Vector(-30,-2700,-150))));
   gameObjects.push_back(go_(new ShipFlyOver(Vector(+30,-2725,-120))));
+
 
   // collectables
   gameObjects.push_back(go_((new Collectable(Vector(50,-400,0)))->weaponGreen()));
@@ -484,6 +515,5 @@ void buildLevel1() {
   gameObjects.push_back(go_((new Collectable(Vector(0,-2900,0)))->life()));
 
   // endboss
-  endBoss1 = go_(new Boss1());
-  gameObjects.push_back(endBoss1);
+  gameObjects.push_back(go_(new Boss1()));
 }

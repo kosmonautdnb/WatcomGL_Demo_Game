@@ -51,7 +51,7 @@ void GO_GOManager::manage() {
 }
 
 bool GO_CallbackManager::addObject(GO *o) {
-  if (dynamic_cast<GO_Callback*>(o)==NULL) return false;
+  if (dynamic_cast<GO_Callback*>(o)==NULL&&dynamic_cast<GO_IdleCallback*>(o)==NULL) return false;
   managed.push_back(o);
   return true;
 }
@@ -59,9 +59,15 @@ bool GO_CallbackManager::addObject(GO *o) {
 void GO_CallbackManager::manage() {
   for (int i = 0; i < managed.size(); i++) {
     GO *o = managed[i];
-    if (!__RUNNING(o)) continue;
+    if (!__RUNNING(o)) {
+      if (!o->deleteIt) {
+        GO_IdleCallback *v1 = dynamic_cast<GO_IdleCallback*>(o);
+        if (v1 != NULL) v1->idleCallback(dt);
+      }
+      continue;
+    }
     GO_Callback *v0 = dynamic_cast<GO_Callback*>(o);
-    v0->callback(dt);
+    if (v0 != NULL) v0->callback(dt);
   }
 }
 

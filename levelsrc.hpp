@@ -1,3 +1,4 @@
+
 Mesh *player;
 Mesh *enemy1; // round/circular object 
 Mesh *enemy2; // ship red wings
@@ -255,16 +256,15 @@ public:
         capsule[CAPSULE_PLAYERSHOT] = Capsule(position, lastPosition, CAPSULE_PLAYER_RADIUS);
         for (int i = 0; i < gameObjects.size(); i++) {
           GO *o = go_(gameObjects[i]);
-          if (o->deleteIt) continue;
+          if (!__RUNNING(o)) continue;
           GO_Collider_Enemy *v0 = dynamic_cast<GO_Collider_Enemy*>(o);
           if (v0 != NULL && v0->collideWithCapsule(CAPSULE_PLAYERSHOT)) {
-            destruct();
             playerShotHitObject(position,o);
+            destruct();
           }
           GO_Collider_LevelObject *v1 = dynamic_cast<GO_Collider_LevelObject*>(o);
           if (v1 != NULL && v1->collideWithCapsule(CAPSULE_PLAYERSHOT)) {
             destruct();
-            playerShotHitObject(position,o);
           }
         }
       }
@@ -462,9 +462,11 @@ public:
     if (_weaponGreen) {
       weaponColor = WEAPON_GREEN;
       weaponStrength++;
+      weaponSample->play(position);
     }
     if (_heart) {
       playerHits = 0;
+      powerUpSample->play(position);
     }
     slideSound->play(position);
   }
@@ -519,27 +521,13 @@ void placeExplosion(const Vector &p) {
 }
 
 void playerShotHitObject(const Vector &shotPos, GO *o) {
-  if (o->deleteIt)
-    return;
-  if (dynamic_cast<GO_ScoreHit*>(o)!=NULL) {
-    score += dynamic_cast<GO_ScoreHit*>(o)->scoreHit;
-  }
+  if (!__RUNNING(o)) return;
 
-  if (dynamic_cast<GO_HitPoints*>(o) != NULL) {
-    dynamic_cast<GO_HitPoints*>(o)->hitPoints--;
-    enemyEnergyBar((double)dynamic_cast<GO_HitPoints*>(o)->hitPoints/dynamic_cast<GO_HitPoints*>(o)->initialHitPoints);
-    if (dynamic_cast<GO_HitPoints*>(o)->hitPoints>0) {
-      placeSmallSmoke(shotPos);
-      return;
-    }
+  GO_HitPoints *v0 = dynamic_cast<GO_HitPoints*>(o);
+  if (v0 != NULL) {
+    v0->subtractHitPoints(1);
+    placeSmallSmoke(shotPos);
   }
-
-  if (dynamic_cast<GO_ScoreDestructed*>(o)!=NULL) {
-    score += dynamic_cast<GO_ScoreDestructed*>(o)->scoreDestructed;
-  }
-
-  if (dynamic_cast<GO_HitPoints*>(o) != NULL)
-    o->destruct();
 }
 
 bool isInScreen(const Vector &position) {

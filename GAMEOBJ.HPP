@@ -88,6 +88,15 @@ public:
   virtual void callback(double dt) = 0;
 };
 
+class GO_IdleCallback {
+public:
+  GO_IdleCallback1() {
+  }
+  virtual ~GO_IdleCallback() {
+  }
+  virtual void idleCallback(double dt) = 0;
+};
+
 class GO_FrequencyCallback {
 public:
   double durationTillNext;
@@ -214,14 +223,6 @@ public:
   }
 };
 
-class GO_HitPoints {
-public:
-  int hitPoints;
-  int initialHitPoints;
-  GO_HitPoints(int hitPoints) : hitPoints(hitPoints), initialHitPoints(hitPoints) {;}
-  virtual ~GO_HitPoints() {;}
-};
-
 class GO_ScoreHit {
 public:
   int scoreHit;
@@ -234,6 +235,33 @@ public:
   int scoreDestructed;
   GO_ScoreDestructed(int score) : scoreDestructed(score) {;}
   virtual ~GO_ScoreDestructed() {;}
+};
+
+extern int32_t score;
+void enemyEnergyBar(double energy);
+
+class GO_HitPoints {
+public:
+  int hitPoints;
+  int initialHitPoints;
+  GO_HitPoints(int hitPoints) : hitPoints(hitPoints), initialHitPoints(hitPoints) {;}
+  virtual ~GO_HitPoints() {;}
+  virtual void hitPoints0() {
+    if (dynamic_cast<GO_ScoreDestructed*>(this)!=NULL) {
+      score += dynamic_cast<GO_ScoreDestructed*>(this)->scoreDestructed;
+    }
+    go_(this)->destruct();
+  }
+  virtual void subtractHitPoints(int count) {
+    if (count > hitPoints) count = hitPoints;
+    hitPoints-=count;
+    if (dynamic_cast<GO_ScoreHit*>(this)!=NULL) {
+      score += dynamic_cast<GO_ScoreHit*>(this)->scoreHit*count;
+    }
+    enemyEnergyBar((double)hitPoints/(initialHitPoints>0?initialHitPoints:1));
+    if (hitPoints<=0)
+      hitPoints0();
+  }
 };
 
 #endif // __GAMEOBJ_HPP__

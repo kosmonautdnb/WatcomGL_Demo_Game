@@ -89,6 +89,46 @@ Sample *auLoadSample(int type, double priority) {
     free(sample);
     fclose(in);
   }
+  if (type == 4) {
+    FILE *in = fopen("powerup.raw","rb");
+    if (in == NULL) ERROR("Error loading: powerup.raw");
+    fseek(in,0,SEEK_END);
+    int siz = ftell(in);
+    fseek(in,0,SEEK_SET);
+    short *sample = (short*)malloc(siz);
+    fread(sample,1,siz,in);
+    double div = 48000.0/speakerFrequency;
+    siz/=div;
+    for (int i = 0; i < siz/sizeof(short);i++) {
+      sample[i] = sample[(int)floor(i*div)]/1000;
+    }
+    ret = new Sample();
+    ret->priority = priority;
+    ret->sample = convertSampleFromSInt16(sample,siz/sizeof(short));
+    ret->sampleLength = siz/sizeof(short);
+    free(sample);
+    fclose(in);
+  }
+  if (type == 5) {
+    FILE *in = fopen("weapon.raw","rb");
+    if (in == NULL) ERROR("Error loading: weapon.raw");
+    fseek(in,0,SEEK_END);
+    int siz = ftell(in);
+    fseek(in,0,SEEK_SET);
+    short *sample = (short*)malloc(siz);
+    fread(sample,1,siz,in);
+    double div = 48000.0/speakerFrequency;
+    siz/=div;
+    for (int i = 0; i < siz/sizeof(short);i++) {
+      sample[i] = sample[(int)floor(i*div)]/1000;
+    }
+    ret = new Sample();
+    ret->priority = priority;
+    ret->sample = convertSampleFromSInt16(sample,siz/sizeof(short));
+    ret->sampleLength = siz/sizeof(short);
+    free(sample);
+    fclose(in);
+  }
   return ret;
 }
 

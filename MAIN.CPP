@@ -30,6 +30,8 @@ Sample *enemyShotSound = NULL;
 Sample *exploSound = NULL;
 Sample *slideSound = NULL;
 Sample *getReadySample = NULL;
+Sample *powerUpSample = NULL;
+Sample *weaponSample = NULL;
 
 #define ALTW
 //#define RECORDVIDEO
@@ -59,6 +61,7 @@ int32_t score = 0;
 int32_t lives = 4;
 HashMap<uint32_t,uint32_t> reColor;
 bool markDebug = false;
+double levelScroll = 0;
 
 enum {
   WEAPON_GREEN = 1,
@@ -234,20 +237,12 @@ void drawPlayer(Mesh *mesh, const Vector &pos) {
     drawMesh(mesh);
     double d = playerAnimDuration;
     playerAnimDuration -= timeDelta*0.5;
-    if (playerAnimDuration<0.75&&d>=0.75)
+    if (playerAnimDuration<0.25&&d>=0.25)
       getReadySample->play(Vector());
   }
   glPopMatrix();
 }
 
-void activateEndBoss() {
-  if (!endBoss1->active) {
-    endBoss1->activated();
-    endBoss1->active = true;
-  }
-}
-
-double levelScroll = 0;
 int main(int argc, const char *argv) {
 
   printf("Starting up..\n");
@@ -273,7 +268,7 @@ int main(int argc, const char *argv) {
   printf("Keyboard installed..\n");
   auSoundDriverOn();
   printf("Sound driver installed..\n");
-  auMuteAudio(true);
+  //auMuteAudio(true);
 
   player = loadObject("player.obj");
   centerAndResizeObject(player,10.0);
@@ -284,6 +279,8 @@ int main(int argc, const char *argv) {
   shotSound = auLoadSample(0,5);
   exploSound = auLoadSample(1,10);
   getReadySample = auLoadSample(3,100);
+  powerUpSample = auLoadSample(4,100);
+  weaponSample = auLoadSample(5,100);
 
   printf("Sounds loaded..\n");
 
@@ -338,7 +335,6 @@ int main(int argc, const char *argv) {
       levelScroll += timeDelta * 10.0;
     else {
       levelScroll = levelLength;
-      activateEndBoss();
     }
 
     levelScrollX = playerPosScreen.x;
