@@ -4,6 +4,7 @@
 #include "types.hpp"
 
 void initText();
-void drawText(float xp, float yp, const class String &text, uint32_t color=0xffffffff, const float scale = 1.f, float anchorX=0, float anchorY=0);
+void closeText();
+void drawText(int fontIndex, float xp, float yp, const class String &text, uint32_t color=0xffffffff, const float scale = 1.f, float anchorX=0, float anchorY=0);
 
 #endif //__TEXT_HPP__

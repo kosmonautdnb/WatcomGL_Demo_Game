@@ -254,6 +254,7 @@ public:
     glTranslatef(position.x,position.y,position.z);
     position.y -= dt * 64;
     markDebug = debugMark;
+    glScalef(1.25,1,1);
     drawMesh(player);
     markDebug = false;
     glPopMatrix();
@@ -297,6 +298,12 @@ public:
     if (levelScroll == levelLength) {
       activated();
       active=true; // removes idle
+      displayWarning = false;
+    } else {
+      double d = fabs(levelScroll-levelLength);
+      if (d<150)  {
+        displayWarning = fmod(d,50)<25.0;
+      }
     }
   }
 

@@ -39,6 +39,7 @@ Sample *weaponSample = NULL;
 
 //#define BOSSTEST
 
+int levelNr = 1;
 bool performanceMode = false;
 double levelLength = 3000;
 double lastTime = 0;
@@ -247,19 +248,6 @@ int main(int argc, const char *argv) {
 
   printf("Starting up..\n");
   const bool pureVGA = false;
-  if (pureVGA) {
-    glVGA();
-  } else {
-    if (!glVesa(XRES,YRES,32)) {
-      printf("No Vesa 320x200x32 found.\n");
-      sleep(1);
-      if (!glVGA())
-      {
-        printf("No VGA device found.\n");
-        exit(0);
-      }
-    }
-  }
   printf("Starting up..\n");
   glEnable(GL_CULL_FACE);
   glEnable(GL_DEPTH_TEST);
@@ -306,6 +294,20 @@ int main(int argc, const char *argv) {
 #ifdef BOSSTEST
   levelScroll = levelLength-20;
 #endif
+
+  if (pureVGA) {
+    glVGA();
+  } else {
+    if (!glVesa(XRES,YRES,32)) {
+      printf("No Vesa 320x200x32 found.\n");
+      sleep(1);
+      if (!glVGA())
+      {
+        printf("No VGA device found.\n");
+        exit(0);
+      }
+    }
+  }
 
   displayStartScreen();
 
@@ -380,7 +382,10 @@ int main(int argc, const char *argv) {
     playerPos = playerPosScreen-Vector(0,levelScrollY,0);
 
     setCameraBackground();
-    paintLevel();
+    switch(levelNr) {
+      case 1:paintLevel1(); break;
+      case 2:paintLevel2(); break;
+    }
     setCameraGame();
     drawPlayer(player,playerPos);
     if (isKeyPressed(SCANCODE_CTRL)) {

@@ -1,5 +1,6 @@
 double hudEnergyBarValue = 0;
 double hudEnergyBarDuration = 0;
+bool displayWarning = false;
 
 void hudStart() {
   glMatrixMode(GL_PROJECTION);
@@ -73,7 +74,13 @@ void drawEnemyEnergyBar(double xp, double yp, double w, double h) {
 
 void drawHudGetReady(double anim) {
   hudStart();
-  drawText(1280/2,720/2,"Get Ready",0x00ffffff+((uint32_t)(pow(anim,0.5)*0xff000000)&0xff000000),1.0,0.5,0.5);
+  drawText(1,1280/2,720/2,"!Get Ready!",0x00ffffff+((uint32_t)(pow(anim,0.5)*0xff000000)&0xff000000),1.0,0.5,0.5);
+  hudEnd();
+}
+
+void drawHudWarning() {
+  hudStart();
+  drawText(1,1280/2,720/2,"!Warning!",0xff0000ff,1.0,0.5,0.5);
   hudEnd();
 }
 
@@ -83,12 +90,12 @@ void drawHud() {
   uint32_t color = 0xffffffc0;
   char scoreBuffer[16];
   sprintf(scoreBuffer,"%08d",score);
-  drawText(0,0,scoreBuffer,color);
+  drawText(0,0,0,scoreBuffer,color);
   sprintf(scoreBuffer,"%02d",lives);
-  drawText(1280,0,scoreBuffer,color,1,1,0);
+  drawText(0,1280,0,scoreBuffer,color,1,1,0);
 
   sprintf(scoreBuffer,"fps:%d",(int)fps);
-  drawText(0,40,scoreBuffer,color,1.0);
+  drawText(0,0,40,scoreBuffer,color,1.0);
   int debugCount = 0;
   for (int i = 0; i < gameObjects.size(); i++) {
     if (gameObjects[i]->debugCountIt)
@@ -100,5 +107,10 @@ void drawHud() {
 
   drawEnergyBar(1280-250,5,150,20);
   drawEnemyEnergyBar(1280-250-170,5,150,10);
+
+  if (displayWarning) {
+    drawHudWarning();
+  }
+
   hudEnd();
 }

@@ -18,4 +18,5 @@ colision.cpp colision.obj
 text.cpp text.obj
 truetype.cpp truetype.obj
 intro.cpp intro.obj
+lvlscrn.cpp lvlscrn.obj
 main.cpp main.OBJ

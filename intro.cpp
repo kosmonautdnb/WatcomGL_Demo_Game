@@ -10,6 +10,7 @@
 #include "keymtrix.hpp"
 #include "text.hpp"
 #include "textures.hpp"
+#include "lvlscrn.hpp"
 
 
 #define FOV 70
@@ -41,6 +42,7 @@ void clearFrame();
 Mesh *playerf;
 extern HashMap<uint32_t,uint32_t> reColor;
 void drawMesh(Mesh *mesh);
+extern int levelNr;
 
 extern Sample *shotSound;
 extern Sample *exploSound;
@@ -53,8 +55,8 @@ void loadStartScreen() {
   glGenTextures(1, &tex_birdOfLight);
   glBindTexture(GL_TEXTURE_2D, tex_birdOfLight);
   glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,img.width,img.height,0,GL_RGBA,GL_UNSIGNED_BYTE,img.data);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   img.free();
@@ -249,6 +251,11 @@ void displayLogo() {
   glTexCoord2f(k,1);glVertex3f(1280*k,720,0);
   glEnd();
 
+  double r = -1+seconds_intro*1.0;
+  r *= 200;
+  if (r > 0) r = 0;
+  r = 0;
+
   glBlendFunc(GL_SRC_ALPHA,GL_ONE);
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, tex_birdOfLight_Glow);
@@ -266,7 +273,7 @@ void displayLogo() {
         float fx = (float)(x+rx)/tesselX;
         float fy = (float)(y+ry)/tesselY;
         p[i].x = fx*1280;
-        p[i].y = fy*720*k;
+        p[i].y = fy*720*k+r;
         p[i].z = 0;
         t[i].x = fx;
         t[i].y = fy*k;
@@ -283,16 +290,22 @@ void displayLogo() {
     }
   }
 
-
   glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, tex_birdOfLight);
+  if (r != 0) {
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  } else {
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  }
   glBegin(GL_QUADS);
   float k2;
-  k2 = sin(seconds_intro*1.2+1)*0.4+0.6;glColor4f(k2,k2,k2*0.75,1);glTexCoord2f(1,0);glVertex3f(1280,0,0);
-  k2 = sin(seconds_intro*0.7)*0.4+0.6;glColor4f(k2,k2,k2*0.75,1);glTexCoord2f(0,0);glVertex3f(0,0,0);
-  k2 = sin(seconds_intro*1.7)*0.4+0.6;glColor4f(k2,k2,k2*0.75,1);glTexCoord2f(0,1*k);glVertex3f(0,720*k,0);
-  k2 = sin(seconds_intro*1.1)*0.4+0.6;glColor4f(k2,k2,k2*0.75,1);glTexCoord2f(1,1*k);glVertex3f(1280,720*k,0);
+  k2 = sin(seconds_intro*1.2+1)*0.4+0.6;glColor4f(k2,k2,k2*0.75,1);glTexCoord2f(1,0);glVertex3f(1280,r,0);
+  k2 = sin(seconds_intro*0.7)*0.4+0.6;glColor4f(k2,k2,k2*0.75,1);glTexCoord2f(0,0);glVertex3f(0,r,0);
+  k2 = sin(seconds_intro*1.7)*0.4+0.6;glColor4f(k2,k2,k2*0.75,1);glTexCoord2f(0,1*k);glVertex3f(0,720*k+r,0);
+  k2 = sin(seconds_intro*1.1)*0.4+0.6;glColor4f(k2,k2,k2*0.75,1);glTexCoord2f(1,1*k);glVertex3f(1280,720*k+r,0);
   glEnd();
 
 
@@ -355,10 +368,10 @@ void frame_mainScreen() {
     a--;
     if (a<0) a = 0; else shotSound->play(Vector());
   }
-  c = a == 0;drawText(1280/2,720/2+o*0,(c?">":"")+String("Start Game")+(c?"<":""),c?wh:col,1.0,0.5,0.5);
-  c = a == 1;drawText(1280/2,720/2+o*1,(c?">":"")+String("Highscores")+(c?"<":""),c?wh:col,1.0,0.5,0.5);
-  c = a == 2;drawText(1280/2,720/2+o*2,(c?">":"")+String("Setup")+(c?"<":""),c?wh:col,1.0,0.5,0.5);
-  c = a == 3;drawText(1280/2,720/2+o*3,(c?">":"")+String("Credits")+(c?"<":""),c?wh:col,1.0,0.5,0.5);
+  c = a == 0;drawText(0,1280/2,720/2+o*0,(c?">":"")+String("Start Game")+(c?"<":""),c?wh:col,1.0,0.5,0.5);
+  c = a == 1;drawText(0,1280/2,720/2+o*1,(c?">":"")+String("Highscores")+(c?"<":""),c?wh:col,1.0,0.5,0.5);
+  c = a == 2;drawText(0,1280/2,720/2+o*2,(c?">":"")+String("Setup")+(c?"<":""),c?wh:col,1.0,0.5,0.5);
+  c = a == 3;drawText(0,1280/2,720/2+o*3,(c?">":"")+String("Credits")+(c?"<":""),c?wh:col,1.0,0.5,0.5);
   hudEnd();
   if (isAcceptKeyPressed()) acceptKeyPressed = true; else if (acceptKeyPressed) {exploSound->play(Vector());acceptKeyPressed = false; screen = a; if(a==0) screen = -1;}
   if (isReclineKeyPressed()) reclineKeyPressed = true; else if (reclineKeyPressed) {exploSound->play(Vector());reclineKeyPressed = false; screen = -1;}
@@ -368,7 +381,7 @@ void frame_setup() {
   hudStart();
   displayLogo();
   unsigned int col = 0xffffffff;
-  drawText(1280/2,720/2,"PC-Speaker:"+String(muted?"OFF":"ON"),col,1.0,0.5,0.0);
+  drawText(0,1280/2,720/2,"PC-Speaker:"+String(muted?"OFF":"ON"),col,1.0,0.5,0.0);
   hudEnd();
   if (isAcceptKeyPressed()) acceptKeyPressed = true; else if (acceptKeyPressed) {exploSound->play(Vector());acceptKeyPressed = false; muted = !muted; auMuteAudio(muted);}
   if (isReclineKeyPressed()) reclineKeyPressed = true; else if (reclineKeyPressed) {exploSound->play(Vector());reclineKeyPressed = false; screen = 0;}
@@ -380,8 +393,8 @@ void frame_creditsScreen() {
   float o = 40;
   float fo = o * 2-720/10;
   unsigned int col = 0xffff8000;
-  drawText(1280/2,720/2+-fo/2+o*0,"Coding: Stefan Mader",col,1.0,0.5,0.0);
-  drawText(1280/2,720/2+-fo/2+o*1,"Musics: Ronny Doll",col,1.0,0.5,0.0);
+  drawText(0,1280/2,720/2+-fo/2+o*0,"Coding: Stefan Mader",col,1.0,0.5,0.0);
+  drawText(0,1280/2,720/2+-fo/2+o*1,"Musics: Ronny Doll",col,1.0,0.5,0.0);
   hudEnd();
   if (isAcceptKeyPressed()) acceptKeyPressed = true; else if (acceptKeyPressed) {exploSound->play(Vector());acceptKeyPressed = false; screen = 0;}
   if (isReclineKeyPressed()) reclineKeyPressed = true; else if (reclineKeyPressed) {exploSound->play(Vector());reclineKeyPressed = false; screen = 0;}
@@ -393,7 +406,7 @@ void frame_highScores() {
   float o = 40;
   unsigned int col = 0xffffff00;
   for (int i = 0; i < 10; i++)
-    drawText(1280/2,300+o*i,"ABC 00100000",col,1.0,0.5,0.0);
+    drawText(0,1280/2,300+o*i,"ABC 00100000",col,1.0,0.5,0.0);
   hudEnd();
   if (isAcceptKeyPressed()) acceptKeyPressed = true; else if (acceptKeyPressed) {exploSound->play(Vector());acceptKeyPressed = false; screen = 0;}
   if (isReclineKeyPressed()) reclineKeyPressed = true; else if (reclineKeyPressed) {exploSound->play(Vector());reclineKeyPressed = false; screen = 0;}
@@ -408,6 +421,8 @@ void displayStartScreen() {
   reclineKeyPressed = false;
   scanDown = false;
   scanUp = false;
+  muted = true;
+  auMuteAudio(muted);
   do {
     glNextKey();
     currentTime_intro = auSeconds();
@@ -425,7 +440,9 @@ void displayStartScreen() {
     //glRotatef(seconds_intro*15.0,0,1,0);
     float b = 2.f;
     glScalef(b,b,b);
+    reColor[0x4000c0ff] = 0x00;
     drawMesh(playerf);
+    reColor.clear();
     glPopMatrix();
   
     displaySkyStars();
@@ -439,5 +456,8 @@ void displayStartScreen() {
 
     glRefresh();
   } while(screen>=0);
+
+  levelNr = 1;
+  displayLevelScreen();
 }
 
