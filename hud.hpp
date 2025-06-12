@@ -74,12 +74,14 @@ void drawEnemyEnergyBar(double xp, double yp, double w, double h) {
 
 void drawHudGetReady(double anim) {
   hudStart();
+  drawText(1,1280/2,720/2+15,"!Get Ready!",0x0000000+((uint32_t)(pow(anim,0.5)*0xff000000)&0xff000000),1.0,0.5,0.5);
   drawText(1,1280/2,720/2,"!Get Ready!",0x00ffffff+((uint32_t)(pow(anim,0.5)*0xff000000)&0xff000000),1.0,0.5,0.5);
   hudEnd();
 }
 
 void drawHudWarning() {
   hudStart();
+  drawText(1,1280/2,720/2+15,"!Warning!",0x40000000,1.0,0.5,0.5);
   drawText(1,1280/2,720/2,"!Warning!",0xff0000ff,1.0,0.5,0.5);
   hudEnd();
 }

@@ -30,6 +30,7 @@ extern Mesh *playerf;
 extern HashMap<uint32_t,uint32_t> reColor;
 extern GLuint ftex;
 extern int XRES;
+extern unsigned int glowTexture;
 
 void clearFrame();
 void hudStart();
@@ -91,6 +92,20 @@ void displayForeground() {
   glEnable(GL_TEXTURE_2D);
   glActiveTexture(GL_TEXTURE0);
   glDepthMask(GL_FALSE);
+
+  float k = 15;
+  drawText(1,700,550+k,"Seven",0x80000000,1.0,0.0,0.0);
+
+  //glEnable(GL_BLEND);
+  //glBlendFunc(GL_ZERO, GL_ONE_MINUS_SRC_ALPHA);
+  //glBindTexture(GL_TEXTURE_2D,tex_level);
+  //glBegin(GL_QUADS);
+  //glColor4f(1,1,1,0.5);
+  //glTexCoord2f(1,0); glVertex3f(1280.0,k,0);
+  //glTexCoord2f(0,0); glVertex3f(0.0,k,0);
+  //glTexCoord2f(0,1); glVertex3f(0.0,720.0+k,0);
+  //glTexCoord2f(1,1); glVertex3f(1280.0,720.0+k,0);
+  //glEnd();
 
   drawText(1,700,550,"Seven",0xffffffff,1.0,0.0,0.0);
 
@@ -169,6 +184,55 @@ void greyScale() {
   }
 }
 
+class Particle {
+public:
+  Vector p;
+  Vector d;
+  double s;
+  double l;
+};
+
+Array<Particle> particles;
+
+void emitParticle(const Vector &p, const Vector &d, const double s) {
+  Particle v;
+  v.p = p;
+  v.d = d;
+  v.s = s;
+  v.l = 1;
+  if (particles.size()<200)
+    particles.push_back(v);
+}
+
+void updateParticles(double dt) {
+  for (int i = 0; i < particles.size(); i++) {
+    Particle &p = particles[i];
+    p.p += dt * p.d;
+    p.l -= dt;
+    if (p.l <= 0) {particles.erase(i,1);i--;}
+  }
+}
+
+void drawParticles() {
+  glEnable(GL_TEXTURE_2D);
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_ONE,GL_ONE);
+  glDepthMask(GL_FALSE);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D,glowTexture);
+  glBegin(GL_POINTS);
+  glColor4f(0.1,1,1,1);
+  for (int i = 0; i < particles.size(); i++) {
+    Particle &p = particles[i];
+    glPointSize(XRES*p.s/320);
+    glVertex3f(p.p.x,p.p.y,p.p.z);
+  }
+  glEnd();
+  glDepthMask(GL_TRUE);
+  glDisable(GL_TEXTURE_2D);
+  glDisable(GL_BLEND);
+}
+
 void displayLevelScreen() {
   clearFrame();
   glRefresh();
@@ -180,9 +244,24 @@ void displayLevelScreen() {
   while(isReclineKeyPressed());
 
   auSeconds() = 0;
+  seconds_levelScreen = auSeconds();
+  double emitties = 0;
   do {
     clearFrame();
+    double bef = seconds_levelScreen;
     seconds_levelScreen = auSeconds();
+
+    updateParticles(seconds_levelScreen-bef);
+    emitties += seconds_levelScreen-bef;
+    double k = 0.005;
+    int i = 0;
+    while(emitties-k>=0) {
+      static unsigned int ka = 0; ka++;
+      emitParticle(Vector((int)(ka & 1)*2-1+randomLike(ka*2)*0.25-0.125,5,randomLike(ka*5)*0.25-0.1250),Vector(0,8,0)*(randomLike(ka*33)+0.1),randomLike(ka)*20+10);
+      emitties-=k;
+      i++;
+      if (i > 20) break;
+    }
 
     hudStart();
     displayBackground();
@@ -196,6 +275,7 @@ void displayLevelScreen() {
     reColor[0x4000c0ff] = 0x00;
     drawMesh(playerf);
     reColor.clear();
+    drawParticles();
     greyScale();
 
     hiPass();
@@ -216,4 +296,3 @@ void displayLevelScreen() {
   while(isReclineKeyPressed());
   glNextKey();
 }
-
