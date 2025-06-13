@@ -156,26 +156,37 @@ void loadTextures() {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
   // green
-  for (y = 0; y < 32; y++) {
-    float fy = y / 31.f * 2.f - 1.f;
-    for (x = 0; x < 32; x++) {
-      float fx = x / 31.f * 2.f - 1.f;
-      float d = 1.f-sqrt(fx*fx+fy*fy);
-      float q = 1.f-sqrt((fx+0.25)*(fx+0.25)+(fy+0.25)*(fy+0.25));
+  for (y = 0; y < 64; y++) {
+    float fy = y / 63.f * 2.f - 1.f;
+    for (x = 0; x < 64; x++) {
+      float fx = x / 63.f * 2.f - 1.f;
+      float df = 1.f-sqrt(fx*fx+fy*fy);
+      float dh = 1.f-sqrt(fx*fx+fy*fy)*3;
+      df = clamp(df,0.f,1.f);
+      dh = clamp(dh,0.f,1.f);
       int r,g,b,a;
       r = 128;
       g = 255;
       b = 128;
       a = 255;
-      if (d < 0) {a=0;}
-      if (d < 0.2) {float s = 0.5;r*=s;g*=s;b*=s;}
-      if (q > 0.7) {r=g=b=255;}
-      buffer[x+y*32] = r | (g<<8) | (b<<16) | (a<<24);
+      if (dh <= 0) {
+        r = 0;
+        g = 48*df*2;
+        b = 32*df*2;
+        a = 0;
+      }
+      if (df <= 0) {
+        r = 0;
+        g = 0;
+        b = 0;
+        a = 0;
+      }
+      buffer[x+y*64] = r | (g<<8) | (b<<16) | (a<<24);
     }
   }
   glGenTextures(1, &shotTexture[2]);
   glBindTexture(GL_TEXTURE_2D, shotTexture[2]);
-  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,32,32,0,GL_RGBA,GL_UNSIGNED_BYTE,buffer);
+  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,64,64,0,GL_RGBA,GL_UNSIGNED_BYTE,buffer);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);

@@ -213,6 +213,7 @@ public:
     glBindTexture(GL_TEXTURE_2D, glowTexture);
     glEnable(GL_BLEND);
     glBlendFunc(GL_ONE,GL_ONE);
+    glDepthMask(GL_FALSE);
     glPointSize(XRES*4/320);
     glBegin(GL_POINTS);
     double k = 1 - l;
@@ -223,6 +224,7 @@ public:
     glEnd();
     glDisable(GL_BLEND);
     glDisable(GL_TEXTURE_2D);
+    glDepthMask(GL_TRUE);
   }
   static void emit() {
     static double t = 0;
@@ -270,15 +272,17 @@ public:
       }
       glEnable(GL_TEXTURE_2D);
       glBindTexture(GL_TEXTURE_2D, shotTexture[2]);
-      glEnable(GL_ALPHA_TEST);
-      glAlphaFunc(GL_GREATER,0.1f);
       glBegin(GL_POINTS);
+      glEnable(GL_BLEND);
+      glDepthMask(GL_FALSE);
+      glBlendFunc(GL_ONE,GL_ONE_MINUS_SRC_ALPHA); // premultiplied alpha for add transparencies
       glColor4f(1,1,1,1);
-      glPointSize(XRES*3/320);
+      glPointSize(XRES*10/320);
       glVertex3f(position.x,position.y,position.z);
       glEnd();
+      glDepthMask(GL_TRUE);
       glDisable(GL_TEXTURE_2D);
-      glDisable(GL_ALPHA_TEST);
+      glDisable(GL_BLEND);
     }
     lastPosition = position;
     fresh = false;
@@ -315,6 +319,7 @@ public:
     glBindTexture(GL_TEXTURE_2D, shotTexture[blue?1:0]);
     glEnable(GL_ALPHA_TEST);
     glAlphaFunc(GL_GREATER,0.1f);
+    glDepthMask(GL_FALSE);
     glBegin(GL_POINTS);
     glColor4f(1,1,1,1);
     glPointSize(XRES*5/320);
@@ -322,6 +327,7 @@ public:
     glEnd();
     glDisable(GL_TEXTURE_2D);
     glDisable(GL_ALPHA_TEST);
+    glDepthMask(GL_TRUE);
     lastPosition = position;
     fresh = false;
   }
@@ -371,6 +377,7 @@ public:
     double k = seconds*180.0+randomLike(index*100)*90;
     Vector n = rotate(Vector(0,3,0)*shotSize, k);
     Vector t = rotate(Vector(1.0,0,0)*shotSize, k);
+    glDepthMask(GL_FALSE);
     glBegin(GL_QUADS);
     glColor4f(1,1,1,1);
     glTexCoord2f(1,0);
@@ -385,6 +392,7 @@ public:
     glDisable(GL_BLEND);
     glDisable(GL_TEXTURE_2D);
     glDisable(GL_ALPHA_TEST);
+    glDepthMask(GL_TRUE);
     lastPosition = position;
     fresh = false;
   }

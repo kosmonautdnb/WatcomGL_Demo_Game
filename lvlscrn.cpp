@@ -19,6 +19,14 @@
 #define CAMPOSZ (-60.0/8)
 #define CAMPOSY (120.0/8)
 
+class Particle {
+public:
+  Vector p;
+  Vector d;
+  double s;
+  double l;
+};
+
 GLuint tex_face = 0;
 GLuint tex_level = 0;
 
@@ -30,12 +38,15 @@ extern Mesh *playerf;
 extern HashMap<uint32_t,uint32_t> reColor;
 extern GLuint ftex;
 extern int XRES;
+extern int levelNr;
 extern unsigned int glowTexture;
+Array<Particle> particles;
 
 void clearFrame();
 void hudStart();
 void hudEnd();
 void drawMesh(Mesh *mesh);
+void screenShot();
 float randomLike(const unsigned int t);
 
 static bool isAcceptKeyPressed() {
@@ -93,8 +104,26 @@ void displayForeground() {
   glActiveTexture(GL_TEXTURE0);
   glDepthMask(GL_FALSE);
 
+  
+  const char *levelNrStrs[] = {
+    "zero",
+    "one",
+    "two",
+    "three",
+    "four",
+    "five",
+    "six",
+    "seven",
+    "eight",
+    "nine",
+    "ten"};
+  const char *levelNrStr = levelNrStrs[levelNr];
+
+  drawText(0,850,80,"Sys X-Alyph",0x00ffffff+(unsigned int)(sin(seconds_levelScreen*5)*0x1f+0xe0)*0x01000000,1.0,0.0,0.0);
+
+
   float k = 15;
-  drawText(1,700,550+k,"Seven",0x80000000,1.0,0.0,0.0);
+  drawText(1,700,550+k,levelNrStr,0x80000000,1.0,0.0,0.0);
 
   //glEnable(GL_BLEND);
   //glBlendFunc(GL_ZERO, GL_ONE_MINUS_SRC_ALPHA);
@@ -107,7 +136,7 @@ void displayForeground() {
   //glTexCoord2f(1,1); glVertex3f(1280.0,720.0+k,0);
   //glEnd();
 
-  drawText(1,700,550,"Seven",0xffffffff,1.0,0.0,0.0);
+  drawText(1,700,550,levelNrStr,0xffffffff,1.0,0.0,0.0);
 
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -184,16 +213,6 @@ void greyScale() {
   }
 }
 
-class Particle {
-public:
-  Vector p;
-  Vector d;
-  double s;
-  double l;
-};
-
-Array<Particle> particles;
-
 void emitParticle(const Vector &p, const Vector &d, const double s) {
   Particle v;
   v.p = p;
@@ -247,6 +266,7 @@ void displayLevelScreen() {
   seconds_levelScreen = auSeconds();
   double emitties = 0;
   do {
+    int currentKey = glNextKey();
     clearFrame();
     double bef = seconds_levelScreen;
     seconds_levelScreen = auSeconds();
@@ -285,7 +305,9 @@ void displayLevelScreen() {
     hudEnd();
    
     glRefresh();
-    glNextKey();
+    if (currentKey == GL_VK_F1) {
+      screenShot();
+    }
     if (isAcceptKeyPressed()) break;
     if (isReclineKeyPressed()) break;
   } while(1);
@@ -295,4 +317,7 @@ void displayLevelScreen() {
   while(isAcceptKeyPressed());
   while(isReclineKeyPressed());
   glNextKey();
+
+  glDeleteTextures(1,&tex_face);
+  glDeleteTextures(1,&tex_level);
 }

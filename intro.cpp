@@ -47,6 +47,15 @@ extern int levelNr;
 extern Sample *shotSound;
 extern Sample *exploSound;
 
+void screenShot();
+static bool scanDown = false;
+static bool scanUp = false;
+static int a = 0;
+static bool acceptKeyPressed = false;
+static bool reclineKeyPressed = false;
+static int screen = 0;
+static bool muted = false;
+
 void loadStartScreen() {
   RGBAImage img;
 
@@ -340,14 +349,6 @@ bool isReclineKeyPressed() {
   return false;
 }
 
-static bool scanDown = false;
-static bool scanUp = false;
-static int a = 0;
-static bool acceptKeyPressed = false;
-static bool reclineKeyPressed = false;
-static int screen = 0;
-static bool muted = false;
-
 void frame_mainScreen() {
   hudStart();
   displayLogo();
@@ -424,7 +425,7 @@ void displayStartScreen() {
   muted = true;
   auMuteAudio(muted);
   do {
-    glNextKey();
+    int currentKey = glNextKey();
     currentTime_intro = auSeconds();
     timeDelta_intro = currentTime_intro-lastTime_intro;
     lastTime_intro = currentTime_intro;
@@ -455,7 +456,17 @@ void displayStartScreen() {
     }
 
     glRefresh();
+    if (currentKey == GL_VK_F1) {
+      screenShot();
+    }
   } while(screen>=0);
+
+  glDeleteTextures(1,&tex_birdOfLight);
+  glDeleteTextures(1,&tex_birdOfLight_Glow);
+  glDeleteTextures(1,&tex_stars);
+  glDeleteTextures(1,&tex_trees);
+  glDeleteTextures(1,&tex_tree);
+  glDeleteTextures(1,&tex_grass);
 
   levelNr = 1;
   displayLevelScreen();

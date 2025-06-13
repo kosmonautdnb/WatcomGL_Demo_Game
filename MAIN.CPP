@@ -244,6 +244,17 @@ void drawPlayer(Mesh *mesh, const Vector &pos) {
   glPopMatrix();
 }
 
+void screenShot() {
+  RGBAImage m,m2;
+  m.width = glFrameBufferWidth;
+  m.height = glFrameBufferHeight;
+  m.data = glFrameBuffer;
+  m2 = m.getResized(1280, 720);
+  for (int i = 0; i < 1280*720; i++) m2.data[i] |= 0xff000000;
+  m2.savePNG("scrnshot.png");
+  m2.free();
+}
+
 int main(int argc, const char *argv) {
 
   printf("Starting up..\n");
@@ -396,13 +407,7 @@ int main(int argc, const char *argv) {
     if (playerAnimDuration>0) drawHudGetReady(playerAnimDuration);
     glRefresh();
     if (currentKey == GL_VK_F1) {
-      RGBAImage m,m2;
-      m.width = glFrameBufferWidth;
-      m.height = glFrameBufferHeight;
-      m.data = glFrameBuffer;
-      m2 = m.getResized(1280, 720);
-      m2.savePNG("scrnshot.png");
-      m2.free();
+      screenShot();
     }
 #ifdef RECORDVIDEO
   {
