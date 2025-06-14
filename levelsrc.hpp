@@ -1,15 +1,15 @@
 
-Mesh *player;
-Mesh *enemy1; // round/circular object 
-Mesh *enemy2; // ship red wings
-Mesh *enemy3; // a white black ball
-Mesh *enemy4; // a ball mine
-Mesh *boss1; // an endboss enemy
-Mesh *collect; // a collectable object
-Mesh *heart; // a energy fillup heart
-Mesh *object1; // hangar like <
-Mesh *object2; // grey plate with red stripe
-Mesh *object3; // a connector structure
+Mesh *player = NULL;
+Mesh *enemy1 = NULL; // round/circular object 
+Mesh *enemy2 = NULL; // ship red wings
+Mesh *enemy3 = NULL; // a white black ball
+Mesh *enemy4 = NULL; // a ball mine
+Mesh *boss1 = NULL; // an endboss enemy
+Mesh *collect = NULL; // a collectable object
+Mesh *heart = NULL; // a energy fillup heart
+Mesh *object1 = NULL; // hangar like <
+Mesh *object2 = NULL; // grey plate with red stripe
+Mesh *object3 = NULL; // a connector structure
 
 #define CAPSULE_PLAYER_RADIUS 2
 #define CAPSULE_ENEMYSHOT_RADIUS 2
@@ -62,7 +62,7 @@ void drawMesh(Mesh *mesh) {
       glEnable(GL_LIGHTING);
     }
     if ((col>>24)==0x20) {
-      col = (!playerBlue) ? 0xff0000ff:0xffff00ff;
+      col = playerRed ? 0xff0000ff:0xffff00ff;
     }
     glColor4ubv((unsigned char*)&col);
     if (markDebug) glColor4f(1.0,0.0,1.0,1.0);
@@ -296,7 +296,7 @@ public:
 class EnemyShot : public GO, public GO_Position, public GO_Physical, public GO_Paintable, public GO_AliveDistance, public GO_LifeTime {
 public:
   Vector initialPosition;
-  bool blue;
+  bool red;
   Vector lastPosition;
   bool fresh;
   EnemyShot(const Vector &p, const Vector &v) : GO(), GO_Position(), GO_Physical(), GO_Paintable(), GO_AliveDistance(180), GO_LifeTime(100) {
@@ -304,19 +304,19 @@ public:
     initialPosition = p;
     position = p;
     velocity = v;
-    blue = false;
+    red = false;
     fresh = true;
   }
   virtual void paint(double dt) {
     capsule[CAPSULE_COLLIDER] = Capsule(position, lastPosition, CAPSULE_ENEMYSHOT_RADIUS);
-    if ((blue==playerBlue) && (fresh == false) && collide(CAPSULE_COLLIDER,CAPSULE_PLAYER)) {
+    if ((red==playerRed) && (fresh == false) && collide(CAPSULE_COLLIDER,CAPSULE_PLAYER)) {
       destruct();
       placeExplosion(position);
       playerHit(false);
     }
     Vector position2 = position;
     glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, shotTexture[blue?1:0]);
+    glBindTexture(GL_TEXTURE_2D, shotTexture[red?0:1]);
     glEnable(GL_ALPHA_TEST);
     glAlphaFunc(GL_GREATER,0.1f);
     glDepthMask(GL_FALSE);
@@ -340,7 +340,7 @@ public:
 class EnemyShot2 : public GO, public GO_Position, public GO_Physical, public GO_Paintable, public GO_AliveDistance, public GO_LifeTime {
 public:
   Vector initialPosition;
-  bool blue;
+  bool red;
   Vector lastPosition;
   bool fresh;
   EnemyShot2(const Vector &p, const Vector &v) : GO(), GO_Position(), GO_Physical(), GO_Paintable(), GO_AliveDistance(180), GO_LifeTime(100) {
@@ -348,7 +348,7 @@ public:
     initialPosition = p;
     position = p;
     velocity = v;
-    blue = false;
+    red = false;
     fresh = true;
   }
   Vector rotate(const Vector &v, double ang) {
@@ -361,19 +361,19 @@ public:
   }
   virtual void paint(double dt) {
     capsule[CAPSULE_COLLIDER] = Capsule(position, lastPosition, CAPSULE_ENEMYSHOT_RADIUS);
-    if ((blue==playerBlue) && (fresh == false) && collide(CAPSULE_COLLIDER,CAPSULE_PLAYER)) {
+    if ((red==playerRed) && (fresh == false) && collide(CAPSULE_COLLIDER,CAPSULE_PLAYER)) {
       destruct();
       placeExplosion(position);
       playerHit(false);
     }
     Vector position2 = position;
     glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, shotTexture[blue?5:4]);
-    glEnable(GL_ALPHA_TEST);
-    glAlphaFunc(GL_GREATER,0.1f);
+    glBindTexture(GL_TEXTURE_2D, shotTexture[red?4:5]);
+    //glEnable(GL_ALPHA_TEST);
+    //glAlphaFunc(GL_GREATER,0.1f);
     glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
-    double shotSize = 2;
+    glBlendFunc(GL_ONE,GL_ONE_MINUS_SRC_ALPHA);
+    double shotSize = 4;
     double k = seconds*180.0+randomLike(index*100)*90;
     Vector n = rotate(Vector(0,3,0)*shotSize, k);
     Vector t = rotate(Vector(1.0,0,0)*shotSize, k);
@@ -439,7 +439,7 @@ class Collectable : public GO, public GO_Position, public GO_Paintable, public G
 public:
   bool _heart;
   bool _weaponGreen;
-  Collectable(const Vector &p) : GO(), GO_Position(p), GO_Paintable(), GO_Collider_LevelObject(10) {
+  Collectable(const Vector &p) : GO(), GO_Position(p), GO_Paintable(), GO_Rotation(), GO_Collider_LevelObject(10) {
     _heart = false;
     _weaponGreen = false;
   }
@@ -545,9 +545,12 @@ bool isInScreen(const Vector &position) {
 }
 
 void playerHit(bool explosion) {
+  if (playerLifeLostAnimDuration>0) return;
   playerHits++;
   if (explosion)
     placeExplosion(playerPos);
+  if (playerHits>=maxPlayerHits)
+    liveLost = true;
 }
 
 void enemyEnergyBar(double energy) {

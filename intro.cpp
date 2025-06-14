@@ -24,9 +24,7 @@
 unsigned int tex_birdOfLight;
 unsigned int tex_birdOfLight_Glow;
 unsigned int tex_stars;
-unsigned int tex_trees;
-unsigned int tex_tree;
-unsigned int tex_grass;
+unsigned int tex_trees2;
 
 double currentTime_intro = 0;
 double timeDelta_intro = 0;
@@ -92,32 +90,10 @@ void loadStartScreen() {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   img.free();
 
-  img = RGBAImage::fromFile("trees.png");
-  if (img.data==NULL) ERROR("Error reading: trees.png");
-  glGenTextures(1, &tex_trees);
-  glBindTexture(GL_TEXTURE_2D, tex_trees);
-  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,img.width,img.height,0,GL_RGBA,GL_UNSIGNED_BYTE,img.data);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  img.free();
-
-  img = RGBAImage::fromFile("grass.png");
-  if (img.data==NULL) ERROR("Error reading: grass.png");
-  glGenTextures(1, &tex_grass);
-  glBindTexture(GL_TEXTURE_2D, tex_grass);
-  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,img.width,img.height,0,GL_RGBA,GL_UNSIGNED_BYTE,img.data);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  img.free();
-
-  img = RGBAImage::fromFile("tree.png");
-  if (img.data==NULL) ERROR("Error reading: tree.png");
-  glGenTextures(1, &tex_tree);
-  glBindTexture(GL_TEXTURE_2D, tex_tree);
+  img = RGBAImage::fromFile("trees2.png");
+  if (img.data==NULL) ERROR("Error reading: trees2.png");
+  glGenTextures(1, &tex_trees2);
+  glBindTexture(GL_TEXTURE_2D, tex_trees2);
   glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,img.width,img.height,0,GL_RGBA,GL_UNSIGNED_BYTE,img.data);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -231,9 +207,9 @@ void displayLogo() {
   glEnable(GL_TEXTURE_2D);
   glEnable(GL_BLEND);
   
-  glBlendFunc(GL_ZERO,GL_SRC_COLOR);
+  glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
   glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, tex_trees);
+  glBindTexture(GL_TEXTURE_2D, tex_trees2);
   glBegin(GL_QUADS);
   glColor4f(1,1,1,1);
   k = 0.0;
@@ -241,23 +217,6 @@ void displayLogo() {
   glTexCoord2f(0,k);glVertex3f(0,720*k,0);
   glTexCoord2f(0,1);glVertex3f(0,720,0);
   glTexCoord2f(1,1);glVertex3f(1280,720,0);
-  glEnd();
-
-  glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, tex_tree);
-  glBegin(GL_QUADS);
-  k = 0.5;
-  glColor4f(0.1,0.3,0.1,1);
-  glTexCoord2f(1,0);glVertex3f(1280,0,0);
-  glTexCoord2f(k,0);glVertex3f(1280*k*1.25,0,0);
-  glTexCoord2f(k,1);glVertex3f(1280*k*1.25,720,0);
-  glTexCoord2f(1,1);glVertex3f(1280,720,0);
-  k = 0.5;
-  glTexCoord2f(k,0);glVertex3f(1280*k,-200,0);
-  glTexCoord2f(1,0);glVertex3f(0,-200,0);
-  glTexCoord2f(1,1);glVertex3f(0,720,0);
-  glTexCoord2f(k,1);glVertex3f(1280*k,720,0);
   glEnd();
 
   double r = -1+seconds_intro*1.0;
@@ -315,21 +274,6 @@ void displayLogo() {
   k2 = sin(seconds_intro*0.7)*0.4+0.6;glColor4f(k2,k2,k2*0.75,1);glTexCoord2f(0,0);glVertex3f(0,r,0);
   k2 = sin(seconds_intro*1.7)*0.4+0.6;glColor4f(k2,k2,k2*0.75,1);glTexCoord2f(0,1*k);glVertex3f(0,720*k+r,0);
   k2 = sin(seconds_intro*1.1)*0.4+0.6;glColor4f(k2,k2,k2*0.75,1);glTexCoord2f(1,1*k);glVertex3f(1280,720*k+r,0);
-  glEnd();
-
-
-  glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, tex_grass);
-  glBegin(GL_QUADS);
-  k = 0.05;
-  glColor4f(0.2*k,1.5*k,0.8*k,1.0);
-  k = 0.9;
-  float w = 0.01; // prevent a bug in the gfx
-  glTexCoord2f(1,0);glVertex3f(1280,720*k,0);
-  glTexCoord2f(w,0);glVertex3f(0,720*k,0);
-  glTexCoord2f(w,1);glVertex3f(0,720,0);
-  glTexCoord2f(1,1);glVertex3f(1280,720,0);
   glEnd();
 
   glDisable(GL_BLEND);
@@ -392,10 +336,10 @@ void frame_creditsScreen() {
   hudStart();
   displayLogo();
   float o = 40;
-  float fo = o * 2-720/10;
+  float fo = o * 1-720/10;
   unsigned int col = 0xffff8000;
   drawText(0,1280/2,720/2+-fo/2+o*0,"Coding: Stefan Mader",col,1.0,0.5,0.0);
-  drawText(0,1280/2,720/2+-fo/2+o*1,"Musics: Ronny Doll",col,1.0,0.5,0.0);
+  //drawText(0,1280/2,720/2+-fo/2+o*1,"Musics: Ronny Doll",col,1.0,0.5,0.0);
   hudEnd();
   if (isAcceptKeyPressed()) acceptKeyPressed = true; else if (acceptKeyPressed) {exploSound->play(Vector());acceptKeyPressed = false; screen = 0;}
   if (isReclineKeyPressed()) reclineKeyPressed = true; else if (reclineKeyPressed) {exploSound->play(Vector());reclineKeyPressed = false; screen = 0;}
@@ -436,7 +380,7 @@ void displayStartScreen() {
     glPushMatrix();
     glTranslatef(0,0,0);
     setCameraIntro();
-    glTranslatef(0,(sin(seconds_intro*0.1)*0.5+0.5)*-20,0);
+    glTranslatef(0,(sin(seconds_intro*0.25)*0.5+0.5)*-20,0);
     glRotatef(seconds_intro*25.0,0,0,1);
     //glRotatef(seconds_intro*15.0,0,1,0);
     float b = 2.f;
@@ -464,9 +408,7 @@ void displayStartScreen() {
   glDeleteTextures(1,&tex_birdOfLight);
   glDeleteTextures(1,&tex_birdOfLight_Glow);
   glDeleteTextures(1,&tex_stars);
-  glDeleteTextures(1,&tex_trees);
-  glDeleteTextures(1,&tex_tree);
-  glDeleteTextures(1,&tex_grass);
+  glDeleteTextures(1,&tex_trees2);
 
   levelNr = 1;
   displayLevelScreen();

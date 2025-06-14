@@ -11,10 +11,8 @@ extern double levelScrollY;
 bool isInActiveScreen(const Vector &position) {
   const double y = position.y + levelScrollY;
   const double x = position.x;
-  if (y > (-65.0-30) && y < (65.0+30)) {
-    if (x > (-100.0-50) && x < (100.0+50)) 
-      return true;
-  }
+  if (y > -95.0 && y < 95.0 && x > -150.0 && x < 150.0) 
+    return true;
   return false;
 }
 
@@ -149,8 +147,9 @@ void GO_LifeTimeManager::manage() {
     GO *o = managed[i];
     if (!__RUNNING(o)) continue;
     GO_LifeTime *v0 = dynamic_cast<GO_LifeTime*>(o);
+    if (v0->lifeTime <= 0) {o->destruct();}
     v0->lifeTime -= dt;
-    if (v0->lifeTime < 0) {o->destruct();}
+    if (v0->lifeTime < 0) {v0->lifeTime=0;}
   }
 }
 

@@ -74,8 +74,9 @@ void drawEnemyEnergyBar(double xp, double yp, double w, double h) {
 
 void drawHudGetReady(double anim) {
   hudStart();
-  drawText(1,1280/2,720/2+15,"!Get Ready!",0x0000000+((uint32_t)(pow(anim,0.5)*0xff000000)&0xff000000),1.0,0.5,0.5);
-  drawText(1,1280/2,720/2,"!Get Ready!",0x00ffffff+((uint32_t)(pow(anim,0.5)*0xff000000)&0xff000000),1.0,0.5,0.5);
+  drawText(1,1280/2,720/2+15,"Get Ready!",0x0000000+((uint32_t)(pow(anim,0.5)*0xff000000)&0xff000000),1.0,0.5,0.5);
+  drawText(1,1280/2,720/2,"Get Ready!",0x00ffffff+((uint32_t)(pow(anim,0.5)*0xff000000)&0xff000000),1.0,0.5,0.5);
+  drawText(0,1280/2,720/2+80,("Lives: 0"+String(lives)),0x00ffffff+((uint32_t)(pow(anim,0.5)*0xff000000)&0xff000000),1.0,0.5,0.5);
   hudEnd();
 }
 
@@ -104,8 +105,7 @@ void drawHud() {
       debugCount++;
   }
   //sprintf(scoreBuffer,"%d/%d",(int)gameObjects.size(),debugCount);
-  //drawText(0,80,scoreBuffer,color,1.0);
-
+  //drawText(0,0,80,scoreBuffer,color,1.0);
 
   drawEnergyBar(1280-250,5,150,20);
   drawEnemyEnergyBar(1280-250-170,5,150,10);

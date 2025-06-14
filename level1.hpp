@@ -18,7 +18,7 @@ public:
       double sp = 20;
       placeEmitExplosion(position+Vector(cos(t)*10,sin(t)*10,0));
       GO *enemyShot = go_(new EnemyShot(position,Vector(cos(t)*sp,sin(t)*sp,0)));
-      dynamic_cast<EnemyShot*>(enemyShot)->blue=step&1;
+      dynamic_cast<EnemyShot*>(enemyShot)->red=step&1?false:true;
       gameObjects.push_back(enemyShot);
     }
     enemyShotSound->play(position);
@@ -64,11 +64,11 @@ public:
 // a space ship which comes from upwards, shots ands flies back upwards again
 class Enemy2 : public GO, public GO_Position, public GO_FrequencyCallback, public GO_FrequencyCallback2, public GO_Collider_Enemy, public GO_Paintable, public GO_HitPoints, public GO_ScoreHit, public GO_ScoreDestructed {
 public:
-  bool blue;
+  bool red;
   bool _circularShots;
   int type;
-  Enemy2(const Vector &p, bool blue, int type) : GO(), GO_Position(p), GO_FrequencyCallback(0.35), GO_FrequencyCallback2(0.025), GO_Collider_Enemy(10), GO_Paintable(), GO_HitPoints(64), GO_ScoreHit(1), GO_ScoreDestructed(200) {
-    this->blue = blue;
+  Enemy2(const Vector &p, bool red, int type) : GO(), GO_Position(p), GO_FrequencyCallback(0.35), GO_FrequencyCallback2(0.025), GO_Collider_Enemy(10), GO_Paintable(), GO_HitPoints(64), GO_ScoreHit(1), GO_ScoreDestructed(200) {
+    this->red = red;
     this->type = type;
     _circularShots = false;
   }
@@ -82,7 +82,7 @@ public:
       double sp = 10+(5-fabs(i-5))*4;
       placeEmitExplosion(position+Vector(cos(t2)*sp*0.5,sin(t2)*sp*0.5,0));
       GO *enemyShot = go_(new EnemyShot(position,Vector(cos(t)*sp,sin(t)*sp,0)));
-      dynamic_cast<EnemyShot*>(enemyShot)->blue=blue;
+      dynamic_cast<EnemyShot*>(enemyShot)->red=red;
       gameObjects.push_back(enemyShot);
     }
     enemyShotSound->play(position);
@@ -149,7 +149,7 @@ public:
       placeEmitExplosion(position+Vector(cos(a)*10,sin(a)*10,0));
       GO *enemyShot = go_(new EnemyShot(position,dir));
       if (((iteration % 12)==0)&&(i&1))
-        dynamic_cast<EnemyShot*>(enemyShot)->blue=true;
+        dynamic_cast<EnemyShot*>(enemyShot)->red=true;
       gameObjects.push_back(enemyShot);
     }
     enemyShotSound->play(position);
@@ -178,11 +178,11 @@ public:
 // a mine
 class Enemy4 : public GO, public GO_Position, public GO_FrequencyCallback, public GO_Collider_Enemy, public GO_Paintable, public GO_HitPoints, public GO_ScoreHit, public GO_ScoreDestructed {
 public:
-  bool blue;                       
+  bool red;                       
   int a;
   Enemy4(const Vector &p) : GO(), GO_Position(p), GO_FrequencyCallback(0.5), GO_Collider_Enemy(10), GO_Paintable(), GO_HitPoints(128), GO_ScoreHit(1), GO_ScoreDestructed(200) {
     static unsigned int k = 0; k++;
-    blue = k & 1;
+    red= k & 1;
     a = 0;
   }
   virtual void frequent(int iteration) {
@@ -196,7 +196,7 @@ public:
           Vector dir(sin(a)*shotSpeed,cos(a)*shotSpeed,0);
           placeEmitExplosion(position+Vector(cos(a)*10,sin(a)*10,0));
           GO *enemyShot = go_(new EnemyShot(position+normalize(dir)*10,dir));
-          dynamic_cast<EnemyShot*>(enemyShot)->blue=blue;
+          dynamic_cast<EnemyShot*>(enemyShot)->red=red;
           gameObjects.push_back(enemyShot);
         }
         enemyShotSound->play(position);
@@ -207,7 +207,7 @@ public:
     glPushMatrix();
     glTranslatef(position.x,position.y,position.z);
     glRotatef(seconds*2,sin(seconds*3),cos(seconds*3),0);
-    reColor[0xffffffff] = blue ? 0xff0000ff : 0xff000000;
+    reColor[0xffffffff] = red ? 0xff0000ff : 0xff000000;
     markDebug = debugMark;
     drawMesh(enemy4);
     markDebug = false;
@@ -280,7 +280,7 @@ public:
     flash = false;
   }
 
-  void shootSlow1(const Vector &p,bool blue) {
+  void shootSlow1(const Vector &p,bool red) {
     for(double i = -1;i<=1; i+=0.25) {
       Vector dir;
       double speed = 25;
@@ -288,7 +288,7 @@ public:
       dir.y = cos((i*40+0)*PI*2/360.0)*speed;
       dir.z = 0;
       GO *enemyShot = go_(new EnemyShot2(p,dir));
-      dynamic_cast<EnemyShot2*>(enemyShot)->blue=blue;
+      dynamic_cast<EnemyShot2*>(enemyShot)->red=red;
       gameObjects.push_back(enemyShot);
     }
     placeEmitExplosion(p);
@@ -391,10 +391,21 @@ public:
       placeExplosion(position+Vector(randomLike(ka*33)*100.0-50.0,randomLike(ka*77)*40.0-20.0,-25));
     }
     GO::destruct();
+    levelCompleted = true;
   }
 };
 
 void loadLevel1() {
+  if (enemy1 != NULL)  {delete enemy1; enemy1 = NULL;}
+  if (enemy2 != NULL) {delete enemy2; enemy2 = NULL;}
+  if (enemy3 != NULL) {delete enemy3; enemy3 = NULL;}
+  if (enemy4 != NULL) {delete enemy4; enemy4 = NULL;}
+  if (boss1 != NULL)    {delete boss1; boss1 = NULL;}
+  if (collect != NULL)  {delete collect; collect = NULL;}
+  if (heart != NULL)    {delete heart; heart = NULL;}
+  if (object1 != NULL)  {delete object1; object1 = NULL;}
+  if (object2 != NULL) {delete object2; object2 = NULL;}
+  if (object3 != NULL) {delete object3; object3 = NULL;}
   enemy1 = loadObject("enemy1.obj");
   enemy2 = loadObject("enemy2.obj");
   enemy3 = loadObject("enemy3.obj");
@@ -418,6 +429,8 @@ void loadLevel1() {
 }
 
 void buildLevel1() {
+  gameObjects.clear();
+
   // level enemies   
   int i,j;
 
@@ -425,12 +438,12 @@ void buildLevel1() {
     gameObjects.push_back(go_(new Enemy1(Vector(randomLike(i*33)*150-75,-100-i*20,0))));
   }
   for (i = 0; i < 5; i++) {
-    bool blue = i & 1;
+    bool red = i & 1;
     double x = randomLike(i*77)*50+50;
-    gameObjects.push_back(go_(new Enemy2(Vector(x,-450-i*50,0),blue,0)));
-    gameObjects.push_back(go_(new Enemy2(Vector(-x,-450-i*50,0),blue,0)));
+    gameObjects.push_back(go_(new Enemy2(Vector(x,-450-i*50,0),red,0)));
+    gameObjects.push_back(go_(new Enemy2(Vector(-x,-450-i*50,0),red,0)));
     if (i>2)
-      gameObjects.push_back(go_(new Enemy2(Vector(0,-450-i*50-25,0),blue,1)));
+      gameObjects.push_back(go_(new Enemy2(Vector(0,-450-i*50-25,0),red,1)));
   }
   for (i = 0; i < 3; i++) {
     gameObjects.push_back(go_(new Enemy1(Vector(-75,-450-5*50-i*80,0))));
@@ -454,12 +467,12 @@ void buildLevel1() {
   }
 
   for (i = 0; i < 5; i++) {
-    bool blue = i & 1;
+    bool red = i & 1;
     double x = randomLike(i*77)*50+50;
-    gameObjects.push_back(go_(new Enemy2(Vector(x,-2200-i*50,0),blue,0)));
-    gameObjects.push_back(go_(new Enemy2(Vector(-x,-2200-i*50,0),blue,0)));
+    gameObjects.push_back(go_(new Enemy2(Vector(x,-2200-i*50,0),red,0)));
+    gameObjects.push_back(go_(new Enemy2(Vector(-x,-2200-i*50,0),red,0)));
     if (i>2)
-      gameObjects.push_back(go_(new Enemy2(Vector(0,-2200-i*50-25,0),blue,1)));
+      gameObjects.push_back(go_(new Enemy2(Vector(0,-2200-i*50-25,0),red,1)));
   }
 
   // level objects
@@ -512,7 +525,6 @@ void buildLevel1() {
   gameObjects.push_back(go_(new Boss1FlyOver(Vector(0,-200,-50))));
   gameObjects.push_back(go_(new ShipFlyOver(Vector(-30,-2700,-150))));
   gameObjects.push_back(go_(new ShipFlyOver(Vector(+30,-2725,-120))));
-
 
   // collectables
   gameObjects.push_back(go_((new Collectable(Vector(50,-400,0)))->weaponGreen()));

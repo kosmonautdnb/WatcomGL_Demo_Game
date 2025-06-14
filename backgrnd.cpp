@@ -68,7 +68,7 @@ static __inline const float rand2dp2(double x, double y) {
   return (float)((((btm-top)*fyi)>>10)+top)/0x10000;
 }
 
-static __inline const float perlin(double x, double y) {
+static const float perlin(double x, double y) {
   y -= 1;
   float r = 0;
   r += rand2dp(x*1,y*1)/1.0;
@@ -79,7 +79,7 @@ static __inline const float perlin(double x, double y) {
   return r;
 }
 
-static __inline const float perlin2(double x, double y) {
+static const float perlin2(double x, double y) {
   float r = 0;
   r += rand2dp2(x*1,y*1)/1.0;
   r += rand2dp2(x*2,y*2)/2.0;
