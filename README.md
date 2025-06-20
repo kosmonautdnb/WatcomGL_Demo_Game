@@ -1,5 +1,5 @@
 # OpenGLDemoGame_DOS
-Just a tiny OpenGL Demo in the making.. WatcomC++
+Just a small OpenGL demo game with "one level." WatcomC++/FreeDOS
 
 https://www.youtube.com/watch?v=q8JHWQtH3B8
 
