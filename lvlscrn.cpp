@@ -233,6 +233,13 @@ void updateParticles(double dt) {
 }
 
 void drawParticles() {
+  GLdouble modelView[16];
+  GLdouble projection[16];
+  GLint viewport[4];
+  glGetDoublev(GL_MODELVIEW_MATRIX,modelView);
+  glGetDoublev(GL_PROJECTION_MATRIX,projection);
+  glGetIntegerv(GL_VIEWPORT,viewport);
+
   glEnable(GL_TEXTURE_2D);
   glEnable(GL_BLEND);
   glBlendFunc(GL_ONE,GL_ONE);
@@ -241,9 +248,25 @@ void drawParticles() {
   glBindTexture(GL_TEXTURE_2D,glowTexture);
   glBegin(GL_POINTS);
   glColor4f(0.1,1,1,1);
+
+  double cx,cy,cz;
+  double sx,sy,sz;
+  double nx,ny,nz;
+  gluProject(0,0,0,modelView, projection, viewport, &cx, &cy, &cz);
+  gluUnProject(cx,cy+1.0,cz,modelView, projection, viewport, &nx, &ny, &nz);
+  double ln = sqrt(nx*nx+ny*ny+nz*nz);
+  if (ln>0) {
+    nx /= ln;
+    ny /= ln;
+    nz /= ln;
+  }
   for (int i = 0; i < particles.size(); i++) {
     Particle &p = particles[i];
-    glPointSize(XRES*p.s/320);
+    gluProject(p.p.x,p.p.y,p.p.z, modelView, projection, viewport, &cx, &cy, &cz);
+    double k = 0.05;
+    gluProject(p.p.x+nx*k,p.p.y+ny*k,p.p.z+nz*k, modelView, projection, viewport, &sx, &sy, &sz);
+    glPointSize(fabs(sy-cy)*p.s);
+    //glPointSize(XRES*p.s/320);
     glVertex3f(p.p.x,p.p.y,p.p.z);
   }
   glEnd();

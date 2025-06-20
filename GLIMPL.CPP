@@ -3537,7 +3537,7 @@ void glDrawTriangle(_GLContext *context,glVertex *v0,glVertex *v1,glVertex *v2) 
           if (writePixel) {
             if (writeDepth) 
               *zDest=zp;
-            if (!blending) {
+            if (!blending)
               if (notMasked) {
                 *pDest=r|(g<<8)|(b<<16)|(a<<24);
               } else {
@@ -3547,7 +3547,7 @@ void glDrawTriangle(_GLContext *context,glVertex *v0,glVertex *v1,glVertex *v2) 
                 if (maskBlue) pDest2[2] = b;
                 if (maskAlpha) pDest2[3] = a;
               }
-            } else {
+            else {
               if (notMasked) {
                 if (normalAlphaBlendingOrPreMultipliedAlpha) {
                   unsigned int a8 = (a<<16)/255;
