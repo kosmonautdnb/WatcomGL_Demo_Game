@@ -29,3 +29,5 @@ copy /Y c:\_STL_\TRUETYPE.CPP
 copy /Y c:\_STL_\TRUETYPE.HPP
 copy /Y c:\_STL_\STBTTF.HPP
 copy /Y c:\_STL_\MINIMP3.HPP
+copy /Y c:\_STL_\SPRITE.CPP
+copy /Y c:\_STL_\SPRITE.HPP

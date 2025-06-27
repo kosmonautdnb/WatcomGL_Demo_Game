@@ -1,3 +1,5 @@
+#include "config.hpp"
+#include "sprite.hpp"
 
 Mesh *player = NULL;
 Mesh *enemy1 = NULL; // round/circular object 
@@ -214,13 +216,29 @@ public:
     glEnable(GL_BLEND);
     glBlendFunc(GL_ONE,GL_ONE);
     glDepthMask(GL_FALSE);
-    glPointSize(XRES*4/320);
+    float pointSize = XRES*4/320;
+    glPointSize(pointSize);
     glBegin(GL_POINTS);
     double k = 1 - l;
-    glColor3f(0.25*k,0.85*k,1.0*k);
-    if (white)
-      glColor3f(k,k,k);
-    glVertex3f(position.x, position.y, position.z);
+    float r = 0.25*k;
+    float g = 0.85*k;
+    float b = 1.0*k;
+    if (white) {
+      r = g = b = k;
+    }
+    glColor3f(r,g,b);
+    if (!USE_SPRITES) {
+      glVertex3f(position.x, position.y, position.z);
+    } else {
+      int rg = r * 255;
+      int gg = g * 255;
+      int bg = b * 255;
+      rg = clamp(rg,0,255);
+      gg = clamp(gg,0,255);
+      bg = clamp(bg,0,255);
+      unsigned int color = rg|(gg<<8)|(bg<<16)|0xff000000;
+      drawSprite(SPRITEPOS(Vector(position.x,position.y,position.z)),pointSize,pointSize,glowTexture,color,SPRITEFLAG_NODEPTHWRITE|SPRITEFLAG_ADDITIVE|SPRITEFLAG_BYSCREENSIZE);
+    }
     glEnd();
     glDisable(GL_BLEND);
     glDisable(GL_TEXTURE_2D);
@@ -277,8 +295,13 @@ public:
       glDepthMask(GL_FALSE);
       glBlendFunc(GL_ONE,GL_ONE_MINUS_SRC_ALPHA); // premultiplied alpha for add transparencies
       glColor4f(1,1,1,1);
-      glPointSize(XRES*10/320);
-      glVertex3f(position.x,position.y,position.z);
+      const float pointSize = XRES*10/320;
+      if (!USE_SPRITES) {
+        glPointSize(pointSize);
+        glVertex3f(position.x,position.y,position.z);
+      } else {
+        drawSprite(SPRITEPOS(Vector(position.x,position.y,position.z)),pointSize,pointSize,shotTexture[2],0xffffffff,SPRITEFLAG_PREMULTIPLIED_ALPHA|SPRITEFLAG_NODEPTHWRITE|SPRITEFLAG_BYSCREENSIZE);
+      }
       glEnd();
       glDepthMask(GL_TRUE);
       glDisable(GL_TEXTURE_2D);
@@ -316,14 +339,20 @@ public:
     }
     Vector position2 = position;
     glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, shotTexture[red?0:1]);
+    unsigned int texture = shotTexture[red?0:1];
+    glBindTexture(GL_TEXTURE_2D, texture);
     glEnable(GL_ALPHA_TEST);
     glAlphaFunc(GL_GREATER,0.1f);
     glDepthMask(GL_FALSE);
     glBegin(GL_POINTS);
     glColor4f(1,1,1,1);
-    glPointSize(XRES*5/320);
-    glVertex3f(position2.x,position2.y,position2.z);
+    float pointSize = XRES*5/320;
+    glPointSize(pointSize);
+    if (!USE_SPRITES) {
+      glVertex3f(position2.x,position2.y,position2.z);
+    } else {
+      drawSprite(SPRITEPOS(Vector(position2.x,position2.y,position2.z)),pointSize,pointSize,texture,0xffffffff,SPRITEFLAG_NODEPTHWRITE|SPRITEFLAG_BYSCREENSIZE);
+    }
     glEnd();
     glDisable(GL_TEXTURE_2D);
     glDisable(GL_ALPHA_TEST);

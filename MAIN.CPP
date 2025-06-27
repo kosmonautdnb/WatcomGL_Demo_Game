@@ -455,7 +455,7 @@ int main(int argc, const char *argv) {
     setCameraBackground();
     switch(levelNr) {
       case 1:paintLevel1(); break;
-      case 2:paintLevel2(); break;
+      //case 2:paintLevel2(); break;
     }
     setCameraGame();
     drawPlayer(player,playerPos);
