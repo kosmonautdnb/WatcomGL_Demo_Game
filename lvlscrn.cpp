@@ -10,9 +10,11 @@
 #include "hashmap.hpp"
 #include "text.hpp"
 #include "truetype.hpp"
+#include "config.hpp"
+#include "sprite.hpp"
 
 #define FOV 70
-#define ASPECT (320.0/200.0) //(16.0/9.0) sadly we can't use (16.0/9.0) here since the point sprites would be ellipsoid and not circular
+#define ASPECT ((float)glFrameBufferWidth/glFrameBufferHeight) //(16.0/9.0) sadly we can't use (16.0/9.0) here since the point sprites would be ellipsoid and not circular
 #define MONITORASPECT (16.0/9.0) // we need this for perfectly round GL_POINT point sprites
 #define NEARPLANE 0.1
 #define FARPLANE 1000.0
@@ -84,15 +86,21 @@ void displayBackground() {
   glActiveTexture(GL_TEXTURE0);
 
   float k = 0.375;
-  glDisable(GL_BLEND);
-  glBindTexture(GL_TEXTURE_2D,tex_face);
-  glBegin(GL_QUADS);
-  glColor4f(k,k,k,1);
-  glTexCoord2f(1,0); glVertex3f(1280.0,0,0);
-  glTexCoord2f(0,0); glVertex3f(0.0,0,0);
-  glTexCoord2f(0,1); glVertex3f(0.0,720.0,0);
-  glTexCoord2f(1,1); glVertex3f(1280.0,720.0,0);
-  glEnd();
+  if (!USE_SPRITES) {
+    glDisable(GL_BLEND);
+    glBindTexture(GL_TEXTURE_2D,tex_face);
+    glBegin(GL_QUADS);
+    glColor4f(k,k,k,1);
+    glTexCoord2f(1,0); glVertex3f(1280.0,0,0);
+    glTexCoord2f(0,0); glVertex3f(0.0,0,0);
+    glTexCoord2f(0,1); glVertex3f(0.0,720.0,0);
+    glTexCoord2f(1,1); glVertex3f(1280.0,720.0,0);
+    glEnd();
+  } else {
+    int ki = k * 255;
+    ki = ki|(ki<<8)|(ki<<16)|0xff000000;
+    drawSprite(Vector(1280/2,720/2,0),1280,720,tex_face,ki,SPRITEFLAG_NODEPTHWRITE);
+  }
 
   glDisable(GL_TEXTURE_2D);
   glDisable(GL_BLEND);
@@ -138,16 +146,20 @@ void displayForeground() {
 
   drawText(1,700,550,levelNrStr,0xffffffff,1.0,0.0,0.0);
 
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  glBindTexture(GL_TEXTURE_2D,tex_level);
-  glBegin(GL_QUADS);
-  glColor4f(1,1,1,1);
-  glTexCoord2f(1,0); glVertex3f(1280.0,0,0);
-  glTexCoord2f(0,0); glVertex3f(0.0,0,0);
-  glTexCoord2f(0,1); glVertex3f(0.0,720.0,0);
-  glTexCoord2f(1,1); glVertex3f(1280.0,720.0,0);
-  glEnd();
+  if (!USE_SPRITES) {
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBindTexture(GL_TEXTURE_2D,tex_level);
+    glBegin(GL_QUADS);
+    glColor4f(1,1,1,1);
+    glTexCoord2f(1,0); glVertex3f(1280.0,0,0);
+    glTexCoord2f(0,0); glVertex3f(0.0,0,0);
+    glTexCoord2f(0,1); glVertex3f(0.0,720.0,0);
+    glTexCoord2f(1,1); glVertex3f(1280.0,720.0,0);
+    glEnd();
+  } else {
+    drawSprite(Vector(1280/2,720/2,0),1280,720,tex_level,0xffffffff,SPRITEFLAG_NODEPTHWRITE);
+  }
 
   glDisable(GL_TEXTURE_2D);
   glDisable(GL_BLEND);
@@ -247,7 +259,10 @@ void drawParticles() {
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D,glowTexture);
   glBegin(GL_POINTS);
-  glColor4f(0.1,1,1,1);
+  float r = 0.1;
+  float g = 1;
+  float b = 1;
+  glColor4f(r,g,b,1);
 
   double cx,cy,cz;
   double sx,sy,sz;
@@ -265,9 +280,16 @@ void drawParticles() {
     gluProject(p.p.x,p.p.y,p.p.z, modelView, projection, viewport, &cx, &cy, &cz);
     double k = 0.05;
     gluProject(p.p.x+nx*k,p.p.y+ny*k,p.p.z+nz*k, modelView, projection, viewport, &sx, &sy, &sz);
-    glPointSize(fabs(sy-cy)*p.s);
-    //glPointSize(XRES*p.s/320);
-    glVertex3f(p.p.x,p.p.y,p.p.z);
+    float pointSize = fabs(sy-cy)*p.s;
+    if (!USE_SPRITES) {
+      glPointSize(pointSize);
+      //glPointSize(XRES*p.s/320);
+      glVertex3f(p.p.x,p.p.y,p.p.z);
+    } else {
+      int color = r * 255;
+      color |= 0xffffff00;
+      drawSprite(Vector(p.p.x,p.p.y,p.p.z),pointSize,pointSize,glowTexture,color,SPRITEFLAG_NODEPTHWRITE|SPRITEFLAG_BYSCREENSIZE|SPRITEFLAG_ADDITIVE);
+    }
   }
   glEnd();
   glDepthMask(GL_TRUE);

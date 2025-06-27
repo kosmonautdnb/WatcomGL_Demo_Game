@@ -2,8 +2,9 @@
 #include "vector.hpp"
 #include <math.h>
 
+
 #define FOV 30
-#define ASPECT (320.0/200.0) //(16.0/9.0) sadly we can't use (16.0/9.0) here since the point sprites would be ellipsoid and not circular
+#define ASPECT ((float)glFrameBufferWidth/glFrameBufferHeight)//(320.0/200.0) //(16.0/9.0) sadly we can't use (16.0/9.0) here since the point sprites would be ellipsoid and not circular
 #define MONITORASPECT (16.0/9.0) // we need this for perfectly round GL_POINT point sprites
 #define NEARPLANE 0.1
 #define FARPLANE 1000.0

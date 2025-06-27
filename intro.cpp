@@ -11,10 +11,12 @@
 #include "text.hpp"
 #include "textures.hpp"
 #include "lvlscrn.hpp"
+#include "config.hpp"
+#include "sprite.hpp"
 
 
 #define FOV 70
-#define ASPECT (320.0/200.0) //(16.0/9.0) sadly we can't use (16.0/9.0) here since the point sprites would be ellipsoid and not circular
+#define ASPECT ((float)glFrameBufferWidth/(float)glFrameBufferHeight) //(16.0/9.0) sadly we can't use (16.0/9.0) here since the point sprites would be ellipsoid and not circular
 #define MONITORASPECT (16.0/9.0) // we need this for perfectly round GL_POINT point sprites
 #define NEARPLANE 0.1
 #define FARPLANE 1000.0
@@ -206,18 +208,22 @@ void displayLogo() {
   glDisable(GL_DEPTH_TEST);
   glEnable(GL_TEXTURE_2D);
   glEnable(GL_BLEND);
-  
-  glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, tex_trees2);
-  glBegin(GL_QUADS);
-  glColor4f(1,1,1,1);
-  k = 0.0;
-  glTexCoord2f(1,k);glVertex3f(1280,720*k,0);
-  glTexCoord2f(0,k);glVertex3f(0,720*k,0);
-  glTexCoord2f(0,1);glVertex3f(0,720,0);
-  glTexCoord2f(1,1);glVertex3f(1280,720,0);
-  glEnd();
+
+  if (!USE_SPRITES) {  
+    glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, tex_trees2);
+    glBegin(GL_QUADS);
+    glColor4f(1,1,1,1);
+    k = 0.0;
+    glTexCoord2f(1,k);glVertex3f(1280,720*k,0);
+    glTexCoord2f(0,k);glVertex3f(0,720*k,0);
+    glTexCoord2f(0,1);glVertex3f(0,720,0);
+    glTexCoord2f(1,1);glVertex3f(1280,720,0);
+    glEnd();
+  } else {
+    drawSprite(Vector(1280/2,720/2,0),1280,720,tex_trees2,0xffffffff,SPRITEFLAG_NODEPTHCOMPARE);
+  }
 
   double r = -1+seconds_intro*1.0;
   r *= 200;
