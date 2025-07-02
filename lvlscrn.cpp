@@ -91,10 +91,10 @@ void displayBackground() {
     glBindTexture(GL_TEXTURE_2D,tex_face);
     glBegin(GL_QUADS);
     glColor4f(k,k,k,1);
-    glTexCoord2f(1,0); glVertex3f(1280.0,0,0);
-    glTexCoord2f(0,0); glVertex3f(0.0,0,0);
-    glTexCoord2f(0,1); glVertex3f(0.0,720.0,0);
-    glTexCoord2f(1,1); glVertex3f(1280.0,720.0,0);
+    glTexCoord2f(1,1); glVertex3f(1280.0,0,0);
+    glTexCoord2f(0,1); glVertex3f(0.0,0,0);
+    glTexCoord2f(0,0); glVertex3f(0.0,720.0,0);
+    glTexCoord2f(1,0); glVertex3f(1280.0,720.0,0);
     glEnd();
   } else {
     int ki = k * 255;
@@ -108,10 +108,6 @@ void displayBackground() {
 }
 
 void displayForeground() {
-  glEnable(GL_TEXTURE_2D);
-  glActiveTexture(GL_TEXTURE0);
-  glDepthMask(GL_FALSE);
-
   
   const char *levelNrStrs[] = {
     "zero",
@@ -129,22 +125,14 @@ void displayForeground() {
 
   drawText(0,850,80,"Sys X-Alyph",0x00ffffff+(unsigned int)(sin(seconds_levelScreen*5)*0x1f+0xe0)*0x01000000,1.0,0.0,0.0);
 
-
   float k = 15;
   drawText(1,700,550+k,levelNrStr,0x80000000,1.0,0.0,0.0);
 
-  //glEnable(GL_BLEND);
-  //glBlendFunc(GL_ZERO, GL_ONE_MINUS_SRC_ALPHA);
-  //glBindTexture(GL_TEXTURE_2D,tex_level);
-  //glBegin(GL_QUADS);
-  //glColor4f(1,1,1,0.5);
-  //glTexCoord2f(1,0); glVertex3f(1280.0,k,0);
-  //glTexCoord2f(0,0); glVertex3f(0.0,k,0);
-  //glTexCoord2f(0,1); glVertex3f(0.0,720.0+k,0);
-  //glTexCoord2f(1,1); glVertex3f(1280.0,720.0+k,0);
-  //glEnd();
-
   drawText(1,700,550,levelNrStr,0xffffffff,1.0,0.0,0.0);
+
+  glEnable(GL_TEXTURE_2D);
+  glActiveTexture(GL_TEXTURE0);
+  glDepthMask(GL_FALSE);
 
   if (!USE_SPRITES) {
     glEnable(GL_BLEND);
@@ -152,10 +140,10 @@ void displayForeground() {
     glBindTexture(GL_TEXTURE_2D,tex_level);
     glBegin(GL_QUADS);
     glColor4f(1,1,1,1);
-    glTexCoord2f(1,0); glVertex3f(1280.0,0,0);
-    glTexCoord2f(0,0); glVertex3f(0.0,0,0);
-    glTexCoord2f(0,1); glVertex3f(0.0,720.0,0);
-    glTexCoord2f(1,1); glVertex3f(1280.0,720.0,0);
+    glTexCoord2f(1,1); glVertex3f(1280.0,0,0);
+    glTexCoord2f(0,1); glVertex3f(0.0,0,0);
+    glTexCoord2f(0,0); glVertex3f(0.0,720.0,0);
+    glTexCoord2f(1,0); glVertex3f(1280.0,720.0,0);
     glEnd();
   } else {
     drawSprite(Vector(1280/2,720/2,0),1280,720,tex_level,0xffffffff,SPRITEFLAG_NODEPTHWRITE);
@@ -258,11 +246,9 @@ void drawParticles() {
   glDepthMask(GL_FALSE);
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D,glowTexture);
-  glBegin(GL_POINTS);
   float r = 0.1;
   float g = 1;
   float b = 1;
-  glColor4f(r,g,b,1);
 
   double cx,cy,cz;
   double sx,sy,sz;
@@ -275,7 +261,9 @@ void drawParticles() {
     ny /= ln;
     nz /= ln;
   }
-  for (int i = 0; i < particles.size(); i++) {
+  glBegin(GL_POINTS);
+  glColor4f(r,g,b,1);
+  for (int i = particles.size()-1; i >= 0; i--) {
     Particle &p = particles[i];
     gluProject(p.p.x,p.p.y,p.p.z, modelView, projection, viewport, &cx, &cy, &cz);
     double k = 0.05;

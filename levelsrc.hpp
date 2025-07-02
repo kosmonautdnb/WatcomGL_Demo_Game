@@ -130,7 +130,7 @@ public:
     glBegin(GL_QUADS);
     for (int i = 0; i < 4; i++) {
       Vector p = Vector(xp[i],yp[i])*size;
-      glTexCoord2f(tx[i],ty[i]);
+      glTexCoord2f(tx[i],1-ty[i]);
       glVertex3f(p.x,p.y,p.z);
     }
     glEnd();
@@ -237,7 +237,7 @@ public:
       gg = clamp(gg,0,255);
       bg = clamp(bg,0,255);
       unsigned int color = rg|(gg<<8)|(bg<<16)|0xff000000;
-      drawSprite(SPRITEPOS(Vector(position.x,position.y,position.z)),pointSize,pointSize,glowTexture,color,SPRITEFLAG_NODEPTHWRITE|SPRITEFLAG_ADDITIVE|SPRITEFLAG_BYSCREENSIZE);
+      drawSprite(Vector(position.x,position.y,position.z),pointSize,pointSize,glowTexture,color,SPRITEFLAG_NODEPTHWRITE|SPRITEFLAG_ADDITIVE|SPRITEFLAG_BYSCREENSIZE);
     }
     glEnd();
     glDisable(GL_BLEND);
@@ -300,7 +300,7 @@ public:
         glPointSize(pointSize);
         glVertex3f(position.x,position.y,position.z);
       } else {
-        drawSprite(SPRITEPOS(Vector(position.x,position.y,position.z)),pointSize,pointSize,shotTexture[2],0xffffffff,SPRITEFLAG_PREMULTIPLIED_ALPHA|SPRITEFLAG_NODEPTHWRITE|SPRITEFLAG_BYSCREENSIZE);
+        drawSprite(Vector(position.x,position.y,position.z),pointSize,pointSize,shotTexture[2],0xffffffff,SPRITEFLAG_PREMULTIPLIED_ALPHA|SPRITEFLAG_NODEPTHWRITE|SPRITEFLAG_BYSCREENSIZE);
       }
       glEnd();
       glDepthMask(GL_TRUE);
@@ -351,7 +351,7 @@ public:
     if (!USE_SPRITES) {
       glVertex3f(position2.x,position2.y,position2.z);
     } else {
-      drawSprite(SPRITEPOS(Vector(position2.x,position2.y,position2.z)),pointSize,pointSize,texture,0xffffffff,SPRITEFLAG_NODEPTHWRITE|SPRITEFLAG_BYSCREENSIZE);
+      drawSprite(Vector(position2.x,position2.y,position2.z),pointSize,pointSize,texture,0xffffffff,SPRITEFLAG_NODEPTHWRITE|SPRITEFLAG_BYSCREENSIZE);
     }
     glEnd();
     glDisable(GL_TEXTURE_2D);
@@ -409,13 +409,13 @@ public:
     glDepthMask(GL_FALSE);
     glBegin(GL_QUADS);
     glColor4f(1,1,1,1);
-    glTexCoord2f(1,0);
-    glVertex3f(position2.x+t.x-n.x,position2.y+t.y-n.y,position2.z+t.z-n.z);
-    glTexCoord2f(0,0);
-    glVertex3f(position2.x-t.x-n.x,position2.y-t.y-n.y,position2.z-t.z-n.z);
-    glTexCoord2f(0,1);
-    glVertex3f(position2.x-t.x+n.x,position2.y-t.y+n.y,position2.z-t.z+n.z);
     glTexCoord2f(1,1);
+    glVertex3f(position2.x+t.x-n.x,position2.y+t.y-n.y,position2.z+t.z-n.z);
+    glTexCoord2f(0,1);
+    glVertex3f(position2.x-t.x-n.x,position2.y-t.y-n.y,position2.z-t.z-n.z);
+    glTexCoord2f(0,0);
+    glVertex3f(position2.x-t.x+n.x,position2.y-t.y+n.y,position2.z-t.z+n.z);
+    glTexCoord2f(1,0);
     glVertex3f(position2.x+t.x+n.x,position2.y+t.y+n.y,position2.z+t.z+n.z);
     glEnd();
     glDisable(GL_BLEND);

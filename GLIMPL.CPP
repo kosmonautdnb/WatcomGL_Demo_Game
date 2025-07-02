@@ -13,6 +13,7 @@
 #include <time.h>
 
 #define PI 3.14159265358979323846
+#define FLOOR(__v__) (__v__) // not needed since conversion to int truncates
 
 double glPixelCenterX = -0.5;
 double glPixelCenterY = -0.5;
@@ -923,19 +924,19 @@ void glEmitVertex() {
           double pointSizeX = glContext.pointSize*0.5*glContext.zoomX;
           double pointSizeY = glContext.pointSize*0.5*glContext.zoomY;
           glVertices[3].textureX = 0;
-          glVertices[3].textureY = 0;
+          glVertices[3].textureY = 1;
           glVertices[3].sx -= pointSizeX;
           glVertices[3].sy -= pointSizeY;
           glVertices[2].textureX = 1;
-          glVertices[2].textureY = 0;
+          glVertices[2].textureY = 1;
           glVertices[2].sx += pointSizeX;
           glVertices[2].sy -= pointSizeY;
           glVertices[1].textureX = 1;
-          glVertices[1].textureY = 1;
+          glVertices[1].textureY = 0;
           glVertices[1].sx += pointSizeX;
           glVertices[1].sy += pointSizeY;
           glVertices[0].textureX = 0;
-          glVertices[0].textureY = 1;
+          glVertices[0].textureY = 0;
           glVertices[0].sx -= pointSizeX;
           glVertices[0].sy += pointSizeY;
           int clipFlags = glClipVertex(&glContext,&glVertices[0]);
@@ -971,6 +972,7 @@ void glAlphaFunc(GLenum func, GLclampf ref) {
 }
 
 void glBegin(GLenum mode) {
+  //if (glContext.beginMode != 0) {glDone();exit(0);}
   glContext.beginMode = mode;
   glCurrentVertexElement = 0;
 }
@@ -2749,7 +2751,7 @@ GLint gluProjectfx(GLfloat objX, GLfloat objY, GLfloat objZ, GLfloat *model, GLf
   float d[3];
   const GLint r = glhProjectfx(objX, objY, objZ, model, projection, view, d);
   *winX = d[0]+glPixelCenterX; // actually you need the pixelCenter?
-  *winY = d[1]+glPixelCenterY; // actually you need the pixelCenter?
+  *winY = d[1]-glPixelCenterY; // actually you need the pixelCenter?
   *winZ = d[2];
   return r;
 }
@@ -2758,7 +2760,7 @@ GLint gluProjectf(GLfloat objX, GLfloat objY, GLfloat objZ, GLfloat *model, GLfl
   float d[3];
   const GLint r = glhProjectf(objX, objY, objZ, model, projection, view, d);
   *winX = d[0]+glPixelCenterX; // actually you need the pixelCenter?
-  *winY = d[1]+glPixelCenterY; // actually you need the pixelCenter?
+  *winY = d[1]-glPixelCenterY; // actually you need the pixelCenter?
   *winZ = d[2];
   return r;
 }
@@ -2766,7 +2768,7 @@ GLint gluProjectf(GLfloat objX, GLfloat objY, GLfloat objZ, GLfloat *model, GLfl
 GLint gluUnProjectf(GLfloat winX, GLfloat winY, GLfloat winZ, GLfloat *model, GLfloat *projection, GLint *view, GLfloat *objX, GLfloat *objY, GLfloat *objZ) {
   float d[3];
   winX -= glPixelCenterX; // actually you need the pixelCenter?
-  winY -= glPixelCenterY; // actually you need the pixelCenter?
+  winY += glPixelCenterY; // actually you need the pixelCenter?
   const GLint r = glhUnProjectf(winX, winY, winZ, model, projection, view, d);
   *objX = d[0];
   *objY = d[1];
@@ -2778,7 +2780,7 @@ GLint gluProjectx(GLdouble objX, GLdouble objY, GLdouble objZ, GLdouble *model, 
   double d[3];
   const GLint r = glhProjectx(objX, objY, objZ, model, projection, view, d);
   *winX = d[0]+glPixelCenterX; // actually you need the pixelCenter?
-  *winY = d[1]+glPixelCenterY; // actually you need the pixelCenter?
+  *winY = d[1]-glPixelCenterY; // actually you need the pixelCenter?
   *winZ = d[2];
   return r;
 }
@@ -2787,7 +2789,7 @@ GLint gluProject(GLdouble objX, GLdouble objY, GLdouble objZ, GLdouble *model, G
   double d[3];
   const GLint r = glhProject(objX, objY, objZ, model, projection, view, d);
   *winX = d[0]+glPixelCenterX; // actually you need the pixelCenter?
-  *winY = d[1]+glPixelCenterY; // actually you need the pixelCenter?
+  *winY = d[1]-glPixelCenterY; // actually you need the pixelCenter?
   *winZ = d[2];
   return r;
 }
@@ -2795,7 +2797,7 @@ GLint gluProject(GLdouble objX, GLdouble objY, GLdouble objZ, GLdouble *model, G
 GLint gluUnProject(GLdouble winX, GLdouble winY, GLdouble winZ, GLdouble *model, GLdouble *projection, GLint *view, GLdouble *objX, GLdouble *objY, GLdouble *objZ) {
   double d[3];
   winX -= glPixelCenterX; // actually you need the pixelCenter?
-  winY -= glPixelCenterY; // actually you need the pixelCenter?
+  winY += glPixelCenterY; // actually you need the pixelCenter?
   const GLint r = glhUnProject(winX, winY, winZ, model, projection, view, d);
   *objX = d[0];
   *objY = d[1];
@@ -2940,7 +2942,7 @@ __inline bool glCheckDepthFunction(float depthBufferValue, float newValue, int d
 
 
 __inline int textureWrap(float tx, int siz, GLenum filterMode) {
-  int t = (int)floor(tx);
+  int t = (int)FLOOR(tx); // pseudo floor is a trunc directly below 0 makes a seam but is much faster
   if (t<siz&&t>=0) return t;
   switch(filterMode) {
   case GL_MIRRORED_REPEAT: {
@@ -3299,14 +3301,14 @@ void glDrawTriangle(_GLContext *context,glVertex *v0,glVertex *v1,glVertex *v2) 
     if (!filtering) {scx = 0; scy = 0;}
 
     tx0 = (v0->textureX*twidth0+scx)*v0w;
-    ty0 = (v0->textureY*theight0+scy)*v0w;
+    ty0 = ((1-v0->textureY)*theight0+scy)*v0w;
   
 
     tx1 = (v1->textureX*twidth0+scx)*v1w;
-    ty1 = (v1->textureY*theight0+scy)*v1w;
+    ty1 = ((1-v1->textureY)*theight0+scy)*v1w;
 
     tx2 = (v2->textureX*twidth0+scx)*v2w;
-    ty2 = (v2->textureY*theight0+scy)*v2w;
+    ty2 = ((1-v2->textureY)*theight0+scy)*v2w;
 
     borderColor = ((int)floor(glClampf(t->borderColorRed*255.f,0.f,255.f)));
     borderColor |= ((int)floor(glClampf(t->borderColorGreen*255.f,0.f,255.f)))<<8;
@@ -3460,8 +3462,8 @@ void glDrawTriangle(_GLContext *context,glVertex *v0,glVertex *v1,glVertex *v2) 
             if (filtering) {
               int tix1 = textureWrap(tx+1, twidth0, t->wrapS);
               int tiy1 = textureWrap(ty+1, theight0, t->wrapT);
-              int txf = (int)floor(fmod(tx*256.f,256.f));
-              int tyf = (int)floor(fmod(ty*256.f,256.f));
+              int txf = (int)FLOOR(fmod(tx*256.f,256.f));
+              int tyf = (int)FLOOR(fmod(ty*256.f,256.f));
               if (txf<0) txf = 256+txf;
               if (tyf<0) tyf = 256+tyf;
               int p1v = ((256-txf)*(256-tyf))>>8; 

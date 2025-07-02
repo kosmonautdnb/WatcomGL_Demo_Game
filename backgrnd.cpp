@@ -268,7 +268,7 @@ void paintLevel1() {
         r = clamp(r,0,255);
         g = clamp(g,0,255);
         b = clamp(b,0,255);
-        drawSprite(SPRITEPOS(Vector(k.x,k.y,k.z)),pointSize,pointSize,texture,0xff000000|(r)|(g<<8)|(b<<16),SPRITEFLAG_NODEPTHWRITE|SPRITEFLAG_NODEPTHCOMPARE|SPRITEFLAG_ADDITIVE|SPRITEFLAG_BYSCREENSIZE);
+        drawSprite(Vector(k.x,k.y,k.z),pointSize,pointSize,texture,0xff000000|(r)|(g<<8)|(b<<16),SPRITEFLAG_NODEPTHWRITE|SPRITEFLAG_NODEPTHCOMPARE|SPRITEFLAG_ADDITIVE|SPRITEFLAG_BYSCREENSIZE);
       }
       lp = p;
     }

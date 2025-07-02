@@ -13,6 +13,7 @@
 #include "lvlscrn.hpp"
 #include "config.hpp"
 #include "sprite.hpp"
+#include "fxaa.hpp"
 
 
 #define FOV 70
@@ -64,8 +65,8 @@ void loadStartScreen() {
   glGenTextures(1, &tex_birdOfLight);
   glBindTexture(GL_TEXTURE_2D, tex_birdOfLight);
   glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,img.width,img.height,0,GL_RGBA,GL_UNSIGNED_BYTE,img.data);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   img.free();
@@ -86,7 +87,7 @@ void loadStartScreen() {
   glGenTextures(1, &tex_stars);
   glBindTexture(GL_TEXTURE_2D, tex_stars);
   glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,img.width,img.height,0,GL_RGBA,GL_UNSIGNED_BYTE,img.data);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -189,7 +190,7 @@ void displaySkyDome() {
         p[i].y = (ry-0.5)*radY*2;
         p[i].z = cos(fx*2*PI)*radX;
         t[i].x = fx;
-        t[i].y = fy;
+        t[i].y = 1-fy;
       }
       glTexCoord2f(t[1].x,t[1].y);glVertex3f(p[1].x,p[1].y,p[1].z);
       glTexCoord2f(t[0].x,t[0].y);glVertex3f(p[0].x,p[0].y,p[0].z);
@@ -216,13 +217,13 @@ void displayLogo() {
     glBegin(GL_QUADS);
     glColor4f(1,1,1,1);
     k = 0.0;
-    glTexCoord2f(1,k);glVertex3f(1280,720*k,0);
-    glTexCoord2f(0,k);glVertex3f(0,720*k,0);
-    glTexCoord2f(0,1);glVertex3f(0,720,0);
-    glTexCoord2f(1,1);glVertex3f(1280,720,0);
+    glTexCoord2f(1,1-k);glVertex3f(1280,720*k,0);
+    glTexCoord2f(0,1-k);glVertex3f(0,720*k,0);
+    glTexCoord2f(0,0);glVertex3f(0,720,0);
+    glTexCoord2f(1,0);glVertex3f(1280,720,0);
     glEnd();
   } else {
-    drawSprite(Vector(1280/2,720/2,0),1280,720,tex_trees2,0xffffffff,SPRITEFLAG_NODEPTHCOMPARE);
+    drawSprite(Vector(1280/2,720/2,0),1280,720,tex_trees2,0xffffffff,SPRITEFLAG_NODEPTHCOMPARE|SPRITEFLAG_NODEPTHWRITE);
   }
 
   double r = -1+seconds_intro*1.0;
@@ -250,7 +251,7 @@ void displayLogo() {
         p[i].y = fy*720*k+r;
         p[i].z = 0;
         t[i].x = fx;
-        t[i].y = fy*k;
+        t[i].y = 1-fy*k;
         t[i].z = -seconds_intro*2+sin(seconds_intro*0.3+t[i].x)*5+cos(seconds_intro*0.25+t[i].y)*4;
       }
       glColor4f(0.5,1,1,sin(t[1].z)*0.4+0.6);
@@ -263,6 +264,7 @@ void displayLogo() {
       glTexCoord2f(t[3].x,t[3].y);glVertex3f(p[3].x,p[3].y,p[3].z);
     }
   }
+  glEnd();   
 
   glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
   glActiveTexture(GL_TEXTURE0);
@@ -276,10 +278,10 @@ void displayLogo() {
   }
   glBegin(GL_QUADS);
   float k2;
-  k2 = sin(seconds_intro*1.2+1)*0.4+0.6;glColor4f(k2,k2,k2*0.75,1);glTexCoord2f(1,0);glVertex3f(1280,r,0);
-  k2 = sin(seconds_intro*0.7)*0.4+0.6;glColor4f(k2,k2,k2*0.75,1);glTexCoord2f(0,0);glVertex3f(0,r,0);
-  k2 = sin(seconds_intro*1.7)*0.4+0.6;glColor4f(k2,k2,k2*0.75,1);glTexCoord2f(0,1*k);glVertex3f(0,720*k+r,0);
-  k2 = sin(seconds_intro*1.1)*0.4+0.6;glColor4f(k2,k2,k2*0.75,1);glTexCoord2f(1,1*k);glVertex3f(1280,720*k+r,0);
+  k2 = sin(seconds_intro*1.2+1)*0.4+0.6;glColor4f(k2,k2,k2*0.75,1);glTexCoord2f(1,1);glVertex3f(1280,r,0);
+  k2 = sin(seconds_intro*0.7)*0.4+0.6;glColor4f(k2,k2,k2*0.75,1);glTexCoord2f(0,1);glVertex3f(0,r,0);
+  k2 = sin(seconds_intro*1.7)*0.4+0.6;glColor4f(k2,k2,k2*0.75,1);glTexCoord2f(0,1-k);glVertex3f(0,720*k+r,0);
+  k2 = sin(seconds_intro*1.1)*0.4+0.6;glColor4f(k2,k2,k2*0.75,1);glTexCoord2f(1,1-k);glVertex3f(1280,720*k+r,0);
   glEnd();
 
   glDisable(GL_BLEND);
@@ -397,6 +399,7 @@ void displayStartScreen() {
     glPopMatrix();
   
     displaySkyStars();
+    //glFXAA();
 
     switch(screen) {
     case 0:frame_mainScreen();break;

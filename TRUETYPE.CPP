@@ -30,7 +30,7 @@ unsigned int stb_initfont(int fontIndex, const char *ttf_file_name, float fontHe
   glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, 512,512, 0, GL_ALPHA, GL_UNSIGNED_BYTE, temp_bitmap);
   delete[] temp_bitmap;
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   return ftex[fontIndex];
@@ -49,9 +49,8 @@ void stb_print(int fontIndex, float x, float y, const char *text, uint32_t color
   glBindTexture(GL_TEXTURE_2D, ftex[fontIndex]);
   glEnable(GL_ALPHA_TEST);
   glAlphaFunc(GL_GREATER,0.1);
-  
+
   glColor4ubv((GLubyte*)&color);
-  glVertex4f(0,0,0,1.f);
   glDepthMask(GL_FALSE);
   
   float minX=x,minY=y,maxX=x,maxY=y;
@@ -88,10 +87,10 @@ void stb_print(int fontIndex, float x, float y, const char *text, uint32_t color
     if (*text >= 32 && *text < 128) {
       stbtt_aligned_quad q;
       stbtt_GetBakedQuad(cdata[fontIndex], 512,512, *text-32, &x,&y,&q,1);//1=opengl & d3d10+,0=d3d9
-      glTexCoord2f(q.s0,q.t1); glVertex2f(q.x0,q.y1);
-      glTexCoord2f(q.s1,q.t1); glVertex2f(q.x1,q.y1);
-      glTexCoord2f(q.s1,q.t0); glVertex2f(q.x1,q.y0);
-      glTexCoord2f(q.s0,q.t0); glVertex2f(q.x0,q.y0);
+      glTexCoord2f(q.s0,1-q.t1); glVertex4f(q.x0,q.y1,0,1);
+      glTexCoord2f(q.s1,1-q.t1); glVertex4f(q.x1,q.y1,0,1);
+      glTexCoord2f(q.s1,1-q.t0); glVertex4f(q.x1,q.y0,0,1);
+      glTexCoord2f(q.s0,1-q.t0); glVertex4f(q.x0,q.y0,0,1);
       if (q.y0<minY) minY = q.y0;
     }
     if (*text == '\n') {
@@ -105,6 +104,7 @@ void stb_print(int fontIndex, float x, float y, const char *text, uint32_t color
   glDepthMask(GL_TRUE);
   glDisable(GL_ALPHA_TEST);
   glDisable(GL_BLEND);
+  glDisable(GL_TEXTURE_2D);
 }
 
 void glDrawTextTTF(int fontIndex, float xp, float yp, float zp, const float scale, const char *text, uint32_t color, float anchorX, float anchorY) {

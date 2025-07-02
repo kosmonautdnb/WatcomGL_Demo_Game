@@ -20,4 +20,5 @@ truetype.cpp truetype.obj
 intro.cpp intro.obj
 lvlscrn.cpp lvlscrn.obj
 sprite.cpp sprite.obj
+fxaa.cpp fxaa.obj
 main.cpp main.OBJ
