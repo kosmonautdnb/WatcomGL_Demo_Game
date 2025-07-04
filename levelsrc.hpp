@@ -36,10 +36,10 @@ void drawMesh(Mesh *mesh) {
   c[0]=1;
   c[1]=1;             
   c[2]=1;
-  c[3]=1;
+  c[3]=0;
   glLightfv(GL_LIGHT0,GL_SPECULAR,c);
   glMaterialfv(GL_FRONT_AND_BACK,GL_SPECULAR,c);
-  c[0]=10;
+  c[0]=20;
   glMaterialfv(GL_FRONT_AND_BACK,GL_SHININESS,c);
   float mv[16];
   glGetFloatv(GL_MODELVIEW_MATRIX,mv);

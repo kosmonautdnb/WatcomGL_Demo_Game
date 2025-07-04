@@ -88,6 +88,9 @@ extern "C" {
 #define GL_ZOOM_X 0xD16 // :mad:
 #define GL_ZOOM_Y 0xD17 // :mad:
 
+#define GL_LIGHT_MODEL_COLOR_CONTROL 0x81f8
+#define GL_SINGLE_COLOR 0x81f9
+#define GL_SEPARATE_SPECULAR_COLOR 0x81fa
 
 typedef unsigned int GLenum;
 typedef unsigned char GLboolean;
@@ -597,6 +600,7 @@ GLAPI void APIENTRY glHint (GLenum target, GLenum mode);
 GLAPI GLboolean APIENTRY glIsEnabled (GLenum cap); // supported
 GLAPI void APIENTRY glLightfv (GLenum light, GLenum pname, const GLfloat *params); // supported
 GLAPI void APIENTRY glLightModelfv (GLenum pname, const GLfloat *params);
+GLAPI void APIENTRY glLightModeli (GLenum pname, const GLenum param); // supported partially (GL_SEPARATE_SPECULAR_COLOR,GL_SINGLE_COLOR)
 GLAPI void APIENTRY glLineStipple (GLint factor, GLushort pattern);
 GLAPI void APIENTRY glLineWidth (GLfloat width); // supported
 GLAPI void APIENTRY glListBase (GLuint base);
@@ -716,7 +720,7 @@ void glZoomX(float zoom); // also non standard, hopefully you don't need it
 void glZoomY(float zoom); // also non standard, hopefully you don't need it
 float glGetZoomX(); // also non standard, hopefully you don't need it
 float glGetZoomY(); // also non standard, hopefully you don't need it
-
+void glExplicitAlpha(bool useExplicitAlpha, GLfloat alpha); // writes this alpha to the framebuffer when rendering polygons (maybe helps as some sort of "stencil buffer")
    // paint pixel at 3d position (x,y,z) plus offset (x,y) (returns false if clipped) (newXYZ calculates new 3d/2d pos from xp,yp,zp)
 bool glPixel(bool newXYZ, float xp, float yp, float zp, int x, int y, unsigned int color);
 

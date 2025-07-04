@@ -334,6 +334,7 @@ int main(int argc, const char *argv) {
   printf("Starting up..\n");
   glEnable(GL_CULL_FACE);
   glEnable(GL_DEPTH_TEST);
+  glEnable(GL_NORMALIZE);
   glDepthFunc(GL_LEQUAL);
   installKeyboardHandler();
   printf("Keyboard installed..\n");
