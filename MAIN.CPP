@@ -19,6 +19,7 @@
 #include "colision.hpp"
 #include "text.hpp"
 #include "intro.hpp"
+#include "openglfx.hpp"
 #include <dos.h>
 #include <math.h>
 
@@ -386,6 +387,7 @@ int main(int argc, const char *argv) {
   bool done = false;
   reInitLevel();
   do {
+    glExplicitAlpha(true,0);
     currentKey = glNextKey();
     if (currentKey == GL_VK_ESCAPE) done = true;
     currentTime = auSeconds();
@@ -466,6 +468,7 @@ int main(int argc, const char *argv) {
     go_onFrame(timeDelta);
     drawHud();
     if (playerAnimDuration>0) drawHudGetReady(playerAnimDuration);
+    glBloom(3,0.5,3.0);
     glRefresh();
     if (liveLost) {
       liveLost = false;

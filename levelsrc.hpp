@@ -93,6 +93,7 @@ public:
     this->black = black;
   }
   virtual void paint(double dt) {
+    glExplicitAlpha(true,0.55);
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_BLEND);
     int xp[4]={1,-1,-1,1};
@@ -139,6 +140,7 @@ public:
     glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
     glDisable(GL_TEXTURE_2D);
     glDisable(GL_BLEND);
+    glExplicitAlpha(true,0);
   }
 };
 
@@ -149,6 +151,7 @@ public:
    _slow = false;
   }
   virtual void paint(double dt) {
+    glExplicitAlpha(true,1);
     double l = (double)(initialLifeTime-lifeTime)/initialLifeTime;
     double q = 5+l * (8.0+(_slow?20:0));
     double c = (1-l)*(_slow?0.25:1);
@@ -167,6 +170,7 @@ public:
     }
     glEnd();
     glDisable(GL_BLEND);
+    glExplicitAlpha(true,0);
   }
   ExplosionRing *slow() {_slow=true;lifeTime*=2;initialLifeTime*=2;return this;}
 };
@@ -176,6 +180,7 @@ public:
   ExplosionFlare(const Vector &p) : GO(), GO_Position(p), GO_LifeTime(0.5), GO_Paintable() {
   }
   virtual void paint(double dt) {
+    glExplicitAlpha(true,1);
     double l = (double)(initialLifeTime-lifeTime)/initialLifeTime;
     glEnable(GL_BLEND);
     glBlendFunc(GL_ONE,GL_ONE);
@@ -194,6 +199,7 @@ public:
       glEnd();
     }
     glDisable(GL_BLEND);
+    glExplicitAlpha(true,0);
   }
 };
 
@@ -473,6 +479,7 @@ public:
     _weaponGreen = false;
   }
   virtual void paint(double dt) {
+    glExplicitAlpha(true,1);
     glPushMatrix();
     glTranslatef(position.x,position.y,position.z);
     float l = sin(seconds*2*PI*1.5)*0.5f+0.75f;
@@ -492,6 +499,7 @@ public:
     drawMesh(_heart ? heart : collect);
     reColor.clear();
     glPopMatrix();
+    glExplicitAlpha(true,0);
   }
   virtual void collidedWithPlayer() {
     placeExplosionRing(playerPos);

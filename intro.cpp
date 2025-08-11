@@ -13,7 +13,7 @@
 #include "lvlscrn.hpp"
 #include "config.hpp"
 #include "sprite.hpp"
-#include "fxaa.hpp"
+#include "openglfx.hpp"
 
 
 #define FOV 70

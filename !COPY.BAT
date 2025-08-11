@@ -6,6 +6,7 @@ copy /Y c:\_VCODE_\VCODE.EXE
 copy /Y c:\_STL_\KEYMTRIX.HPP
 copy /Y c:\_STL_\KEYMTRIX.CPP
 copy /Y c:\_STL_\ARRAY.HPP
+copy /Y c:\_STL_\SET.HPP
 copy /Y c:\_STL_\STRING.HPP
 copy /Y c:\_STL_\STRING.CPP
 copy /Y c:\_STL_\OBJECT.HPP
@@ -31,3 +32,5 @@ copy /Y c:\_STL_\STBTTF.HPP
 copy /Y c:\_STL_\MINIMP3.HPP
 copy /Y c:\_STL_\SPRITE.CPP
 copy /Y c:\_STL_\SPRITE.HPP
+copy /Y c:\_STL_\OPENGLFX.CPP
+copy /Y c:\_STL_\OPENGLFX.HPP
