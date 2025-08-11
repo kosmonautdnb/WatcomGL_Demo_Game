@@ -26,7 +26,7 @@ public:
     w = _w;
   }
 
-  Vector(double _x, double _y, double _z = 0.0, double _w = 1.0) {
+  Vector(double _x, double _y, double _z = 0.0, double _w = 1.0) { // atleast vec2, if only x would be left it would override double in some template cases
     x = _x;
     y = _y;
     z = _z;
@@ -51,6 +51,7 @@ public:
   }
    
   Vector &set(double _x, double _y, double _z);
+  Vector &set(double _x, double _y, double _z, double _w);
   Vector &set(double v);
   Vector &set(const Vector &b);
 
@@ -76,6 +77,7 @@ public:
 
   double length() const;
   double lengthSqr() const;
+  double manhatten() const;
 
   Vector &normalize();
 
@@ -134,9 +136,11 @@ public:
 
 double length(const Vector &a);
 double lengthSqr(const Vector &a);
+double manhatten(const Vector &a);
 double dot(const Vector &a, const Vector &b);
 Vector cross(const Vector &a, const Vector &b);
 Vector normalize(const Vector &b);
+Vector reflect(const Vector &a, const Vector &b);
 
 Vector add(const Vector &a, const Vector &b);
 Vector sub(const Vector &a, const Vector &b);
@@ -185,6 +189,7 @@ Vector operator/(const Matrix &a, const Vector &b);
 
 Vector max(const Vector &a, const Vector &b);
 Vector min(const Vector &a, const Vector &b);
+Vector mod(const Vector &a, const Vector &b);
 Vector abs(const Vector &a);
 Vector sin(const Vector &a);
 Vector cos(const Vector &a);
@@ -197,5 +202,13 @@ Vector saturate(const Vector &a);
 Vector lerp(const Vector &a, const Vector &b, const double &c);
 Vector mix(const Vector &a, const Vector &b, const double &c);
 double distance(const Vector &a, const Vector &b);
+Vector toPolar(const Vector &a);
+Vector fromPolar(const Vector &a);
+unsigned int toRGBA(const Vector &a);
+unsigned int toRGB(const Vector &a);
+
+Vector rotateX(const Vector &a, double angle); 
+Vector rotateY(const Vector &a, double angle); 
+Vector rotateZ(const Vector &a, double angle); 
 
 #endif //__VECTOR_HPP__
