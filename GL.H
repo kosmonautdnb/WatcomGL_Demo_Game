@@ -10,7 +10,7 @@
 #ifndef __gl_h__
 #define __gl_h__
 
-#ifdef __cplusplus
+#ifdef x__cplusplus
 extern "C" {
 #endif
 
@@ -27,9 +27,14 @@ extern "C" {
 #endif
 
 
-#define GL_FOG 0 // :mad:
-#define GL_FOG_COLOR 0 // :mad:
-#define GL_FOG_DENSITY 0 // :mad:
+#define GL_FOG 0x0b64 //gl_enable 0x0b60(would override 0x0c60) // :mad:
+#define GL_FOG_DENSITY 0x0b62 // :mad:
+#define GL_FOG_START  0x0b63 // :mad:
+#define GL_FOG_END 0x0b64 // :mad:
+#define GL_FOG_MODE 0x0b65 // :mad:
+#define GL_FOG_COLOR 0x0b66 // :mad:
+#define GL_EXP 0x0800 // :mad:
+#define GL_EXP2 0x0801 // :mad:
 #define GL_RGBA8 0 // :mad:
 #define GL_ALL_ATTRIB_BITS 0 // :mad:
 #define GL_TEXTURE_BASE_LEVEL  0x2804 // :mad:
@@ -113,6 +118,9 @@ extern "C" {
 #define GL_LINE 0x1b01 // :mad:
 #define GL_FILL 0x1b02 // :mad:
 
+#define GL_SPOT_DIRECTION 0x1204 // :mad:
+#define GL_SPOT_EXPONENT 0x1205 // :mad:
+#define GL_SPOT_CUTOFF 0x1206 // :mad:
 
 
 typedef unsigned int GLenum;
@@ -601,6 +609,9 @@ GLAPI void APIENTRY glEnd (void); // supported
 GLAPI void APIENTRY glEndList (void);
 GLAPI void APIENTRY glFinish (void); // supported
 GLAPI void APIENTRY glFlush (void); // supported
+GLAPI void APIENTRY glFogfv(GLenum pname, GLfloat *params); // :mad: supported
+GLAPI void APIENTRY glFogf(GLenum pname, GLfloat param); // :mad: supported
+GLAPI void APIENTRY glFogi(GLenum pname, GLint param); // :mad: supported
 GLAPI void APIENTRY glFrontFace (GLenum mode); // supported
 GLAPI void APIENTRY glFrustumf (GLfloat left, GLfloat right, GLfloat bottom, GLfloat top, GLfloat zNear, GLfloat zFar); // supported
 GLAPI GLuint APIENTRY glGenLists (GLsizei range);
@@ -633,10 +644,11 @@ GLAPI void APIENTRY glListBase (GLuint base);
 GLAPI void APIENTRY glLoadIdentity (void); // supported
 GLAPI void APIENTRY glLoadMatrixf (const GLfloat *m); // supported
 GLAPI void APIENTRY glLoadMatrixd (const GLdouble *m); // supported
-GLAPI void APIENTRY glMaterialf (GLenum face, GLenum pname, GLfloat param); // supported (only GL_FRONT)
-GLAPI void APIENTRY glMaterialfv (GLenum face, GLenum pname, const GLfloat *params); // supported (only GL_FRONT)
+GLAPI void APIENTRY glMaterialf (GLenum face, GLenum pname, GLfloat param);
+GLAPI void APIENTRY glMaterialfv (GLenum face, GLenum pname, const GLfloat *params);
 GLAPI void APIENTRY glMatrixMode (GLenum mode); // supported
 GLAPI void APIENTRY glMultMatrixf (const GLfloat *m); // supported
+GLAPI void APIENTRY glMultMatrixd (const GLdouble *m); // supported
 GLAPI void APIENTRY glMultiTexCoord2f (GLenum target, GLfloat s, GLfloat t);
 GLAPI void APIENTRY glMultiTexCoord2fv (GLenum target, const GLfloat *v);
 GLAPI void APIENTRY glNewList (GLuint list, GLenum mode);
@@ -646,7 +658,7 @@ GLAPI void APIENTRY glNormalPointer (GLenum type, GLsizei stride, const GLvoid *
 GLAPI void APIENTRY glOrthof (GLfloat left, GLfloat right, GLfloat bottom, GLfloat top, GLfloat zNear, GLfloat zFar); // supported
 GLAPI void APIENTRY glPixelStorei (GLenum pname, GLint param);
 GLAPI void APIENTRY glPointSize (GLfloat size); // supported
-GLAPI void APIENTRY glPolygonMode (GLenum face, GLenum mode); // supported (only GL_FRONT)
+GLAPI void APIENTRY glPolygonMode (GLenum face, GLenum mode); // supported
 GLAPI void APIENTRY glPolygonOffset (GLfloat factor, GLfloat units);
 GLAPI void APIENTRY glPolygonStipple (const GLubyte *mask);
 GLAPI void APIENTRY glPopMatrix (void); // supported
@@ -655,6 +667,9 @@ GLAPI void APIENTRY glRasterPos3f (GLfloat x, GLfloat y, GLfloat z);
 GLAPI void APIENTRY glReadPixels (GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, GLvoid *pixels); // supported
 GLAPI void APIENTRY glRotatef (GLfloat angle, GLfloat x, GLfloat y, GLfloat z); // supported
 GLAPI void APIENTRY glScalef (GLfloat x, GLfloat y, GLfloat z); // supported
+GLAPI void APIENTRY glScalefv (const GLfloat *v); // supported
+GLAPI void APIENTRY glScaled (GLdouble x, GLdouble y, GLdouble z); // supported
+GLAPI void APIENTRY glScaledv (const GLdouble *v); // supported
 GLAPI void APIENTRY glScissor (GLint x, GLint y, GLsizei width, GLsizei height); // supported
 GLAPI void APIENTRY glShadeModel (GLenum mode);
 GLAPI void APIENTRY glStencilFunc (GLenum func, GLint ref, GLuint mask);
@@ -668,6 +683,9 @@ GLAPI void APIENTRY glTexImage2D (GLenum target, GLint level, GLint internalform
 GLAPI void APIENTRY glTexParameteri (GLenum target, GLenum pname, GLint param); // supported
 GLAPI void APIENTRY glTexSubImage2D (GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid *pixels); // supported
 GLAPI void APIENTRY glTranslatef (GLfloat x, GLfloat y, GLfloat z); // supported
+GLAPI void APIENTRY glTranslatefv (const GLfloat *v); // supported
+GLAPI void APIENTRY glTranslated (GLdouble x, GLdouble y, GLdouble z); // supported
+GLAPI void APIENTRY glTranslatedv (const GLdouble *v); // supported
 GLAPI void APIENTRY glVertex2f (GLfloat x, GLfloat y); // supported
 GLAPI void APIENTRY glVertex2fv (const GLfloat *v); // supported
 GLAPI void APIENTRY glVertex3f (GLfloat x, GLfloat y, GLfloat z); // supported
@@ -710,25 +728,31 @@ GLAPI void APIENTRY glVertex4d(GLdouble x, GLdouble y, GLdouble z); // :mad: // 
 GLAPI void APIENTRY glVertex4dv (const GLdouble *v); // supported
 GLAPI void APIENTRY glTexCoord1d(GLdouble x); // :mad: // supported
 GLAPI void APIENTRY glTexCoord1f(GLfloat x); // :mad: // supported
+GLAPI void APIENTRY glTexCoord1dv(const GLdouble *v); // :mad: // supported
+GLAPI void APIENTRY glTexCoord1fv(const GLfloat *v); // :mad: // supported
 GLAPI void APIENTRY glTexCoord2d(GLdouble x, GLdouble y); // :mad: // supported
 GLAPI void APIENTRY glTexCoord2f(GLfloat x, GLfloat y); // :mad: // supported
+GLAPI void APIENTRY glTexCoord2dv(const GLdouble *v); // :mad: // supported
+GLAPI void APIENTRY glTexCoord2fv(const GLfloat *v); // :mad: // supported
 GLAPI void APIENTRY glTexCoord3d(GLdouble x, GLdouble y, GLdouble z); // :mad: // supported
 GLAPI void APIENTRY glTexCoord3f(GLfloat x, GLfloat y, GLfloat z); // :mad: // supported
+GLAPI void APIENTRY glTexCoord3dv(const GLdouble *v); // :mad: // supported
+GLAPI void APIENTRY glTexCoord3fv(const GLfloat *v); // :mad: // supported
 GLAPI void APIENTRY glTexCoord4d(GLdouble x, GLdouble y, GLdouble z, GLdouble w); // :mad: // supported
 GLAPI void APIENTRY glTexCoord4f(GLfloat x, GLfloat y, GLfloat z, GLfloat w); // :mad: // supported
+GLAPI void APIENTRY glTexCoord4dv(const GLdouble *v); // :mad: // supported
+GLAPI void APIENTRY glTexCoord4fv(const GLfloat *v); // :mad: // supported
 GLAPI void APIENTRY glPushAttrib(GLbitfield mask); // :mad: // supported (mask not supported)
 GLAPI void APIENTRY glPopAttrib(); // :mad: // supported
 GLAPI void APIENTRY gluOrtho2D(float left, float right, float bottom, float top); // :mad: // supported
 GLAPI void APIENTRY glOrtho(GLfloat left, GLfloat right, GLfloat bottom, GLfloat top, GLfloat znear, GLfloat zfar); // :mad: // supported
-GLAPI void APIENTRY glFogf(GLenum pname, GLfloat param); // :mad: // supported
-GLAPI void APIENTRY glFogfv(GLenum pname, GLfloat *params); // :mad: // supported
 GLAPI void APIENTRY glDeleteTextures (GLsizei n, GLuint *textures); // :mad: // supported
 GLAPI void APIENTRY glTexParameterfv (GLenum target, GLenum pname, GLfloat *param); // :mad: // supported
 GLAPI void APIENTRY glBlendColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha); // :mad: // supported
 GLAPI void APIENTRY glBlendEquation(GLenum mode); // :mad: // supported
 
 
-#ifdef __cplusplus
+#ifdef x__cplusplus
 }
 #endif
 
@@ -760,8 +784,8 @@ void glNextMouseDelta(double *deltaX, double *deltaY);
 char glMouseButtons();
                            // gets the currently pressed special keys
 void glSpecialKeys(bool *shiftKey, bool *ctrlKey, bool *altKey);
-                           // tells the seconds ellapsed since the start of OpenGL (glVesa()) (granularity seems to be 18.2 fps, maybe better use speaker.hpp)
-double glSeconds();
+                           // tells the seconds ellapsed since the start of OpenGL (glVesa()) (granularity seems to be 18.2 Hz, maybe better use speaker.hpp)
+double glSeconds(); // better reprogram timer interrupt, this one is quite stuttery
                            // sets the time to <seconds>
 void glSetTime(double seconds);
                            // convenient, allocation free glTexImage2D for 32bit RGBA
@@ -995,15 +1019,16 @@ public:
   GLdouble textureW;
   GLenum beginMode;
   GLboolean enabledCaps[256];
-  GLdouble lightRed[4][__GL_MAX_LIGHTS__];
-  GLdouble lightGreen[4][__GL_MAX_LIGHTS__];
-  GLdouble lightBlue[4][__GL_MAX_LIGHTS__];
-  GLdouble lightAlpha[4][__GL_MAX_LIGHTS__];
-  GLenum colorMaterial;
-  GLfloat materialRed[5];
-  GLfloat materialGreen[5];
-  GLfloat materialBlue[5];
-  GLfloat materialAlpha[5];
+  GLdouble lightRed[8][__GL_MAX_LIGHTS__];
+  GLdouble lightGreen[8][__GL_MAX_LIGHTS__];
+  GLdouble lightBlue[8][__GL_MAX_LIGHTS__];
+  GLdouble lightAlpha[8][__GL_MAX_LIGHTS__];
+  GLenum colorMaterial[2];
+  GLenum colorMaterialFace;
+  GLfloat materialRed[2][5];
+  GLfloat materialGreen[2][5];
+  GLfloat materialBlue[2][5];
+  GLfloat materialAlpha[2][5];
   GLuint boundTextures[GLMAXTEXTUREUNITS];
   GLfloat blendColorRed;
   GLfloat blendColorGreen;
@@ -1025,11 +1050,18 @@ public:
   GLfloat constantAttenuation[__GL_MAX_LIGHTS__];
   GLfloat linearAttenuation[__GL_MAX_LIGHTS__];
   GLfloat quadraticAttenuation[__GL_MAX_LIGHTS__];
+  GLfloat spotExponent[__GL_MAX_LIGHTS__];
+  GLfloat spotCutOff[__GL_MAX_LIGHTS__];
   GLenum texGenS;
   GLenum texGenT;
   bool needNewInverseModelView;
   bool twoSidedLighting;
-  bool wireframe;
+  bool wireframe[2];
+  GLfloat fogStart;
+  GLfloat fogEnd;
+  GLfloat fogColor[4];
+  GLfloat fogDensity;
+  GLenum fogMode;
 };
 extern _GLContext glContext;
 typedef struct glVertex {
@@ -1053,6 +1085,29 @@ typedef struct glVertex {
   GLdouble textureW;
   double sx,sy,sz,sw; // screen x,y,z and w (y is top to bottom) z for zbuffer and w for perspective correct interpolation // just nearplane clipping was performed internally
 } glVertex;
+typedef struct glTexture {
+  GLuint name;
+  GLuint width;
+  GLuint height;
+  GLuint *data;
+  GLuint baseLevel;
+  GLuint lodBias;
+  GLuint magFilter;
+  GLuint maxLevel;
+  GLuint maxLod;
+  GLuint minFilter;
+  GLuint minLod;
+  GLuint wrapS;
+  GLuint wrapT;
+  GLuint wrapR;
+  GLfloat borderColorRed;
+  GLfloat borderColorGreen;
+  GLfloat borderColorBlue;
+  GLfloat borderColorAlpha;
+  GLuint texEnvMode;
+} glTexture;
+#define GLMAXTEXTURES 1024
+extern glTexture glTextures[GLMAXTEXTURES]; // you can load textures without OpenGL beeing initialized before (e.g. glTexImage2D)
 // ------------------------
 // ------------------------
 // ------------------------

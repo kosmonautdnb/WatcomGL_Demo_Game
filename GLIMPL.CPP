@@ -11,7 +11,6 @@
 #include <string.h>
 #include <math.h>
 #include <time.h>
-
 #define PI 3.14159265358979323846
 #define FLOOR(__v__) (__v__) // not needed since conversion to int truncates
 
@@ -34,9 +33,8 @@ unsigned int *glFrameBuffer0 = NULL;
 float *glDepthBuffer0 = NULL;
 
 GLdouble identityMatrix[4*4] = {1,0,0,0 ,0,1,0,0 ,0,0,1,0 ,0,0,0,1};
+bool currentBackFacing = false;
 
-#define __GL_MAX_TEXTURE_SIZE__ (1024)
-#define GLMAXTEXTURES 1024
 #define __MATRIX_STACK_SIZE__ 16
 #define __ATTRIB_STACK_SIZE__ 4
 
@@ -119,33 +117,37 @@ _GLContext::_GLContext() {
   textureZ = 0.0;
   textureW = 0.0;
   beginMode = 0;
-  colorMaterial = GL_AMBIENT_AND_DIFFUSE;
 
-  // ambient
-  materialRed[0] = 0;
-  materialGreen[0] = 0;
-  materialBlue[0] = 0;
-  materialAlpha[0] = 1;
-  // diffuse
-  materialRed[1] = 1;
-  materialGreen[1] = 1;
-  materialBlue[1] = 1;
-  materialAlpha[1] = 1;
-  // specular
-  materialRed[2] = 0;
-  materialGreen[2] = 0;
-  materialBlue[2] = 0;
-  materialAlpha[2] = 1;
-  // emission
-  materialRed[3] = 0;
-  materialGreen[3] = 0;
-  materialBlue[3] = 0;
-  materialAlpha[3] = 1;
-  // shininess
-  materialRed[4] = 1;
-  materialGreen[4] = 1;
-  materialBlue[4] = 1;
-  materialAlpha[4] = 1;
+  colorMaterialFace = GL_FRONT;
+  for (i = 0; i < 2; i++) {
+    colorMaterial[i] = GL_AMBIENT_AND_DIFFUSE;
+    // ambient
+    materialRed[i][0] = 0;
+    materialGreen[i][0] = 0;
+    materialBlue[i][0] = 0;
+    materialAlpha[i][0] = 1;
+    // diffuse
+    materialRed[i][1] = 1;
+    materialGreen[i][1] = 1;
+    materialBlue[i][1] = 1;
+    materialAlpha[i][1] = 1;
+    // specular
+    materialRed[i][2] = 0;
+    materialGreen[i][2] = 0;
+    materialBlue[i][2] = 0;
+    materialAlpha[i][2] = 1;
+    // emission
+    materialRed[i][3] = 0;
+    materialGreen[i][3] = 0;
+    materialBlue[i][3] = 0;
+    materialAlpha[i][3] = 1;
+    // shininess
+    materialRed[i][4] = 1;
+    materialGreen[i][4] = 1;
+    materialBlue[i][4] = 1;
+    materialAlpha[i][4] = 1;
+    wireframe[i] = false;
+  }
 
   for (i = 0;  i < __GL_MAX_LIGHTS__; i++) {
     // ambient
@@ -168,10 +170,17 @@ _GLContext::_GLContext() {
     lightGreen[3][i] = 0;
     lightBlue[3][i] = 1;
     lightAlpha[3][i] = 0;
+    // spot direction
+    lightRed[4][i] = 0;
+    lightGreen[4][i] = 0;
+    lightBlue[4][i] = 1;
+    lightAlpha[4][i] = 0;
     // attenuation
     constantAttenuation[i] = 1;
     linearAttenuation[i] = 0;
     quadraticAttenuation[i] = 0;
+    spotExponent[i] = 0;
+    spotCutOff[i] = cos(180.0*PI/180.0);
   }
   for (i = 0; i < GLMAXTEXTUREUNITS; i++) {
     boundTextures[i] = 0;
@@ -197,7 +206,15 @@ _GLContext::_GLContext() {
   texGenT = GL_SPHERE_MAP_ATAN2; // actually GL_EYE_LINEAR
   needNewInverseModelView = false;
   twoSidedLighting = false;
-  wireframe = false;
+
+  fogStart = 0.0;
+  fogEnd = 1.0;
+  fogColor[0] = 0;
+  fogColor[1] = 0;
+  fogColor[2] = 0;
+  fogColor[3] = 0;
+  fogDensity = 1.0;
+  fogMode = GL_EXP;
 }
 
 void _GLContext::enable(GLenum prop, bool enable) {enabledCaps[prop&255]=enable;}
@@ -218,30 +235,7 @@ void glSetTriangleDrawer(TriangleDrawer drawer) {
 }
 void glDrawQuad(_GLContext *context, glVertex *v0,glVertex *v1,glVertex *v2,glVertex *v3);
 
-typedef struct glTexture {
-  GLuint name;
-  GLuint width;
-  GLuint height;
-  GLuint *data;
-  GLuint baseLevel;
-  GLuint lodBias;
-  GLuint magFilter;
-  GLuint maxLevel;
-  GLuint maxLod;
-  GLuint minFilter;
-  GLuint minLod;
-  GLuint wrapS;
-  GLuint wrapT;
-  GLuint wrapR;
-  GLfloat borderColorRed;
-  GLfloat borderColorGreen;
-  GLfloat borderColorBlue;
-  GLfloat borderColorAlpha;
-  GLuint texEnvMode;
-} glTexture;
-glTexture glTextures[GLMAXTEXTURES] = {
-  {0,0,0,NULL,0,0,GL_LINEAR,1000,1000,GL_NEAREST,0,GL_REPEAT,GL_REPEAT,GL_REPEAT,1.f,0.f,1.f,1.f,GL_MODULATE}
-};
+glTexture glTextures[GLMAXTEXTURES]={{0,0,0,NULL,0,0,GL_LINEAR,1000,1000,GL_NEAREST,0,GL_REPEAT,GL_REPEAT,GL_REPEAT,1.f,0.f,1.f,1.f,GL_MODULATE}};
 
 GLuint glNewTexture() {
   for (int i = 1; i < GLMAXTEXTURES; i++) {
@@ -448,26 +442,27 @@ void glLightVertex(_GLContext *context, glVertex *v) {
     float specularGreen = 0;
     float specularBlue = 0;
 
-    float materialAmbientRed = context->materialRed[0];
-    float materialAmbientGreen = context->materialGreen[0];
-    float materialAmbientBlue = context->materialBlue[0];
-    float materialDiffuseRed = context->materialRed[1];
-    float materialDiffuseGreen = context->materialGreen[1];
-    float materialDiffuseBlue = context->materialBlue[1];
-    float materialDiffuseAlpha = context->materialAlpha[1];
-    float materialSpecularRed = context->materialRed[2];
-    float materialSpecularGreen = context->materialGreen[2];
-    float materialSpecularBlue = context->materialBlue[2];
-    float materialEmissionRed = context->materialRed[3];
-    float materialEmissionGreen = context->materialGreen[3];
-    float materialEmissionBlue = context->materialBlue[3];
-    float materialShininessRed = context->materialRed[4];
-    float materialShininessGreen = context->materialGreen[4];
-    float materialShininessBlue = context->materialBlue[4];
+    int face = glContext.twoSidedLighting ? (currentBackFacing ? 1:0) : 0;
+    float materialAmbientRed = context->materialRed[face][0];
+    float materialAmbientGreen = context->materialGreen[face][0];
+    float materialAmbientBlue = context->materialBlue[face][0];
+    float materialDiffuseRed = context->materialRed[face][1];
+    float materialDiffuseGreen = context->materialGreen[face][1];
+    float materialDiffuseBlue = context->materialBlue[face][1];
+    float materialDiffuseAlpha = context->materialAlpha[face][1];
+    float materialSpecularRed = context->materialRed[face][2];
+    float materialSpecularGreen = context->materialGreen[face][2];
+    float materialSpecularBlue = context->materialBlue[face][2];
+    float materialEmissionRed = context->materialRed[face][3];
+    float materialEmissionGreen = context->materialGreen[face][3];
+    float materialEmissionBlue = context->materialBlue[face][3];
+    float materialShininessRed = context->materialRed[face][4];
+    float materialShininessGreen = context->materialGreen[face][4];
+    float materialShininessBlue = context->materialBlue[face][4];
 
 
     if (context->isEnabled(GL_COLOR_MATERIAL)) {
-      switch(glContext.colorMaterial) {
+      switch(glContext.colorMaterial[face]) {
         case GL_AMBIENT: {
           materialAmbientRed = v->colorRed;
           materialAmbientGreen = v->colorGreen;
@@ -533,6 +528,7 @@ void glLightVertex(_GLContext *context, glVertex *v) {
         const double lightPositionX = context->lightRed[3][i];
         const double lightPositionY = context->lightGreen[3][i];
         const double lightPositionZ =  context->lightBlue[3][i];
+  
         const double lightPositionW =  context->lightAlpha[3][i];
         double lVecX = lightPositionX;
         double lVecY = lightPositionY;
@@ -552,7 +548,9 @@ void glLightVertex(_GLContext *context, glVertex *v) {
         double l = sqrt(lVecX*lVecX+lVecY*lVecY+lVecZ*lVecZ);
         if (l>0.0) {lVecX/=l;  lVecY/=l; lVecZ/=l;}
         double diffuse = lVecX * normalX + lVecY * normalY + lVecZ * normalZ;
-        if (context->twoSidedLighting) diffuse = fabs(diffuse);
+        if (context->twoSidedLighting) {
+          diffuse = fabs(diffuse);
+        }
         if (diffuse<0) diffuse = 0;
         double viewX = x;
         double viewY = y;
@@ -578,6 +576,27 @@ void glLightVertex(_GLContext *context, glVertex *v) {
           specular = -viewX * reflectionX + -viewY * reflectionY + -viewZ * reflectionZ;
         }
         if (specular<0.0) specular = 0.0;
+
+        // spot calculations
+        const double spotCutOff = context->spotCutOff[i];
+        if (spotCutOff>-0.9999) { // is it a spot light?
+          // light position needs w other than 0, denoting no directional
+          double spotDirectionX = context->lightRed[4][i];
+          double spotDirectionY = context->lightGreen[4][i];
+          double spotDirectionZ =  context->lightBlue[4][i];
+          double spotAngleDot = lVecX*spotDirectionX+lVecY*spotDirectionY+lVecZ*spotDirectionZ;
+          if (spotAngleDot>spotCutOff) { // spotCutOff goes from 1(0degrees) to -1(180degrees)
+            const double spotExponent = context->spotExponent[i];
+            const double d = pow(spotAngleDot < 0 ? 0 : spotAngleDot,spotExponent);
+            diffuse *= d;
+            specular *= d;
+          } else {
+            // cutoff
+            diffuse = 0;
+            specular = 0;
+          }
+        }
+
         ambientRed += materialAmbientRed*lightAmbientRed;
         ambientGreen += materialAmbientGreen*lightAmbientGreen;
         ambientBlue += materialAmbientBlue*lightAmbientBlue;
@@ -779,6 +798,37 @@ void glSetVertex(glVertex *w) {
   v->textureW = w->textureW;
 }
 
+bool backFaceCalc(const glVertex &v0,const glVertex &v1,const glVertex &v2) {
+  currentBackFacing = false;
+  if (glContext.twoSidedLighting || glContext.wireframe[0] || glContext.wireframe[1]) { // used only for coloring currently
+    const double ax = v1.vertexX-v0.vertexX;
+    const double ay = v1.vertexY-v0.vertexY;
+    const double az = v1.vertexZ-v0.vertexZ;
+    const double bx = v2.vertexX-v0.vertexX;
+    const double by = v2.vertexY-v0.vertexY;
+    const double bz = v2.vertexZ-v0.vertexZ;
+    const double nx = ay*bz - az*by;
+    const double ny = az*bx - ax*bz;
+    const double nz = ax*by - ay*bx;
+    const double *o = glContext.matrix;
+    if (o[0*4+3]==0&&o[1*4+3]==0&&o[2*4+3]==0) { // check if orthographic projection by x,y,z not influencing w
+      const double *m = glGetInverseModelView(&glContext);
+      const double d = m[4*2+0]*nx+m[4*2+1]*ny+m[4*2+2]*nz;
+      currentBackFacing = d < 0;
+      if (glContext.frontFace != GL_CCW) currentBackFacing = !currentBackFacing;
+
+    } else {
+      const double *m = glGetInverseModelView(&glContext);
+      const double vx = v0.vertexX-m[4*3+0];
+      const double vy = v0.vertexY-m[4*3+1];
+      const double vz = v0.vertexZ-m[4*3+2];
+      const double d = vx*nx+vy*ny+vz*nz;
+      currentBackFacing = d > 0;
+      if (glContext.frontFace != GL_CCW) currentBackFacing = !currentBackFacing;
+    }
+  }
+  return false;
+}
 
 void glEmitVertex() {
   glVertex *v = &glVertices[glCurrentVertexElement];
@@ -890,7 +940,8 @@ void glEmitVertex() {
     } break;
     case GL_TRIANGLES: {
       if (glCurrentVertexElement==3) {
-        if (glContext.wireframe) {
+        if (backFaceCalc(glVertices[0],glVertices[1],glVertices[2])) {glCurrentVertexElement = 0;currentBackFacing = false;break;}
+        if (glContext.wireframe[currentBackFacing ? 1 : 0]) {
           glVertex vs[3];
           vs[0] = glVertices[0];
           vs[1] = glVertices[1];
@@ -903,7 +954,7 @@ void glEmitVertex() {
           glSetVertex(&vs[2]);glEmitVertex();
           glSetVertex(&vs[0]);glEmitVertex();
           glSetVertex(&vs[2]);
-          glContext.beginMode = GL_TRIANGLES; glCurrentVertexElement = 0;
+          glContext.beginMode = GL_TRIANGLES; glCurrentVertexElement = 0; currentBackFacing = false;
           break;
         }
         int a = glTransformVertex(&glContext,&glVertices[0],true);
@@ -926,12 +977,13 @@ void glEmitVertex() {
             drawClippedTriangle(&glContext,&glVertices[0],&glVertices[1],&glVertices[2]);
           }
         }
-        glCurrentVertexElement = 0;
+        glCurrentVertexElement = 0; currentBackFacing = false; 
       }
     } break;
     case GL_QUADS: {
       if (glCurrentVertexElement==4) {
-        if (glContext.wireframe) {
+        if (backFaceCalc(glVertices[0],glVertices[1],glVertices[2])) {glCurrentVertexElement = 0;currentBackFacing = false;break;}
+        if (glContext.wireframe[currentBackFacing ? 1 : 0]) {
           glVertex vs[4];
           vs[0] = glVertices[0];
           vs[1] = glVertices[1];
@@ -947,7 +999,7 @@ void glEmitVertex() {
           glSetVertex(&vs[3]);glEmitVertex();
           glSetVertex(&vs[0]);glEmitVertex();
           glSetVertex(&vs[3]);
-          glContext.beginMode = GL_QUADS; glCurrentVertexElement = 0;
+          glContext.beginMode = GL_QUADS; glCurrentVertexElement = 0; currentBackFacing = false;
           break;
         }
         int a = glTransformVertex(&glContext,&glVertices[0],true);
@@ -974,7 +1026,7 @@ void glEmitVertex() {
             drawClippedQuad(&glContext,&glVertices[0],&glVertices[1],&glVertices[2],&glVertices[3]);
           }
         }
-        glCurrentVertexElement = 0;
+        glCurrentVertexElement = 0; currentBackFacing = false;
       }
     } break;
     case GL_POINTS: {
@@ -1195,7 +1247,13 @@ void glColorMask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha
 }
 
 void glColorMaterial(GLenum face, GLenum pname) {
-  glContext.colorMaterial = pname;
+  int f0 = 0; int f1 = 1;
+  if (face == GL_FRONT) {f0=0;f1=1;}
+  if (face == GL_BACK) {f0=1;f1=2;}
+  if (face == GL_FRONT_AND_BACK) {f0=0;f1=2;}
+  glContext.colorMaterialFace = face;
+  for (int f = f0; f < f1; f++)
+    glContext.colorMaterial[f] = pname;
 }
 
 void glCullFace(GLenum mode) {
@@ -1246,6 +1304,34 @@ void glFinish() {
 void glFlush() {
 }
 
+void glFogfv(GLenum pname, GLfloat *params) {
+  switch(pname) {
+  case GL_FOG_COLOR: {memcpy(glContext.fogColor,params,4*sizeof(GLfloat));} break;
+  case GL_FOG_START: {glContext.fogStart = params[0];} break;
+  case GL_FOG_END: {glContext.fogEnd = params[0];} break;
+  case GL_FOG_DENSITY: {glContext.fogDensity = params[0];} break;
+  case GL_FOG_MODE: {glContext.fogMode = params[0];} break;
+  }
+}
+
+void glFogf(GLenum pname, GLfloat param) {
+  switch(pname) {
+  case GL_FOG_START: {glContext.fogStart = param;} break;
+  case GL_FOG_END: {glContext.fogEnd = param;} break;
+  case GL_FOG_DENSITY: {glContext.fogDensity = param;} break;
+  case GL_FOG_MODE: {glContext.fogMode = param;} break;
+  }
+}
+
+void glFogi(GLenum pname, GLint param) {
+  switch(pname) {
+  case GL_FOG_START: {glContext.fogStart = param;} break;
+  case GL_FOG_END: {glContext.fogEnd = param;} break;
+  case GL_FOG_DENSITY: {glContext.fogDensity = param;} break;
+  case GL_FOG_MODE: {glContext.fogMode = param;} break;
+  }
+}
+
 void glGenTextures (GLsizei n, GLuint *textures) {
   for(int i = 0; i < n; i++) {
     textures[i] = glNewTexture();
@@ -1264,8 +1350,8 @@ void glGetBooleanv(GLenum pname, GLboolean *params) {
   case GL_BLEND_SRC: {*params=glContext.blendFuncSFactor;} break;
   case GL_BLUE_BITS: {*params=8;} break;
   case GL_COLOR_CLEAR_VALUE: {params[0]=(int)floor(glContext.clearRed);params[1]=(int)floor(glContext.clearGreen);params[2]=(int)floor(glContext.clearBlue);params[3]=(int)floor(glContext.clearAlpha);} break;
-  case GL_COLOR_MATERIAL_FACE: {*params=glContext.colorMaterial;} break;
-  case GL_COLOR_MATERIAL_PARAMETER: {*params=glContext.colorMaterial;} break;
+  case GL_COLOR_MATERIAL_FACE: {*params=glContext.colorMaterialFace;} break;
+  case GL_COLOR_MATERIAL_PARAMETER: {*params=glContext.colorMaterial[glContext.colorMaterialFace==GL_BACK?1:0];} break;
   case GL_CULL_FACE: {*params=glIsEnabled(GL_CULL_FACE);} break;
   case GL_CULL_FACE_MODE: {*params=glContext.cullFaceMode;} break;
   case GL_CURRENT_NORMAL: {params[0]=(int)floor(glContext.normalX);params[1]=(int)floor(glContext.normalY);params[2]=(int)floor(glContext.normalZ);} break;
@@ -1275,6 +1361,11 @@ void glGetBooleanv(GLenum pname, GLboolean *params) {
   case GL_DEPTH_RANGE: {params[0]=(int)floor(glContext.depthRangeZNear);params[1]=(int)floor(glContext.depthRangeZFar);} break;
   case GL_DEPTH_TEST: {*params=glIsEnabled(GL_DEPTH_TEST);} break;
   case GL_DEPTH_WRITEMASK: {*params=glContext.depthMask;} break;
+  case GL_FOG_COLOR: {params[0]=glContext.fogColor[0];params[1]=glContext.fogColor[1];params[2]=glContext.fogColor[2];params[3]=glContext.fogColor[3];} break;
+  case GL_FOG_START: {params[0]=glContext.fogStart;} break;
+  case GL_FOG_END: { params[0]=glContext.fogEnd;} break;
+  case GL_FOG_DENSITY: {params[0]=glContext.fogDensity;} break;
+  case GL_FOG_MODE: {params[0]=glContext.fogMode;} break;
   case GL_FRONT_FACE: {*params=glContext.cullFaceMode == GL_BACK ? 1 : 0;} break;
   case GL_GREEN_BITS: {*params=8;} break;
   case GL_LIGHT0: {*params=glIsEnabled(GL_LIGHT0);} break;
@@ -1317,8 +1408,8 @@ void glGetDoublev (GLenum pname, GLdouble *params) {
   case GL_BLEND_SRC: {*params=glContext.blendFuncSFactor;} break;
   case GL_BLUE_BITS: {*params=8;} break;
   case GL_COLOR_CLEAR_VALUE: {params[0]=glContext.clearRed;params[1]=glContext.clearGreen;params[2]=glContext.clearBlue;params[3]=glContext.clearAlpha;} break;
-  case GL_COLOR_MATERIAL_FACE: {*params=glContext.colorMaterial;} break;
-  case GL_COLOR_MATERIAL_PARAMETER: {*params=glContext.colorMaterial;} break;
+  case GL_COLOR_MATERIAL_FACE: {*params=glContext.colorMaterialFace;} break;
+  case GL_COLOR_MATERIAL_PARAMETER: {*params=glContext.colorMaterial[glContext.colorMaterialFace==GL_BACK?1:0];} break;
   case GL_CULL_FACE: {*params=glIsEnabled(GL_CULL_FACE);} break;
   case GL_CULL_FACE_MODE: {*params=glContext.cullFaceMode;} break;
   case GL_CURRENT_NORMAL: {params[0]=glContext.normalX;params[1]=glContext.normalY;params[2]=glContext.normalZ;} break;
@@ -1328,6 +1419,11 @@ void glGetDoublev (GLenum pname, GLdouble *params) {
   case GL_DEPTH_RANGE: {params[0]=glContext.depthRangeZNear;params[1]=glContext.depthRangeZFar;} break;
   case GL_DEPTH_TEST: {*params=glIsEnabled(GL_DEPTH_TEST);} break;
   case GL_DEPTH_WRITEMASK: {*params=glContext.depthMask;} break;
+  case GL_FOG_COLOR: {params[0]=glContext.fogColor[0];params[1]=glContext.fogColor[1];params[2]=glContext.fogColor[2];params[3]=glContext.fogColor[3];} break;
+  case GL_FOG_START: {params[0]=glContext.fogStart;} break;
+  case GL_FOG_END: { params[0]=glContext.fogEnd;} break;
+  case GL_FOG_DENSITY: {params[0]=glContext.fogDensity;} break;
+  case GL_FOG_MODE: {params[0]=glContext.fogMode;} break;
   case GL_FRONT_FACE: {*params=glContext.cullFaceMode == GL_BACK ? 1 : 0;} break;
   case GL_GREEN_BITS: {*params=8;} break;
   case GL_LIGHT0: {*params=glIsEnabled(GL_LIGHT0);} break;
@@ -1370,8 +1466,8 @@ void glGetFloatv (GLenum pname, GLfloat *params) {
   case GL_BLEND_SRC: {*params=glContext.blendFuncSFactor;} break;
   case GL_BLUE_BITS: {*params=8;} break;
   case GL_COLOR_CLEAR_VALUE: {params[0]=glContext.clearRed;params[1]=glContext.clearGreen;params[2]=glContext.clearBlue;params[3]=glContext.clearAlpha;} break;
-  case GL_COLOR_MATERIAL_FACE: {*params=glContext.colorMaterial;} break;
-  case GL_COLOR_MATERIAL_PARAMETER: {*params=glContext.colorMaterial;} break;
+  case GL_COLOR_MATERIAL_FACE: {*params=glContext.colorMaterialFace;} break;
+  case GL_COLOR_MATERIAL_PARAMETER: {*params=glContext.colorMaterial[glContext.colorMaterialFace==GL_BACK?1:0];} break;
   case GL_CULL_FACE: {*params=glIsEnabled(GL_CULL_FACE);} break;
   case GL_CULL_FACE_MODE: {*params=glContext.cullFaceMode;} break;
   case GL_CURRENT_NORMAL: {params[0]=glContext.normalX;params[1]=glContext.normalY;params[2]=glContext.normalZ;} break;
@@ -1381,6 +1477,11 @@ void glGetFloatv (GLenum pname, GLfloat *params) {
   case GL_DEPTH_RANGE: {params[0]=glContext.depthRangeZNear;params[1]=glContext.depthRangeZFar;} break;
   case GL_DEPTH_TEST: {*params=glIsEnabled(GL_DEPTH_TEST);} break;
   case GL_DEPTH_WRITEMASK: {*params=glContext.depthMask;} break;
+  case GL_FOG_COLOR: {params[0]=glContext.fogColor[0];params[1]=glContext.fogColor[1];params[2]=glContext.fogColor[2];params[3]=glContext.fogColor[3];} break;
+  case GL_FOG_START: {params[0]=glContext.fogStart;} break;
+  case GL_FOG_END: { params[0]=glContext.fogEnd;} break;
+  case GL_FOG_DENSITY: {params[0]=glContext.fogDensity;} break;
+  case GL_FOG_MODE: {params[0]=glContext.fogMode;} break;
   case GL_FRONT_FACE: {*params=glContext.cullFaceMode == GL_BACK ? 1 : 0;} break;
   case GL_GREEN_BITS: {*params=8;} break;
   case GL_LIGHT0: {*params=glIsEnabled(GL_LIGHT0);} break;
@@ -1423,8 +1524,8 @@ void glGetIntegerv (GLenum pname, GLint *params) {
   case GL_BLEND_SRC: {*params=glContext.blendFuncSFactor;} break;
   case GL_BLUE_BITS: {*params=8;} break;
   case GL_COLOR_CLEAR_VALUE: {params[0]=(int)floor(glContext.clearRed);params[1]=(int)floor(glContext.clearGreen);params[2]=(int)floor(glContext.clearBlue);params[3]=(int)floor(glContext.clearAlpha);} break;
-  case GL_COLOR_MATERIAL_FACE: {*params=glContext.colorMaterial;} break;
-  case GL_COLOR_MATERIAL_PARAMETER: {*params=glContext.colorMaterial;} break;
+  case GL_COLOR_MATERIAL_FACE: {*params=glContext.colorMaterialFace;} break;
+  case GL_COLOR_MATERIAL_PARAMETER: {*params=glContext.colorMaterial[glContext.colorMaterialFace==GL_BACK?1:0];} break;
   case GL_CULL_FACE: {*params=glIsEnabled(GL_CULL_FACE);} break;
   case GL_CULL_FACE_MODE: {*params=glContext.cullFaceMode;} break;
   case GL_CURRENT_NORMAL: {params[0]=(int)floor(glContext.normalX);params[1]=(int)floor(glContext.normalY);params[2]=(int)floor(glContext.normalZ);} break;
@@ -1434,6 +1535,11 @@ void glGetIntegerv (GLenum pname, GLint *params) {
   case GL_DEPTH_RANGE: {params[0]=(int)floor(glContext.depthRangeZNear);params[1]=(int)floor(glContext.depthRangeZFar);} break;
   case GL_DEPTH_TEST: {*params=glIsEnabled(GL_DEPTH_TEST);} break;
   case GL_DEPTH_WRITEMASK: {*params=glContext.depthMask;} break;
+  case GL_FOG_COLOR: {params[0]=glContext.fogColor[0];params[1]=glContext.fogColor[1];params[2]=glContext.fogColor[2];params[3]=glContext.fogColor[3];} break;
+  case GL_FOG_START: {params[0]=glContext.fogStart;} break;
+  case GL_FOG_END: { params[0]=glContext.fogEnd;} break;
+  case GL_FOG_DENSITY: {params[0]=glContext.fogDensity;} break;
+  case GL_FOG_MODE: {params[0]=glContext.fogMode;} break;
   case GL_FRONT_FACE: {*params=glContext.cullFaceMode == GL_BACK ? 1 : 0;} break;
   case GL_GREEN_BITS: {*params=8;} break;
   case GL_LIGHT0: {*params=glIsEnabled(GL_LIGHT0);} break;
@@ -1473,20 +1579,23 @@ void glGetLightfv(GLenum light, GLenum pname, GLfloat *params) {
   case GL_CONSTANT_ATTENUATION: {params[0]=glContext.constantAttenuation[light-GL_LIGHT0];} break;
   case GL_LINEAR_ATTENUATION: {params[0]=glContext.linearAttenuation[light-GL_LIGHT0];} break;
   case GL_QUADRATIC_ATTENUATION: {params[0]=glContext.quadraticAttenuation[light-GL_LIGHT0];} break;
+  case GL_SPOT_EXPONENT: {params[0]=glContext.spotExponent[light-GL_LIGHT0];} break;
+  case GL_SPOT_CUTOFF: {params[0]=acos(glContext.spotCutOff[light-GL_LIGHT0])*180.0/PI;} break;
+  case GL_SPOT_DIRECTION: // spot_direction already normalized
   case GL_POSITION:
   case GL_DIFFUSE:
   case GL_SPECULAR:
   case GL_AMBIENT: {
-      params[0] = glContext.lightRed[pname & 3][light - GL_LIGHT0];
-      params[1] = glContext.lightGreen[pname & 3][light - GL_LIGHT0];
-      params[2] = glContext.lightBlue[pname & 3][light - GL_LIGHT0];
-      params[3] = glContext.lightAlpha[pname & 3][light - GL_LIGHT0];
+      params[0] = glContext.lightRed[pname & 7][light - GL_LIGHT0];
+      params[1] = glContext.lightGreen[pname & 7][light - GL_LIGHT0];
+      params[2] = glContext.lightBlue[pname & 7][light - GL_LIGHT0];
+      params[3] = glContext.lightAlpha[pname & 7][light - GL_LIGHT0];
     }; break;
   }
 }
 
 const GLubyte *glGetString(GLenum name) {
-  return "";
+  return (const GLubyte *)"";
 }
 
 GLboolean glIsEnabled(GLenum cap) {
@@ -1498,6 +1607,8 @@ void glLightf(GLenum light, GLenum pname, GLfloat param) {
   case GL_CONSTANT_ATTENUATION: {glContext.constantAttenuation[light - GL_LIGHT0] = param; return;} break;
   case GL_LINEAR_ATTENUATION: {glContext.linearAttenuation[light - GL_LIGHT0] = param; return;} break;
   case GL_QUADRATIC_ATTENUATION: {glContext.quadraticAttenuation[light - GL_LIGHT0] = param; return;} break;
+  case GL_SPOT_EXPONENT: {glContext.spotExponent[light - GL_LIGHT0] = param; return;} break;
+  case GL_SPOT_CUTOFF: {glContext.spotCutOff[light - GL_LIGHT0] = cos(param*PI/180.0); return;} break;
   }
 }
 
@@ -1506,8 +1617,25 @@ void glLightfv(GLenum light, GLenum pname, const GLfloat *params) {
   case GL_CONSTANT_ATTENUATION: {glContext.constantAttenuation[light - GL_LIGHT0] = params[0]; return;} break;
   case GL_LINEAR_ATTENUATION: {glContext.linearAttenuation[light - GL_LIGHT0] = params[0]; return;} break;
   case GL_QUADRATIC_ATTENUATION: {glContext.quadraticAttenuation[light - GL_LIGHT0] = params[0]; return;} break;
+  case GL_SPOT_EXPONENT: {glContext.spotExponent[light - GL_LIGHT0] = params[0]; return;} break;
+  case GL_SPOT_CUTOFF: {glContext.spotCutOff[light - GL_LIGHT0] = cos(params[0]*PI/180); return;} break;
   }
 
+  if (pname == GL_SPOT_DIRECTION) {
+    double lx = params[0];
+    double ly = params[1];
+    double lz = params[2];
+    double *matrix = glContext.matrixForMode[GL_MODELVIEW&1]; 
+    double xl = lx * matrix[0*4+0] + ly * matrix[1*4+0] + lz * matrix[2*4+0];
+    double yl = lx * matrix[0*4+1] + ly * matrix[1*4+1] + lz * matrix[2*4+1];
+    double zl = lx * matrix[0*4+2] + ly * matrix[1*4+2] + lz * matrix[2*4+2];
+    double k = sqrt(xl*xl+yl*yl+zl*zl);
+    if (fabs(k)>0) {xl/=k;yl/=k;zl/=k;}
+    glContext.lightRed[pname & 7][light - GL_LIGHT0] = xl;
+    glContext.lightGreen[pname & 7][light - GL_LIGHT0] = yl;
+    glContext.lightBlue[pname & 7][light - GL_LIGHT0] = zl;
+    return;
+  }
   if (pname == GL_POSITION) {
     double lx = params[0];
     double ly = params[1];
@@ -1529,16 +1657,16 @@ void glLightfv(GLenum light, GLenum pname, const GLfloat *params) {
       lz = zl;
       lw = wl;
     //}
-    glContext.lightRed[pname & 3][light - GL_LIGHT0] = lx;
-    glContext.lightGreen[pname & 3][light - GL_LIGHT0] = ly;
-    glContext.lightBlue[pname & 3][light - GL_LIGHT0] = lz;
-    glContext.lightAlpha[pname & 3][light - GL_LIGHT0] = lw;
-  } else {
-    glContext.lightRed[pname & 3][light - GL_LIGHT0] = params[0];
-    glContext.lightGreen[pname & 3][light - GL_LIGHT0] = params[1];
-    glContext.lightBlue[pname & 3][light - GL_LIGHT0] = params[2];
-    glContext.lightAlpha[pname & 3][light - GL_LIGHT0] = params[3];
-  }
+    glContext.lightRed[pname & 7][light - GL_LIGHT0] = lx;
+    glContext.lightGreen[pname & 7][light - GL_LIGHT0] = ly;
+    glContext.lightBlue[pname & 7][light - GL_LIGHT0] = lz;
+    glContext.lightAlpha[pname & 7][light - GL_LIGHT0] = lw;
+    return;
+  } 
+  glContext.lightRed[pname & 7][light - GL_LIGHT0] = params[0];
+  glContext.lightGreen[pname & 7][light - GL_LIGHT0] = params[1];
+  glContext.lightBlue[pname & 7][light - GL_LIGHT0] = params[2];
+  glContext.lightAlpha[pname & 7][light - GL_LIGHT0] = params[3];
 }
 
 void glLightModeli(GLenum pname, const GLenum param) {
@@ -1608,32 +1736,38 @@ void glMaterialf(GLenum face, GLenum pname, GLfloat param) {
 }
 
 void glMaterialfv (GLenum face, GLenum pname, const GLfloat *params) {
-  switch(pname) {
-    case GL_AMBIENT: {
-      glContext.materialRed[0] = params[0];
-      glContext.materialGreen[0] = params[1];
-      glContext.materialBlue[0] = params[2];
-    } break;
-    case GL_DIFFUSE: {
-      glContext.materialRed[1] = params[0];
-      glContext.materialGreen[1] = params[1];
-      glContext.materialBlue[1] = params[2];
-    } break;
-    case GL_SPECULAR: {
-      glContext.materialRed[2] = params[0];
-      glContext.materialGreen[2] = params[1];
-      glContext.materialBlue[2] = params[2];
-    } break;
-    case GL_EMISSION: {
-      glContext.materialRed[3] = params[0];
-      glContext.materialGreen[3] = params[1];
-      glContext.materialBlue[3] = params[2];
-    } break;
-    case GL_SHININESS: {
-      glContext.materialRed[4] = params[0];
-      glContext.materialGreen[4] = params[1];
-      glContext.materialBlue[4] = params[2];
-    } break;
+  int f0 = 0; int f1 = 1;
+  if (face == GL_FRONT) {f0=0;f1=1;}
+  if (face == GL_BACK) {f0=1;f1=2;}
+  if (face == GL_FRONT_AND_BACK) {f0=0;f1=2;}
+  for(int f = f0; f<f1; f++) {
+    switch(pname) {
+      case GL_AMBIENT: {
+        glContext.materialRed[f][0] = params[0];
+        glContext.materialGreen[f][0] = params[1];
+        glContext.materialBlue[f][0] = params[2];
+      } break;
+      case GL_DIFFUSE: {
+        glContext.materialRed[f][1] = params[0];
+        glContext.materialGreen[f][1] = params[1];
+        glContext.materialBlue[f][1] = params[2];
+      } break;
+      case GL_SPECULAR: {
+        glContext.materialRed[f][2] = params[0];
+        glContext.materialGreen[f][2] = params[1];
+        glContext.materialBlue[f][2] = params[2];
+      } break;
+      case GL_EMISSION: {
+        glContext.materialRed[f][3] = params[0];
+        glContext.materialGreen[f][3] = params[1];
+        glContext.materialBlue[f][3] = params[2];
+      } break;
+      case GL_SHININESS: {
+        glContext.materialRed[f][4] = params[0];
+        glContext.materialGreen[f][4] = params[1];
+        glContext.materialBlue[f][4] = params[2];
+      } break;
+    }
   }
 }
 
@@ -1646,12 +1780,23 @@ void glMultMatrixf (const GLfloat *m) {
   glUpdateMatrix();
 }
 
+void glMultMatrixd (const GLdouble *m) {
+  glMatMul(glContext.matrixForMode[glContext.matrixModeNr],m,glContext.matrixForMode[glContext.matrixModeNr]);
+  glUpdateMatrix();
+}
+
 void glPointSize (GLfloat size) {
   glContext.pointSize = size;
 }
 
 void glPolygonMode (GLenum face, GLenum mode) {
-  glContext.wireframe = mode == GL_LINE;
+  int f0 = 0; int f1 = 1;
+  if (face == GL_FRONT) {f0=0;f1=1;}
+  if (face == GL_BACK) {f0=1;f1=2;}
+  if (face == GL_FRONT_AND_BACK) {f0=0;f1=2;}
+  for (int f = f0; f < f1; f++) {
+    glContext.wireframe[f] = mode == GL_LINE;
+  }
 }
 
 void glPolygonOffset (GLfloat factor, GLfloat units) {
@@ -1767,6 +1912,34 @@ void glScalef(GLfloat x, GLfloat y, GLfloat z) {
   matrix[7] *= (double)y;
   matrix[11] *= (double)z;
   glUpdateMatrix();
+}
+
+void glScalefv(const GLfloat *v) {
+  glScalef(v[0],v[1],v[2]);
+}
+
+void glScaled(GLdouble x, GLdouble y, GLdouble z) {
+  double *matrix = glContext.matrixForMode[glContext.matrixModeNr];
+  matrix[0] *= (double)x;
+  matrix[4] *= (double)y;
+  matrix[8] *= (double)z;
+
+  matrix[1] *= (double)x;
+  matrix[5] *= (double)y;
+  matrix[9] *= (double)z;
+
+  matrix[2] *= (double)x;
+  matrix[6] *= (double)y;
+  matrix[10] *= (double)z;
+
+  matrix[3] *= (double)x;
+  matrix[7] *= (double)y;
+  matrix[11] *= (double)z;
+  glUpdateMatrix();
+}
+
+void glScaledv(const GLdouble *v) {
+  glScaled(v[0],v[1],v[2]);
 }
 
 void glScissor(GLint x, GLint y, GLsizei width, GLsizei height) {
@@ -1969,6 +2142,20 @@ void glTranslatef(GLfloat x, GLfloat y, GLfloat z) {
   glUpdateMatrix();
 }
 
+void glTranslatefv(const GLfloat *v) {
+  glTranslatef(v[0],v[1],v[2]);
+}
+
+void glTranslated(GLdouble x, GLdouble y, GLdouble z) {
+  double *matrix = glContext.matrixForMode[glContext.matrixModeNr];
+  glhTranslate(matrix,x,y,z);
+  glUpdateMatrix();
+}
+
+void glTranslatedv(const GLdouble *v) {
+  glTranslated(v[0],v[1],v[2]);
+}
+
 void glVertex2f (GLfloat x, GLfloat y) {
   glContext.vertexX = x;
   glContext.vertexY = y;
@@ -2116,6 +2303,38 @@ void glTexCoord4d(GLdouble x, GLdouble y, GLdouble z, GLdouble w) {
   glContext.textureW = w;
 }
 
+void glTexCoord1dv(const GLdouble *v) {
+  glTexCoord1d(v[0]);
+}
+
+void glTexCoord1fv(const GLfloat *v) {
+  glTexCoord1f(v[0]);
+}
+
+void glTexCoord2dv(const GLdouble *v) {
+  glTexCoord2d(v[0],v[1]);
+}
+
+void glTexCoord2fv(const GLfloat *v) {
+  glTexCoord2f(v[0],v[1]);
+}
+
+void glTexCoord3dv(const GLdouble *v) {
+  glTexCoord3d(v[0],v[1],v[2]);
+}
+
+void glTexCoord3fv(const GLfloat *v) {
+  glTexCoord3f(v[0],v[1],v[2]);
+}
+
+void glTexCoord4dv(const GLdouble *v) {
+  glTexCoord4d(v[0],v[1],v[2],v[3]);
+}
+
+void glTexCoord4fv(const GLfloat *v) {
+  glTexCoord4f(v[0],v[1],v[2],v[3]);
+}
+
 void glPushAttrib(GLbitfield mask) {
   // mask not supported and behaves different than glPushAttrib + only small Stack Depth, yet
   glContext.pushAttribBitsHere = mask; // maybe evaluate at glPopAttrib later
@@ -2128,12 +2347,6 @@ void glPopAttrib() {
   glAttribStackPos--;
   memcpy(&glContext,&glAttribStack[glAttribStackPos], sizeof(_GLContext));
   glUpdateMatrix();
-}
-
-void glFogf(GLenum pname, GLfloat param) {
-}
-
-void glFogfv(GLenum pname, GLfloat *params) {
 }
 
 void glTexParameterfv (GLenum target, GLenum pname, GLfloat *param) {
@@ -3446,6 +3659,10 @@ __inline unsigned int doBlend(unsigned int dest, unsigned int source, int source
   return Sr|(Sg<<8)|(Sb<<16)|(Sa<<24);
 }
 
+__inline double __clamp__(double v, double a, double b) {
+  return v<a?a:(v>b?b:v);
+}
+
 #define __CLIP_FAR_PLANE__ if (v0->sz>1.0&&v1->sz>1.0&&v2->sz>1.0) return;
 
 void glDrawTrianglePrecise(_GLContext *context,glVertex *v0,glVertex *v1,glVertex *v2) {
@@ -3677,9 +3894,80 @@ void glDrawTrianglePrecise(_GLContext *context,glVertex *v0,glVertex *v1,glVerte
   double sg2 = v2->additionalSpecularColorGreen;
   double sb2 = v2->additionalSpecularColorBlue;
 
+
+  const bool fogging = context->isEnabled(GL_FOG);
+  double f0=0,f1=0,f2=0;
+  if (fogging) {
+    if (!context->separateSpecular) {
+      sr0 = 0;
+      sg0 = 0;
+      sb0 = 0;
+      sr1 = 0;
+      sg1 = 0;
+      sb1 = 0;
+      sr2 = 0;
+      sg2 = 0;
+      sb2 = 0;
+    }
+    double *cm = glContext.matrixForMode[GL_MODELVIEW & 1]; // for eyespace z
+    double fz0 = v0->vertexX * cm[0*4+2] + v0->vertexY * cm[1*4+2] + v0->vertexZ * cm[2*4+2] + v0->vertexW * cm[3*4+2];
+    double fw0 = v0->vertexX * cm[0*4+3] + v0->vertexY * cm[1*4+3] + v0->vertexZ * cm[2*4+3] + v0->vertexW * cm[3*4+3];
+    double fz1 = v1->vertexX * cm[0*4+2] + v1->vertexY * cm[1*4+2] + v1->vertexZ * cm[2*4+2] + v1->vertexW * cm[3*4+2];
+    double fw1 = v1->vertexX * cm[0*4+3] + v1->vertexY * cm[1*4+3] + v1->vertexZ * cm[2*4+3] + v1->vertexW * cm[3*4+3];
+    double fz2 = v2->vertexX * cm[0*4+2] + v2->vertexY * cm[1*4+2] + v2->vertexZ * cm[2*4+2] + v2->vertexW * cm[3*4+2];
+    double fw2 = v2->vertexX * cm[0*4+3] + v2->vertexY * cm[1*4+3] + v2->vertexZ * cm[2*4+3] + v2->vertexW * cm[3*4+3];
+    if (fw0!=0.0) fz0/=fw0;
+    if (fw1!=0.0) fz1/=fw1;
+    if (fw2!=0.0) fz2/=fw2;
+    fz0 = fabs(fz0);
+    fz1 = fabs(fz1);
+    fz2 = fabs(fz2);
+    if (context->fogMode==GL_LINEAR) {
+      double fogLength = context->fogEnd-context->fogStart;
+      if (fogLength!=0.0) {
+        f0 = (context->fogEnd-fz0)/fogLength;
+        f1 = (context->fogEnd-fz1)/fogLength;
+        f2 = (context->fogEnd-fz2)/fogLength;
+      }
+    }
+    if (context->fogMode==GL_EXP) {
+      f0 = exp(-context->fogDensity*fz0);
+      f1 = exp(-context->fogDensity*fz1);
+      f2 = exp(-context->fogDensity*fz2);
+    }
+    if (context->fogMode==GL_EXP2) {
+      f0 = context->fogDensity*fz0;
+      f1 = context->fogDensity*fz1;
+      f2 = context->fogDensity*fz2;
+      f0 = exp(-f0*f0);
+      f1 = exp(-f1*f1);
+      f2 = exp(-f2*f2);
+    }
+    f0 = 1.0-__clamp__(f0,0.0,1.0);
+    f1 =  1.0-__clamp__(f1,0.0,1.0);
+    f2 = 1.0-__clamp__(f2,0.0,1.0);
+    sr0 = sr0*(1-f0)+context->fogColor[0]*f0;
+    sg0 = sg0*(1-f0)+context->fogColor[1]*f0;
+    sb0 = sb0*(1-f0)+context->fogColor[2]*f0;
+    sr1 = sr1*(1-f1)+context->fogColor[0]*f1;
+    sg1 = sg1*(1-f1)+context->fogColor[1]*f1;
+    sb1 = sb1*(1-f1)+context->fogColor[2]*f1;
+    sr2 = sr2*(1-f2)+context->fogColor[0]*f2;
+    sg2 = sg2*(1-f2)+context->fogColor[1]*f2;
+    sb2 = sb2*(1-f2)+context->fogColor[2]*f2;
+    f0 = 1 - f0;
+    f1 = 1 - f1;
+    f2 = 1 - f2;
+    if (f0<1.0/256.0&&f1<1.0/256.0&&f2<1.0/256.0) {textured = false; interpolateColor = false;}
+    f0 *= v0w; // fadeout colors by this
+    f1 *= v1w;
+    f2 *= v2w;
+  }
+
+
   int srf,sgf,sbf;
 
-  const bool separateSpecular = context->separateSpecular;
+  const bool separateSpecular = context->separateSpecular||fogging;
   bool interpolateSpecular = true;
   if (separateSpecular) {
     if (sr0 < 0) sr0 = 0;
@@ -3859,6 +4147,12 @@ void glDrawTrianglePrecise(_GLContext *context,glVertex *v0,glVertex *v1,glVerte
           }
                
           if (separateSpecular) {
+            if (fogging) {
+              const double f = (__BARY0__(f0)+__BARY1__(f1)+__BARY2__(f2))*iw;
+              r *= f;
+              g *= f;
+              b *= f;
+            }
             if (interpolateSpecular) {
               r += (__BARY0__(sr0)+__BARY1__(sr1)+__BARY2__(sr2))*iw;
               g += (__BARY0__(sg0)+__BARY1__(sg1)+__BARY2__(sg2))*iw;
@@ -4100,7 +4394,7 @@ short DPMI_int386x(int intno, RMREGS *in, RMREGS *out, RMSREGS *sregs) {
   out->cflag = rmregs.flags & 0x01;
   return out->ax;
 }
-VBE_initRMBuf() {
+void VBE_initRMBuf() {
   if (!VESABUF_sel) {
     DPMI_allocRealSeg(VESABUF_len,&VESABUF_sel,&VESABUF_rseg);
     atexit(ExitVBEBuf);
@@ -4200,7 +4494,6 @@ void *glVesaPointer(const void *d) {
 // --------------------------------------
 void glSetupMouse();
 double glStartClock;
-
 GLboolean glVesa(int xRes,int yRes, int bPP) {
   glGraphicsModeToRestore = getBiosGraphicsMode();
   glVbeInfoBlock vbeInfo;

@@ -1,1 +1,1 @@
-copy r:\main.exe game2.exe
+copy r:\main.exe _sprite.exe
