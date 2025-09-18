@@ -1,0 +1,1 @@
+copy r:\main.exe game2.exe

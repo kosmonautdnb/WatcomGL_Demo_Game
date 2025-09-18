@@ -126,7 +126,7 @@ void paintLevel1Fast(double yPos) {
       for (int j = 0; j < 10; ++j) {
         int y = (int)floor(starY[i]+j*starSpeed[i]*0.25*k)-30;
         if (y < 0 || y >= glFrameBufferHeight) continue;
-        int &rgba = glFrameBuffer[x+y*glFrameBufferWidth];
+        unsigned int &rgba = glFrameBuffer[x+y*glFrameBufferWidth];
         r = rgba & 255;
         g = (rgba>>8) & 255;
         b = (rgba>>16) & 255;
@@ -167,7 +167,7 @@ void paintLevel2Fast(double yPos) {
       for (int j = 0; j < 10; ++j) {
         int y = (int)floor(starY[i]+j*starSpeed[i]*0.25*k)-30;
         if (y < 0 || y >= glFrameBufferHeight) continue;
-        int &rgba = glFrameBuffer[x+y*glFrameBufferWidth];
+        unsigned int &rgba = glFrameBuffer[x+y*glFrameBufferWidth];
         r = rgba & 255;
         g = (rgba>>8) & 255;
         b = (rgba>>16) & 255;
@@ -189,7 +189,7 @@ void paintLevel2Fast(double yPos) {
 float _bg_col_r=0;
 float _bg_col_g=0;
 float _bg_col_b=0;
-__inline glColor3f2(float r, float g, float b) {
+__inline void glColor3f2(float r, float g, float b) {
   glColor3f(r,g,b);
   _bg_col_r = r;
   _bg_col_g = g;

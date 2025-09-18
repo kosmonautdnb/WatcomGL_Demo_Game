@@ -81,7 +81,7 @@ public:
 
 class GO_Callback {
 public:
-  GO_Callback1() {
+  GO_Callback() {
   }
   virtual ~GO_Callback() {
   }
@@ -90,7 +90,7 @@ public:
 
 class GO_IdleCallback {
 public:
-  GO_IdleCallback1() {
+  GO_IdleCallback() {
   }
   virtual ~GO_IdleCallback() {
   }

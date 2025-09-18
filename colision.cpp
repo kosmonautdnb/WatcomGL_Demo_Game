@@ -1,5 +1,4 @@
 #include "colision.hpp"
-#include "util.hpp"
 
 Capsule capsule[MAX_CAPSULES];
 
@@ -9,7 +8,7 @@ Vector ClosestPointOnLineSegment(const Vector &A, const Vector &B, const Vector 
   double k = dot(AB,AB);
   if (k == 0) k = 1;
   double t = dot(Point-A,AB) / k;
-  return A + saturate(t) * AB;
+  return A + saturated(t) * AB;
 }
 
 Vector collisionCenter;

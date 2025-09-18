@@ -10,6 +10,10 @@ public:
 
   Matrix() {
     for (int32_t i = 0; i < 16; i++) m[i]=0.0;
+    m[0+0*4]=1.0;
+    m[1+1*4]=1.0;
+    m[2+2*4]=1.0;
+    m[3+3*4]=1.0;
   }
 
   virtual ~Matrix() {
@@ -58,8 +62,14 @@ public:
   Matrix &operator *=(const Matrix &a);
   Matrix &operator /=(const Matrix &a);
 
+  Matrix rotationMatrix3x3();
+
   bool invert();
   void normalize3x3();
+  void translate(const Vector &v);
+  void translateTransposed(const Vector &v);
+  void scale3(const Vector &v);
+  void scale3Transposed(const Vector &v);
 };
 
 Matrix rotationMatrixX(double a);
@@ -69,6 +79,7 @@ Matrix rotationMatrixAngleAxis(double a, double x, double y, double z);
 Matrix rotationMatrixAngleAxis(double a, const Vector &b);
 
 Matrix inverse(const Matrix &a);
+Matrix transpose(const Matrix &a);
 
 Vector transform(const Vector &a, const Matrix &b);
 Vector transformTransposed(const Vector &a, const Matrix &b);

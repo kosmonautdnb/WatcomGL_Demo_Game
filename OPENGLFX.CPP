@@ -132,8 +132,8 @@ float toonBaseLevel = 0.f;
 int toonColorCount = 4;
 bool toonLuminances = true;
 bool toonOutline = true;
-bool toonTwoPixelOutlineX = true;
-bool toonTwoPixelOutlineY = true;
+bool toonTwoPixelOutlineX = false;
+bool toonTwoPixelOutlineY = false;
 unsigned int toonOutlineColor = 0xff000000;
 static unsigned int toonColorsTest[4]={
   0xff000000,
@@ -143,8 +143,10 @@ static unsigned int toonColorsTest[4]={
 };
 unsigned int *toonColors = toonColorsTest;
 float nonToonAlpha = 2.f;
+bool toonUseDepthBuffer = true;
+bool toonDepthInvert = false;
 
-void toonShader(unsigned int *buffer, int width, int height) {
+void toonShader(unsigned int *buffer, float *depth, int width, int height) {
   unsigned int *dest = buffer;
   const int toToonColorNr = (100*100*255/toonColorCount);
   const int toonAdd2 = (int)floor(toonBaseLevel*100)*(100*255);
@@ -161,12 +163,30 @@ void toonShader(unsigned int *buffer, int width, int height) {
       int g = (rgba>>8) & 255;
       int b = (rgba>>16) & 255;
       int a = (rgba>>24) & 255;
-      bool outlineHere =  (a != lastA)||(a != lastSpanA[x]);
+      bool outlineHere =  (a != lastA)||(a != lastSpanA[x]); // actually it needs to be something like a<lastA or a>nextA
       if (outlineHere && toonOutline) {
-        const unsigned int t2 = (toonOutlineColor & 0x00ffffff)|(a<<24);
-        *dest = t2;
-        if (toonTwoPixelOutlineX && x>0) *(dest-1) = t2;
-        if (toonTwoPixelOutlineY && y>0) *(dest-width) = t2;
+        unsigned int *dest2 = dest;
+        bool v1 = a > lastA;
+        bool v2 = a > lastSpanA[x];
+        if(!((v1^toonDepthInvert)&&(v2^toonDepthInvert))) { // correction for each "other side"
+          if (x>0&&(v1^toonDepthInvert))dest2--;
+          if (y>0&&(v2^toonDepthInvert))dest2-=width;
+        }
+        if (toonUseDepthBuffer && outlineHere) {
+          float fa = depth[x+y*width];
+          float fLastA = x>0?depth[x-1+y*width]:depth[x+y*width];
+          float fLastSpanA = y>0?depth[x+(y-1)*width]:depth[x+y*width];
+          bool d1 = fa > fLastA;
+          bool d2 = fa > fLastSpanA;
+          if (a!=lastA&&(v1^d1^toonDepthInvert)) outlineHere = false;
+          if (a!=lastSpanA[x]&&(v2^d2^toonDepthInvert)) outlineHere = false;
+        }
+        if (outlineHere) {
+          const unsigned int t2 = (toonOutlineColor & 0x00ffffff)|(a<<24);
+          *dest2 = t2;
+          if (toonTwoPixelOutlineX && x>0) *(dest2-1) = t2;
+          if (toonTwoPixelOutlineY && y>0) *(dest2-width) = t2;
+        }
       } else if (toonLuminances && (a != nonToonAlpha2)) {
         int luminance = r*25+g*60+b*15; // 0..100 (100*255)
         int colorNumber = (luminance*toonLuminance2+toonAdd2)/toToonColorNr;
@@ -365,7 +385,7 @@ void doSkySphere(unsigned int texture_, float *zBuffer, unsigned int *frameBuffe
       if (*zBuffer >= _sky_z_value) {
         int tx2 = (((nextTextureX-lastTextureX)*k)>>16)+lastTextureX;
         int ty2 = (((nextTextureY-lastTextureY)*k)>>16)+lastTextureY;
-        *frameBuffer = texture[tx2+ty2*textureWidth];
+        *frameBuffer = texture[tx2+ty2*textureWidth]|0xff000000;
       }
       k += kAdd;
       frameBuffer++;
@@ -550,7 +570,7 @@ void doSkyPlane(unsigned int texture_, float *zBuffer, unsigned int *frameBuffer
         g += ((((k_0 & 0x0000ff00)-g)*a_0)>>8);
         g &= 0x0000ff00;
         g += ((((k_1 & 0x0000ff00)-g)*a_1)>>8) & 0x0000ff00;
-        *frameBuffer = rb|g;
+        *frameBuffer = rb|g|0xff000000;
       }
       k += kAdd;
       frameBuffer++;
