@@ -1,12 +1,15 @@
-//-------------------------
-// OpenGL emulation for WatcomC/Dos. 
-//--------------
-// Just the most basic functionality. And some glu.
-// Of course with texturing/blending and alphatest etc.. 
-// It is required that Vesa 3.0 e.g. 640x480x32 works on your device.
+// --
+// WatcomGL
+// OpenGL like software rendering for WatcomC++/Dos.
+// --
+// License: MIT License
+// Github: https://github.com/kosmonautdnb/WatcomGL
 // by Stefan Mader in 2025
-//-------------------------
-// Issues: In very rare cases (on 3d x or y==0) polygons may have seams
+// --
+// Issues:
+// - In ultra rare cases polygons may have seams.
+// - Better take public domain PModeW for 256MB of memory.
+// --
 #include "gl.h"
 #include <string.h>
 #include <math.h>
@@ -1840,7 +1843,7 @@ void glReadPixels (GLint x, GLint y, GLsizei width, GLsizei height, GLenum forma
   }
 }
 
-void glhRotate(GLdouble *matrix, GLfloat angleInRadians, GLfloat x, GLfloat y, GLfloat z) {
+void glRotate(GLdouble *matrix, GLfloat angleInRadians, GLfloat x, GLfloat y, GLfloat z) {
   double m[16], rotate[16];
   double OneMinusCosAngle, CosAngle, SinAngle;
   double A_OneMinusCosAngle, C_OneMinusCosAngle;
@@ -1890,7 +1893,7 @@ void glRotatef(GLfloat angle, GLfloat x, GLfloat y, GLfloat z) {
     y/=l;
     z/=l;
   }
-  glhRotate(matrix,angle*2.0*PI/360.0,x,y,z);
+  glRotate(matrix,angle*2.0*PI/360.0,x,y,z);
   glUpdateMatrix();
 }
 
@@ -2129,7 +2132,7 @@ void glTexSubImage2D (GLenum target, GLint level, GLint xoffset, GLint yoffset, 
 }
 
 
-void glhTranslate(GLdouble *matrix, GLfloat x, GLfloat y, GLfloat z) {
+void glTranslate(GLdouble *matrix, GLfloat x, GLfloat y, GLfloat z) {
   matrix[12]=matrix[0]*(double)x+matrix[4]*(double)y+matrix[8]*(double)z+matrix[12];
   matrix[13]=matrix[1]*(double)x+matrix[5]*(double)y+matrix[9]*(double)z+matrix[13];
   matrix[14]=matrix[2]*(double)x+matrix[6]*(double)y+matrix[10]*(double)z+matrix[14];
@@ -2138,7 +2141,7 @@ void glhTranslate(GLdouble *matrix, GLfloat x, GLfloat y, GLfloat z) {
 
 void glTranslatef(GLfloat x, GLfloat y, GLfloat z) {
   double *matrix = glContext.matrixForMode[glContext.matrixModeNr];
-  glhTranslate(matrix,x,y,z);
+  glTranslate(matrix,x,y,z);
   glUpdateMatrix();
 }
 
@@ -2148,7 +2151,7 @@ void glTranslatefv(const GLfloat *v) {
 
 void glTranslated(GLdouble x, GLdouble y, GLdouble z) {
   double *matrix = glContext.matrixForMode[glContext.matrixModeNr];
-  glhTranslate(matrix,x,y,z);
+  glTranslate(matrix,x,y,z);
   glUpdateMatrix();
 }
 
@@ -2363,14 +2366,14 @@ void glTexParameterfv (GLenum target, GLenum pname, GLfloat *param) {
   }
 }
 
-GLAPI void APIENTRY glBlendColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha) {
+void glBlendColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha) {
   glContext.blendColorRed = red;
   glContext.blendColorGreen = green;
   glContext.blendColorBlue = blue;
   glContext.blendColorAlpha = alpha;
 }
 
-GLAPI void APIENTRY glBlendEquation(GLenum mode) {
+void glBlendEquation(GLenum mode) {
   glContext.blendEquation = mode;
 }
 
@@ -2433,7 +2436,7 @@ void ComputeNormalOfPlane(double *normal, double *pvector1, double *pvector2) {
   normal[2]=(pvector1[0]*pvector2[1])-(pvector1[1]*pvector2[0]);
 }
 
-void glhFrustum(double *matrix, double left, double right, double bottom, double top, double znear, double zfar) {
+void glFrustum(double *matrix, double left, double right, double bottom, double top, double znear, double zfar) {
   double matrix2[16],temp, temp2, temp3, temp4;
   temp = 2.0 * znear;
   temp2 = right - left;
@@ -2458,15 +2461,15 @@ void glhFrustum(double *matrix, double left, double right, double bottom, double
   MultiplyMatrices4by4OpenGL_DOUBLE(matrix, matrix, matrix2);
 }
 
-void glhPerspective(double *matrix, double fovyInDegrees, double aspectRatio, double znear, double zfar) {
+void glPerspective(double *matrix, double fovyInDegrees, double aspectRatio, double znear, double zfar) {
   double ymax, xmax;
   double temp, temp2, temp3, temp4;
   ymax = znear * tan(fovyInDegrees*PI/360.f);
   xmax = ymax * aspectRatio;
-  glhFrustum(matrix,-xmax,xmax,-ymax,ymax,znear,zfar);
+  glFrustum(matrix,-xmax,xmax,-ymax,ymax,znear,zfar);
 }
 
-void glhLookAt(double *matrix, double *eyePosition3D, double *center3D, double *upVector3D) {
+void glLookAt(double *matrix, double *eyePosition3D, double *center3D, double *upVector3D) {
   double forward[3], side[3], up[3];
   double matrix2[16], resultMatrix[16];
   forward[0] = center3D[0]-eyePosition3D[0];
@@ -2491,355 +2494,248 @@ void glhLookAt(double *matrix, double *eyePosition3D, double *center3D, double *
   matrix2[3] = matrix2[7] = matrix2[11] = 0.0;
   matrix2[15] = 1.0;
   glMatMul(matrix, matrix2, resultMatrix);
-  glhTranslate(resultMatrix,-eyePosition3D[0],-eyePosition3D[1],-eyePosition3D[2]);
+  glTranslate(resultMatrix,-eyePosition3D[0],-eyePosition3D[1],-eyePosition3D[2]);
   memcpy(matrix,resultMatrix,16*sizeof(double));
 }
 
 #define SWAP_ROWS_DOUBLE(a, b) { double *_tmp = a; (a)=(b); (b)=_tmp; }
 #define SWAP_ROWS_FLOAT(a, b) { float *_tmp = a; (a)=(b); (b)=_tmp; }
 #define MAT(m,r,c) (m)[(c)*4+(r)]
+#define FABSF fabs
 
-int glhInvertMatrixf(const float *m, float *out)
+int glInvertMatrixf(const float *m, float *out)
 {
+   //https://archive.mesa3d.org/older-versions/9.x/9.0/
+   //MesaLib-9.0.zip/Mesa-9.0\src\mesa\math\m_matrix.c
    float wtmp[4][8];
    float m0, m1, m2, m3, s;
    float *r0, *r1, *r2, *r3;
 
    r0 = wtmp[0], r1 = wtmp[1], r2 = wtmp[2], r3 = wtmp[3];
 
-   r0[0] = MAT(m, 0, 0), r0[1] = MAT(m, 0, 1),
-      r0[2] = MAT(m, 0, 2), r0[3] = MAT(m, 0, 3),
-      r0[4] = 1.0, r0[5] = r0[6] = r0[7] = 0.0,
-      r1[0] = MAT(m, 1, 0), r1[1] = MAT(m, 1, 1),
-      r1[2] = MAT(m, 1, 2), r1[3] = MAT(m, 1, 3),
-      r1[5] = 1.0, r1[4] = r1[6] = r1[7] = 0.0,
-      r2[0] = MAT(m, 2, 0), r2[1] = MAT(m, 2, 1),
-      r2[2] = MAT(m, 2, 2), r2[3] = MAT(m, 2, 3),
-      r2[6] = 1.0, r2[4] = r2[5] = r2[7] = 0.0,
-      r3[0] = MAT(m, 3, 0), r3[1] = MAT(m, 3, 1),
-      r3[2] = MAT(m, 3, 2), r3[3] = MAT(m, 3, 3),
-      r3[7] = 1.0, r3[4] = r3[5] = r3[6] = 0.0;
+   r0[0] = MAT(m,0,0), r0[1] = MAT(m,0,1),
+   r0[2] = MAT(m,0,2), r0[3] = MAT(m,0,3),
+   r0[4] = 1.0, r0[5] = r0[6] = r0[7] = 0.0,
+
+   r1[0] = MAT(m,1,0), r1[1] = MAT(m,1,1),
+   r1[2] = MAT(m,1,2), r1[3] = MAT(m,1,3),
+   r1[5] = 1.0, r1[4] = r1[6] = r1[7] = 0.0,
+
+   r2[0] = MAT(m,2,0), r2[1] = MAT(m,2,1),
+   r2[2] = MAT(m,2,2), r2[3] = MAT(m,2,3),
+   r2[6] = 1.0, r2[4] = r2[5] = r2[7] = 0.0,
+
+   r3[0] = MAT(m,3,0), r3[1] = MAT(m,3,1),
+   r3[2] = MAT(m,3,2), r3[3] = MAT(m,3,3),
+   r3[7] = 1.0, r3[4] = r3[5] = r3[6] = 0.0;
 
    /* choose pivot - or die */
-   if (fabs(r3[0]) > fabs(r2[0]))
-      SWAP_ROWS_FLOAT(r3, r2);
-   if (fabs(r2[0]) > fabs(r1[0]))
-      SWAP_ROWS_FLOAT(r2, r1);
-   if (fabs(r1[0]) > fabs(r0[0]))
-      SWAP_ROWS_FLOAT(r1, r0);
-   if (0.0 == r0[0])
-      return 0;
+   if (FABSF(r3[0])>FABSF(r2[0])) SWAP_ROWS_FLOAT(r3, r2);
+   if (FABSF(r2[0])>FABSF(r1[0])) SWAP_ROWS_FLOAT(r2, r1);
+   if (FABSF(r1[0])>FABSF(r0[0])) SWAP_ROWS_FLOAT(r1, r0);
+   if (0.0 == r0[0])  return GL_FALSE;
 
    /* eliminate first variable     */
-   m1 = r1[0] / r0[0];
-   m2 = r2[0] / r0[0];
-   m3 = r3[0] / r0[0];
-   s = r0[1];
-   r1[1] -= m1 * s;
-   r2[1] -= m2 * s;
-   r3[1] -= m3 * s;
-   s = r0[2];
-   r1[2] -= m1 * s;
-   r2[2] -= m2 * s;
-   r3[2] -= m3 * s;
-   s = r0[3];
-   r1[3] -= m1 * s;
-   r2[3] -= m2 * s;
-   r3[3] -= m3 * s;
+   m1 = r1[0]/r0[0]; m2 = r2[0]/r0[0]; m3 = r3[0]/r0[0];
+   s = r0[1]; r1[1] -= m1 * s; r2[1] -= m2 * s; r3[1] -= m3 * s;
+   s = r0[2]; r1[2] -= m1 * s; r2[2] -= m2 * s; r3[2] -= m3 * s;
+   s = r0[3]; r1[3] -= m1 * s; r2[3] -= m2 * s; r3[3] -= m3 * s;
    s = r0[4];
-   if (s != 0.0) {
-      r1[4] -= m1 * s;
-      r2[4] -= m2 * s;
-      r3[4] -= m3 * s;
-   }
+   if (s != 0.0) { r1[4] -= m1 * s; r2[4] -= m2 * s; r3[4] -= m3 * s; }
    s = r0[5];
-   if (s != 0.0) {
-      r1[5] -= m1 * s;
-      r2[5] -= m2 * s;
-      r3[5] -= m3 * s;
-   }
+   if (s != 0.0) { r1[5] -= m1 * s; r2[5] -= m2 * s; r3[5] -= m3 * s; }
    s = r0[6];
-   if (s != 0.0) {
-      r1[6] -= m1 * s;
-      r2[6] -= m2 * s;
-      r3[6] -= m3 * s;
-   }
+   if (s != 0.0) { r1[6] -= m1 * s; r2[6] -= m2 * s; r3[6] -= m3 * s; }
    s = r0[7];
-   if (s != 0.0) {
-      r1[7] -= m1 * s;
-      r2[7] -= m2 * s;
-      r3[7] -= m3 * s;
-   }
+   if (s != 0.0) { r1[7] -= m1 * s; r2[7] -= m2 * s; r3[7] -= m3 * s; }
 
    /* choose pivot - or die */
-   if (fabs(r3[1]) > fabs(r2[1]))
-      SWAP_ROWS_FLOAT(r3, r2);
-   if (fabs(r2[1]) > fabs(r1[1]))
-      SWAP_ROWS_FLOAT(r2, r1);
-   if (0.0 == r1[1])
-      return 0;
+   if (FABSF(r3[1])>FABSF(r2[1])) SWAP_ROWS_FLOAT(r3, r2);
+   if (FABSF(r2[1])>FABSF(r1[1])) SWAP_ROWS_FLOAT(r2, r1);
+   if (0.0 == r1[1])  return GL_FALSE;
 
    /* eliminate second variable */
-   m2 = r2[1] / r1[1];
-   m3 = r3[1] / r1[1];
-   r2[2] -= m2 * r1[2];
-   r3[2] -= m3 * r1[2];
-   r2[3] -= m2 * r1[3];
-   r3[3] -= m3 * r1[3];
-   s = r1[4];
-   if (0.0 != s) {
-      r2[4] -= m2 * s;
-      r3[4] -= m3 * s;
-   }
-   s = r1[5];
-   if (0.0 != s) {
-      r2[5] -= m2 * s;
-      r3[5] -= m3 * s;
-   }
-   s = r1[6];
-   if (0.0 != s) {
-      r2[6] -= m2 * s;
-      r3[6] -= m3 * s;
-   }
-   s = r1[7];
-   if (0.0 != s) {
-      r2[7] -= m2 * s;
-      r3[7] -= m3 * s;
-   }
+   m2 = r2[1]/r1[1]; m3 = r3[1]/r1[1];
+   r2[2] -= m2 * r1[2]; r3[2] -= m3 * r1[2];
+   r2[3] -= m2 * r1[3]; r3[3] -= m3 * r1[3];
+   s = r1[4]; if (0.0 != s) { r2[4] -= m2 * s; r3[4] -= m3 * s; }
+   s = r1[5]; if (0.0 != s) { r2[5] -= m2 * s; r3[5] -= m3 * s; }
+   s = r1[6]; if (0.0 != s) { r2[6] -= m2 * s; r3[6] -= m3 * s; }
+   s = r1[7]; if (0.0 != s) { r2[7] -= m2 * s; r3[7] -= m3 * s; }
 
    /* choose pivot - or die */
-   if (fabs(r3[2]) > fabs(r2[2]))
-      SWAP_ROWS_FLOAT(r3, r2);
-   if (0.0 == r2[2])
-      return 0;
+   if (FABSF(r3[2])>FABSF(r2[2])) SWAP_ROWS_FLOAT(r3, r2);
+   if (0.0 == r2[2])  return GL_FALSE;
 
    /* eliminate third variable */
-   m3 = r3[2] / r2[2];
+   m3 = r3[2]/r2[2];
    r3[3] -= m3 * r2[3], r3[4] -= m3 * r2[4],
-      r3[5] -= m3 * r2[5], r3[6] -= m3 * r2[6], r3[7] -= m3 * r2[7];
+   r3[5] -= m3 * r2[5], r3[6] -= m3 * r2[6],
+   r3[7] -= m3 * r2[7];
 
    /* last check */
-   if (0.0 == r3[3])
-      return 0;
+   if (0.0 == r3[3]) return GL_FALSE;
 
-   s = 1.0 / r3[3];		/* now back substitute row 3 */
-   r3[4] *= s;
-   r3[5] *= s;
-   r3[6] *= s;
-   r3[7] *= s;
+   s = 1.0F/r3[3];             /* now back substitute row 3 */
+   r3[4] *= s; r3[5] *= s; r3[6] *= s; r3[7] *= s;
 
-   m2 = r2[3];			/* now back substitute row 2 */
-   s = 1.0 / r2[2];
+   m2 = r2[3];                 /* now back substitute row 2 */
+   s  = 1.0F/r2[2];
    r2[4] = s * (r2[4] - r3[4] * m2), r2[5] = s * (r2[5] - r3[5] * m2),
-      r2[6] = s * (r2[6] - r3[6] * m2), r2[7] = s * (r2[7] - r3[7] * m2);
+   r2[6] = s * (r2[6] - r3[6] * m2), r2[7] = s * (r2[7] - r3[7] * m2);
    m1 = r1[3];
    r1[4] -= r3[4] * m1, r1[5] -= r3[5] * m1,
-      r1[6] -= r3[6] * m1, r1[7] -= r3[7] * m1;
+   r1[6] -= r3[6] * m1, r1[7] -= r3[7] * m1;
    m0 = r0[3];
    r0[4] -= r3[4] * m0, r0[5] -= r3[5] * m0,
-      r0[6] -= r3[6] * m0, r0[7] -= r3[7] * m0;
+   r0[6] -= r3[6] * m0, r0[7] -= r3[7] * m0;
 
-   m1 = r1[2];			/* now back substitute row 1 */
-   s = 1.0 / r1[1];
+   m1 = r1[2];                 /* now back substitute row 1 */
+   s  = 1.0F/r1[1];
    r1[4] = s * (r1[4] - r2[4] * m1), r1[5] = s * (r1[5] - r2[5] * m1),
-      r1[6] = s * (r1[6] - r2[6] * m1), r1[7] = s * (r1[7] - r2[7] * m1);
+   r1[6] = s * (r1[6] - r2[6] * m1), r1[7] = s * (r1[7] - r2[7] * m1);
    m0 = r0[2];
    r0[4] -= r2[4] * m0, r0[5] -= r2[5] * m0,
-      r0[6] -= r2[6] * m0, r0[7] -= r2[7] * m0;
+   r0[6] -= r2[6] * m0, r0[7] -= r2[7] * m0;
 
-   m0 = r0[1];			/* now back substitute row 0 */
-   s = 1.0 / r0[0];
+   m0 = r0[1];                 /* now back substitute row 0 */
+   s  = 1.0F/r0[0];
    r0[4] = s * (r0[4] - r1[4] * m0), r0[5] = s * (r0[5] - r1[5] * m0),
-      r0[6] = s * (r0[6] - r1[6] * m0), r0[7] = s * (r0[7] - r1[7] * m0);
+   r0[6] = s * (r0[6] - r1[6] * m0), r0[7] = s * (r0[7] - r1[7] * m0);
 
-   MAT(out, 0, 0) = r0[4];
-   MAT(out, 0, 1) = r0[5], MAT(out, 0, 2) = r0[6];
-   MAT(out, 0, 3) = r0[7], MAT(out, 1, 0) = r1[4];
-   MAT(out, 1, 1) = r1[5], MAT(out, 1, 2) = r1[6];
-   MAT(out, 1, 3) = r1[7], MAT(out, 2, 0) = r2[4];
-   MAT(out, 2, 1) = r2[5], MAT(out, 2, 2) = r2[6];
-   MAT(out, 2, 3) = r2[7], MAT(out, 3, 0) = r3[4];
-   MAT(out, 3, 1) = r3[5], MAT(out, 3, 2) = r3[6];
-   MAT(out, 3, 3) = r3[7];
+   MAT(out,0,0) = r0[4]; MAT(out,0,1) = r0[5],
+   MAT(out,0,2) = r0[6]; MAT(out,0,3) = r0[7],
+   MAT(out,1,0) = r1[4]; MAT(out,1,1) = r1[5],
+   MAT(out,1,2) = r1[6]; MAT(out,1,3) = r1[7],
+   MAT(out,2,0) = r2[4]; MAT(out,2,1) = r2[5],
+   MAT(out,2,2) = r2[6]; MAT(out,2,3) = r2[7],
+   MAT(out,3,0) = r3[4]; MAT(out,3,1) = r3[5],
+   MAT(out,3,2) = r3[6]; MAT(out,3,3) = r3[7];
 
-   return 1;
+   return GL_TRUE;
 }
 
-int glhInvertMatrix(const double *m, double *out)
+int glInvertMatrix(const double *m, double *out)
 {
+   //https://archive.mesa3d.org/older-versions/9.x/9.0/
+   //MesaLib-9.0.zip/Mesa-9.0\src\mesa\math\m_matrix.c
    double wtmp[4][8];
    double m0, m1, m2, m3, s;
    double *r0, *r1, *r2, *r3;
 
    r0 = wtmp[0], r1 = wtmp[1], r2 = wtmp[2], r3 = wtmp[3];
 
-   r0[0] = MAT(m, 0, 0), r0[1] = MAT(m, 0, 1),
-      r0[2] = MAT(m, 0, 2), r0[3] = MAT(m, 0, 3),
-      r0[4] = 1.0, r0[5] = r0[6] = r0[7] = 0.0,
-      r1[0] = MAT(m, 1, 0), r1[1] = MAT(m, 1, 1),
-      r1[2] = MAT(m, 1, 2), r1[3] = MAT(m, 1, 3),
-      r1[5] = 1.0, r1[4] = r1[6] = r1[7] = 0.0,
-      r2[0] = MAT(m, 2, 0), r2[1] = MAT(m, 2, 1),
-      r2[2] = MAT(m, 2, 2), r2[3] = MAT(m, 2, 3),
-      r2[6] = 1.0, r2[4] = r2[5] = r2[7] = 0.0,
-      r3[0] = MAT(m, 3, 0), r3[1] = MAT(m, 3, 1),
-      r3[2] = MAT(m, 3, 2), r3[3] = MAT(m, 3, 3),
-      r3[7] = 1.0, r3[4] = r3[5] = r3[6] = 0.0;
+   r0[0] = MAT(m,0,0), r0[1] = MAT(m,0,1),
+   r0[2] = MAT(m,0,2), r0[3] = MAT(m,0,3),
+   r0[4] = 1.0, r0[5] = r0[6] = r0[7] = 0.0,
+
+   r1[0] = MAT(m,1,0), r1[1] = MAT(m,1,1),
+   r1[2] = MAT(m,1,2), r1[3] = MAT(m,1,3),
+   r1[5] = 1.0, r1[4] = r1[6] = r1[7] = 0.0,
+
+   r2[0] = MAT(m,2,0), r2[1] = MAT(m,2,1),
+   r2[2] = MAT(m,2,2), r2[3] = MAT(m,2,3),
+   r2[6] = 1.0, r2[4] = r2[5] = r2[7] = 0.0,
+
+   r3[0] = MAT(m,3,0), r3[1] = MAT(m,3,1),
+   r3[2] = MAT(m,3,2), r3[3] = MAT(m,3,3),
+   r3[7] = 1.0, r3[4] = r3[5] = r3[6] = 0.0;
 
    /* choose pivot - or die */
-   if (fabs(r3[0]) > fabs(r2[0]))
-      SWAP_ROWS_DOUBLE(r3, r2);
-   if (fabs(r2[0]) > fabs(r1[0]))
-      SWAP_ROWS_DOUBLE(r2, r1);
-   if (fabs(r1[0]) > fabs(r0[0]))
-      SWAP_ROWS_DOUBLE(r1, r0);
-   if (0.0 == r0[0])
-      return 0;
+   if (FABSF(r3[0])>FABSF(r2[0])) SWAP_ROWS_DOUBLE(r3, r2);
+   if (FABSF(r2[0])>FABSF(r1[0])) SWAP_ROWS_DOUBLE(r2, r1);
+   if (FABSF(r1[0])>FABSF(r0[0])) SWAP_ROWS_DOUBLE(r1, r0);
+   if (0.0 == r0[0])  return GL_FALSE;
 
    /* eliminate first variable     */
-   m1 = r1[0] / r0[0];
-   m2 = r2[0] / r0[0];
-   m3 = r3[0] / r0[0];
-   s = r0[1];
-   r1[1] -= m1 * s;
-   r2[1] -= m2 * s;
-   r3[1] -= m3 * s;
-   s = r0[2];
-   r1[2] -= m1 * s;
-   r2[2] -= m2 * s;
-   r3[2] -= m3 * s;
-   s = r0[3];
-   r1[3] -= m1 * s;
-   r2[3] -= m2 * s;
-   r3[3] -= m3 * s;
+   m1 = r1[0]/r0[0]; m2 = r2[0]/r0[0]; m3 = r3[0]/r0[0];
+   s = r0[1]; r1[1] -= m1 * s; r2[1] -= m2 * s; r3[1] -= m3 * s;
+   s = r0[2]; r1[2] -= m1 * s; r2[2] -= m2 * s; r3[2] -= m3 * s;
+   s = r0[3]; r1[3] -= m1 * s; r2[3] -= m2 * s; r3[3] -= m3 * s;
    s = r0[4];
-   if (s != 0.0) {
-      r1[4] -= m1 * s;
-      r2[4] -= m2 * s;
-      r3[4] -= m3 * s;
-   }
+   if (s != 0.0) { r1[4] -= m1 * s; r2[4] -= m2 * s; r3[4] -= m3 * s; }
    s = r0[5];
-   if (s != 0.0) {
-      r1[5] -= m1 * s;
-      r2[5] -= m2 * s;
-      r3[5] -= m3 * s;
-   }
+   if (s != 0.0) { r1[5] -= m1 * s; r2[5] -= m2 * s; r3[5] -= m3 * s; }
    s = r0[6];
-   if (s != 0.0) {
-      r1[6] -= m1 * s;
-      r2[6] -= m2 * s;
-      r3[6] -= m3 * s;
-   }
+   if (s != 0.0) { r1[6] -= m1 * s; r2[6] -= m2 * s; r3[6] -= m3 * s; }
    s = r0[7];
-   if (s != 0.0) {
-      r1[7] -= m1 * s;
-      r2[7] -= m2 * s;
-      r3[7] -= m3 * s;
-   }
+   if (s != 0.0) { r1[7] -= m1 * s; r2[7] -= m2 * s; r3[7] -= m3 * s; }
 
    /* choose pivot - or die */
-   if (fabs(r3[1]) > fabs(r2[1]))
-      SWAP_ROWS_DOUBLE(r3, r2);
-   if (fabs(r2[1]) > fabs(r1[1]))
-      SWAP_ROWS_DOUBLE(r2, r1);
-   if (0.0 == r1[1])
-      return 0;
+   if (FABSF(r3[1])>FABSF(r2[1])) SWAP_ROWS_DOUBLE(r3, r2);
+   if (FABSF(r2[1])>FABSF(r1[1])) SWAP_ROWS_DOUBLE(r2, r1);
+   if (0.0 == r1[1])  return GL_FALSE;
 
    /* eliminate second variable */
-   m2 = r2[1] / r1[1];
-   m3 = r3[1] / r1[1];
-   r2[2] -= m2 * r1[2];
-   r3[2] -= m3 * r1[2];
-   r2[3] -= m2 * r1[3];
-   r3[3] -= m3 * r1[3];
-   s = r1[4];
-   if (0.0 != s) {
-      r2[4] -= m2 * s;
-      r3[4] -= m3 * s;
-   }
-   s = r1[5];
-   if (0.0 != s) {
-      r2[5] -= m2 * s;
-      r3[5] -= m3 * s;
-   }
-   s = r1[6];
-   if (0.0 != s) {
-      r2[6] -= m2 * s;
-      r3[6] -= m3 * s;
-   }
-   s = r1[7];
-   if (0.0 != s) {
-      r2[7] -= m2 * s;
-      r3[7] -= m3 * s;
-   }
+   m2 = r2[1]/r1[1]; m3 = r3[1]/r1[1];
+   r2[2] -= m2 * r1[2]; r3[2] -= m3 * r1[2];
+   r2[3] -= m2 * r1[3]; r3[3] -= m3 * r1[3];
+   s = r1[4]; if (0.0 != s) { r2[4] -= m2 * s; r3[4] -= m3 * s; }
+   s = r1[5]; if (0.0 != s) { r2[5] -= m2 * s; r3[5] -= m3 * s; }
+   s = r1[6]; if (0.0 != s) { r2[6] -= m2 * s; r3[6] -= m3 * s; }
+   s = r1[7]; if (0.0 != s) { r2[7] -= m2 * s; r3[7] -= m3 * s; }
 
    /* choose pivot - or die */
-   if (fabs(r3[2]) > fabs(r2[2]))
-      SWAP_ROWS_DOUBLE(r3, r2);
-   if (0.0 == r2[2])
-      return 0;
+   if (FABSF(r3[2])>FABSF(r2[2])) SWAP_ROWS_DOUBLE(r3, r2);
+   if (0.0 == r2[2])  return GL_FALSE;
 
    /* eliminate third variable */
-   m3 = r3[2] / r2[2];
+   m3 = r3[2]/r2[2];
    r3[3] -= m3 * r2[3], r3[4] -= m3 * r2[4],
-      r3[5] -= m3 * r2[5], r3[6] -= m3 * r2[6], r3[7] -= m3 * r2[7];
+   r3[5] -= m3 * r2[5], r3[6] -= m3 * r2[6],
+   r3[7] -= m3 * r2[7];
 
    /* last check */
-   if (0.0 == r3[3])
-      return 0;
+   if (0.0 == r3[3]) return GL_FALSE;
 
-   s = 1.0 / r3[3];		/* now back substitute row 3 */
-   r3[4] *= s;
-   r3[5] *= s;
-   r3[6] *= s;
-   r3[7] *= s;
+   s = 1.0F/r3[3];             /* now back substitute row 3 */
+   r3[4] *= s; r3[5] *= s; r3[6] *= s; r3[7] *= s;
 
-   m2 = r2[3];			/* now back substitute row 2 */
-   s = 1.0 / r2[2];
+   m2 = r2[3];                 /* now back substitute row 2 */
+   s  = 1.0F/r2[2];
    r2[4] = s * (r2[4] - r3[4] * m2), r2[5] = s * (r2[5] - r3[5] * m2),
-      r2[6] = s * (r2[6] - r3[6] * m2), r2[7] = s * (r2[7] - r3[7] * m2);
+   r2[6] = s * (r2[6] - r3[6] * m2), r2[7] = s * (r2[7] - r3[7] * m2);
    m1 = r1[3];
    r1[4] -= r3[4] * m1, r1[5] -= r3[5] * m1,
-      r1[6] -= r3[6] * m1, r1[7] -= r3[7] * m1;
+   r1[6] -= r3[6] * m1, r1[7] -= r3[7] * m1;
    m0 = r0[3];
    r0[4] -= r3[4] * m0, r0[5] -= r3[5] * m0,
-      r0[6] -= r3[6] * m0, r0[7] -= r3[7] * m0;
+   r0[6] -= r3[6] * m0, r0[7] -= r3[7] * m0;
 
-   m1 = r1[2];			/* now back substitute row 1 */
-   s = 1.0 / r1[1];
+   m1 = r1[2];                 /* now back substitute row 1 */
+   s  = 1.0F/r1[1];
    r1[4] = s * (r1[4] - r2[4] * m1), r1[5] = s * (r1[5] - r2[5] * m1),
-      r1[6] = s * (r1[6] - r2[6] * m1), r1[7] = s * (r1[7] - r2[7] * m1);
+   r1[6] = s * (r1[6] - r2[6] * m1), r1[7] = s * (r1[7] - r2[7] * m1);
    m0 = r0[2];
    r0[4] -= r2[4] * m0, r0[5] -= r2[5] * m0,
-      r0[6] -= r2[6] * m0, r0[7] -= r2[7] * m0;
+   r0[6] -= r2[6] * m0, r0[7] -= r2[7] * m0;
 
-   m0 = r0[1];			/* now back substitute row 0 */
-   s = 1.0 / r0[0];
+   m0 = r0[1];                 /* now back substitute row 0 */
+   s  = 1.0F/r0[0];
    r0[4] = s * (r0[4] - r1[4] * m0), r0[5] = s * (r0[5] - r1[5] * m0),
-      r0[6] = s * (r0[6] - r1[6] * m0), r0[7] = s * (r0[7] - r1[7] * m0);
+   r0[6] = s * (r0[6] - r1[6] * m0), r0[7] = s * (r0[7] - r1[7] * m0);
 
-   MAT(out, 0, 0) = r0[4];
-   MAT(out, 0, 1) = r0[5], MAT(out, 0, 2) = r0[6];
-   MAT(out, 0, 3) = r0[7], MAT(out, 1, 0) = r1[4];
-   MAT(out, 1, 1) = r1[5], MAT(out, 1, 2) = r1[6];
-   MAT(out, 1, 3) = r1[7], MAT(out, 2, 0) = r2[4];
-   MAT(out, 2, 1) = r2[5], MAT(out, 2, 2) = r2[6];
-   MAT(out, 2, 3) = r2[7], MAT(out, 3, 0) = r3[4];
-   MAT(out, 3, 1) = r3[5], MAT(out, 3, 2) = r3[6];
-   MAT(out, 3, 3) = r3[7];
+   MAT(out,0,0) = r0[4]; MAT(out,0,1) = r0[5],
+   MAT(out,0,2) = r0[6]; MAT(out,0,3) = r0[7],
+   MAT(out,1,0) = r1[4]; MAT(out,1,1) = r1[5],
+   MAT(out,1,2) = r1[6]; MAT(out,1,3) = r1[7],
+   MAT(out,2,0) = r2[4]; MAT(out,2,1) = r2[5],
+   MAT(out,2,2) = r2[6]; MAT(out,2,3) = r2[7],
+   MAT(out,3,0) = r3[4]; MAT(out,3,1) = r3[5],
+   MAT(out,3,2) = r3[6]; MAT(out,3,3) = r3[7];
 
-   return 1;
+   return GL_TRUE;
 }
 
 int gluInvertMatrixf(const float *m, float *dest) {
-  return glhInvertMatrixf(m,dest);
+  return glInvertMatrixf(m,dest);
 }
 
 int gluInvertMatrix(const double *m, double *dest) {
-  return glhInvertMatrix(m,dest);
+  return glInvertMatrix(m,dest);
 }
 
-int glhUnProjectf(float winx, float winy, float winz,
+int glUnProjectf(float winx, float winy, float winz,
      float *modelview, float *projection,
      int *viewport,
      float *objectCoordinate)
@@ -2852,7 +2748,7 @@ int glhUnProjectf(float winx, float winy, float winz,
   //and store in A[16]
   MultiplyMatrices4by4OpenGL_FLOAT(A, projection, modelview);
   //Now compute the inverse of matrix A
-  if(glhInvertMatrixf(A, m)==0)
+  if(glInvertMatrixf(A, m)==0)
     return 0;
   
   //Transformation of normalized coordinates between -1 and 1
@@ -2872,7 +2768,7 @@ int glhUnProjectf(float winx, float winy, float winz,
   return 1;
 }
 
-int glhUnProject(double winx, double winy, double winz,
+int glUnProject(double winx, double winy, double winz,
      double *modelview, double *projection,
      int *viewport,
      double *objectCoordinate)
@@ -2885,7 +2781,7 @@ int glhUnProject(double winx, double winy, double winz,
   //and store in A[16]
   MultiplyMatrices4by4OpenGL_DOUBLE(A, projection, modelview);
   //Now compute the inverse of matrix A
-  if(glhInvertMatrix(A, m)==0)
+  if(glInvertMatrix(A, m)==0)
     return 0;
   
   //Transformation of normalized coordinates between -1 and 1
@@ -2905,7 +2801,7 @@ int glhUnProject(double winx, double winy, double winz,
   return 1;
 }
 
-int glhProjectfx(float objx, float objy, float objz,
+int glProjectfx(float objx, float objy, float objz,
   float *modelview, float *projection,
   int *viewport,
   float *windowCoordinate) {
@@ -2931,7 +2827,7 @@ int glhProjectfx(float objx, float objy, float objz,
   return 1;
 }
 
-int glhProjectx(double objx, double objy, double objz,
+int glProjectx(double objx, double objy, double objz,
   double *modelview, double *projection,
   int *viewport,
   double *windowCoordinate) {
@@ -2957,7 +2853,7 @@ int glhProjectx(double objx, double objy, double objz,
   return 1;
 }
 
-int glhProjectf(float objx, float objy, float objz,
+int glProjectf(float objx, float objy, float objz,
   float *modelview, float *projection,
   int *viewport,
   float *windowCoordinate)
@@ -3018,7 +2914,7 @@ int glhProjectf(float objx, float objy, float objz,
   return 1;
 }
 
-int glhProject(double objx, double objy, double objz,
+int glProject(double objx, double objy, double objz,
  double *modelview, double *projection,
  int *viewport,
  double *windowCoordinate)
@@ -3135,7 +3031,7 @@ void glFrontFace(GLenum mode) {
 }
 
 void glFrustum(float left, float right, float bottom, float top, float znear, float zfar) {
-  glhFrustum(glContext.matrixForMode[glContext.matrixModeNr],left,right,bottom,top,znear,zfar);
+  glFrustum(glContext.matrixForMode[glContext.matrixModeNr],left,right,bottom,top,znear,zfar);
   glUpdateMatrix();
 }
 
@@ -3155,7 +3051,7 @@ void gluOrtho2D(float left, float right, float bottom, float top) {
 }
 
 void gluPerspective(GLfloat fov, GLfloat aspect, GLfloat nearPlane, GLfloat farPlane) {
-  glhPerspective(glContext.matrixForMode[glContext.matrixModeNr],fov,aspect,nearPlane,farPlane);
+  glPerspective(glContext.matrixForMode[glContext.matrixModeNr],fov,aspect,nearPlane,farPlane);
   glUpdateMatrix();
 }
 
@@ -3172,13 +3068,13 @@ void gluLookAt(GLfloat cx,GLfloat cy,GLfloat cz,GLfloat ox,GLfloat oy,GLfloat oz
   up[0] = ux;
   up[1] = uy;
   up[2] = uz;
-  glhLookAt(glContext.matrixForMode[glContext.matrixModeNr],eye,center,up);
+  glLookAt(glContext.matrixForMode[glContext.matrixModeNr],eye,center,up);
   glUpdateMatrix();
 }
 
 GLint gluProjectfx(GLfloat objX, GLfloat objY, GLfloat objZ, GLfloat *model, GLfloat *projection, GLint *view, GLfloat *winX, GLfloat *winY, GLfloat *winZ) {
   float d[3];
-  const GLint r = glhProjectfx(objX, objY, objZ, model, projection, view, d);
+  const GLint r = glProjectfx(objX, objY, objZ, model, projection, view, d);
   *winX = d[0]+glPixelCenterX; // actually you need the pixelCenter?
   *winY = d[1]-glPixelCenterY; // actually you need the pixelCenter?
   *winZ = d[2];
@@ -3187,7 +3083,7 @@ GLint gluProjectfx(GLfloat objX, GLfloat objY, GLfloat objZ, GLfloat *model, GLf
 
 GLint gluProjectf(GLfloat objX, GLfloat objY, GLfloat objZ, GLfloat *model, GLfloat *projection, GLint *view, GLfloat *winX, GLfloat *winY, GLfloat *winZ) {
   float d[3];
-  const GLint r = glhProjectf(objX, objY, objZ, model, projection, view, d);
+  const GLint r = glProjectf(objX, objY, objZ, model, projection, view, d);
   *winX = d[0]+glPixelCenterX; // actually you need the pixelCenter?
   *winY = d[1]-glPixelCenterY; // actually you need the pixelCenter?
   *winZ = d[2];
@@ -3198,7 +3094,7 @@ GLint gluUnProjectf(GLfloat winX, GLfloat winY, GLfloat winZ, GLfloat *model, GL
   float d[3];
   winX -= glPixelCenterX; // actually you need the pixelCenter?
   winY += glPixelCenterY; // actually you need the pixelCenter?
-  const GLint r = glhUnProjectf(winX, winY, winZ, model, projection, view, d);
+  const GLint r = glUnProjectf(winX, winY, winZ, model, projection, view, d);
   *objX = d[0];
   *objY = d[1];
   *objZ = d[2];
@@ -3207,7 +3103,7 @@ GLint gluUnProjectf(GLfloat winX, GLfloat winY, GLfloat winZ, GLfloat *model, GL
 
 GLint gluProjectx(GLdouble objX, GLdouble objY, GLdouble objZ, GLdouble *model, GLdouble *projection, GLint *view, GLdouble *winX, GLdouble *winY, GLdouble *winZ) {
   double d[3];
-  const GLint r = glhProjectx(objX, objY, objZ, model, projection, view, d);
+  const GLint r = glProjectx(objX, objY, objZ, model, projection, view, d);
   *winX = d[0]+glPixelCenterX; // actually you need the pixelCenter?
   *winY = d[1]-glPixelCenterY; // actually you need the pixelCenter?
   *winZ = d[2];
@@ -3216,7 +3112,7 @@ GLint gluProjectx(GLdouble objX, GLdouble objY, GLdouble objZ, GLdouble *model, 
 
 GLint gluProject(GLdouble objX, GLdouble objY, GLdouble objZ, GLdouble *model, GLdouble *projection, GLint *view, GLdouble *winX, GLdouble *winY, GLdouble *winZ) {
   double d[3];
-  const GLint r = glhProject(objX, objY, objZ, model, projection, view, d);
+  const GLint r = glProject(objX, objY, objZ, model, projection, view, d);
   *winX = d[0]+glPixelCenterX; // actually you need the pixelCenter?
   *winY = d[1]-glPixelCenterY; // actually you need the pixelCenter?
   *winZ = d[2];
@@ -3227,7 +3123,7 @@ GLint gluUnProject(GLdouble winX, GLdouble winY, GLdouble winZ, GLdouble *model,
   double d[3];
   winX -= glPixelCenterX; // actually you need the pixelCenter?
   winY += glPixelCenterY; // actually you need the pixelCenter?
-  const GLint r = glhUnProject(winX, winY, winZ, model, projection, view, d);
+  const GLint r = glUnProject(winX, winY, winZ, model, projection, view, d);
   *objX = d[0];
   *objY = d[1];
   *objZ = d[2];
@@ -4494,7 +4390,7 @@ void *glVesaPointer(const void *d) {
 // --------------------------------------
 void glSetupMouse();
 double glStartClock;
-GLboolean glVesa(int xRes,int yRes, int bPP) {
+bool glVesa(int xRes,int yRes, int bPP) {
   glGraphicsModeToRestore = getBiosGraphicsMode();
   glVbeInfoBlock vbeInfo;
   glVbeModeInfo modeInfo;
@@ -4604,7 +4500,7 @@ static void setVGABufferStart(unsigned int adr) {
 static bool hiColor = false;
 static bool otherFrame = false;
 unsigned char hiRedTab[256];
-GLboolean glVGA() {
+bool glVGA() {
   glGraphicsModeToRestore = getBiosGraphicsMode();
   setBiosGraphicsMode(0x13);
   setModeX();
@@ -4635,7 +4531,7 @@ GLboolean glVGA() {
   }
   return true;
 }
-GLboolean glDirect(GLuint *frameBuffer, GLfloat *depthBuffer, GLuint width, GLuint height) {
+bool glDirect(unsigned int *frameBuffer, float *depthBuffer, unsigned int width, unsigned int height) {
   glFrameBufferWidth = width;
   glFrameBufferHeight = height;
   glFrameBuffer = frameBuffer;
@@ -4711,7 +4607,7 @@ float glGetZoomY() {
   return glContext.zoomY;
 }
 
-void glExplicitAlpha(bool useExplicitAlpha, GLfloat alpha) {
+void glExplicitAlpha(bool useExplicitAlpha, float alpha) {
   glContext.explicitAlpha = alpha;
   glContext.useExplicitAlpha = useExplicitAlpha;
 }
@@ -4860,7 +4756,7 @@ void glTexturePointer(int width, int height, unsigned int *textureData) {
   t->height = height;
 }
 
-void glSetRenderTarget(GLuint *frameBufferOrNULL, GLfloat *depthBuffer, GLuint width, GLuint height) {
+void glSetRenderTarget(unsigned int *frameBufferOrNULL, float *depthBuffer, unsigned int width, unsigned int height) {
   if (frameBufferOrNULL == NULL) {
     glFrameBufferWidth = glFrameBufferWidth0;
     glFrameBufferHeight = glFrameBufferHeight0;
@@ -4872,16 +4768,17 @@ void glSetRenderTarget(GLuint *frameBufferOrNULL, GLfloat *depthBuffer, GLuint w
     glFrameBuffer = frameBufferOrNULL;
     glDepthBuffer = depthBuffer;
   }
+  glViewport(0,0,glFrameBufferWidth,glFrameBufferHeight);
 }
 
-GLuint glGetTextureWidth(GLuint textureId) {
+unsigned int glGetTextureWidth(unsigned int textureId) {
   glTexture *t = &glTextures[textureId];
   if (t->name == 0x00) return 0;
   return t->width;
 
 }
 
-GLuint glGetTextureHeight(GLuint textureId) {
+unsigned int glGetTextureHeight(unsigned int textureId) {
   glTexture *t = &glTextures[textureId];
   if (t->name == 0x00) return 0;
   return t->height;
