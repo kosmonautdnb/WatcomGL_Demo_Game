@@ -1,7 +1,9 @@
 #ifndef __UTIL_HPP__
 #define __UTIL_HPP__
 
+#ifndef PI
 #define PI 3.14159265358979323846
+#endif
 
 template<class T>
 __inline T min(const T&a, const T&b) {
