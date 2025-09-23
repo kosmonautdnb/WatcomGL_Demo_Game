@@ -52,9 +52,11 @@ void screenShot();
 float randomLike(const unsigned int t);
 
 static bool isAcceptKeyPressed() {
-  if (isKeyPressed(SCANCODE_RSHIFT)) return true;
-  if (isKeyPressed(SCANCODE_CTRL)) return true;
-  if (isKeyPressed(SCANCODE_ALT)) return true;
+  bool shift,ctrl,alt;
+  glSpecialKeys(&shift, &ctrl, &alt);
+  if (shift||isKeyPressed(SCANCODE_RSHIFT)) return true;
+  if (ctrl||isKeyPressed(SCANCODE_CTRL)) return true;
+  if (alt||isKeyPressed(SCANCODE_ALT)) return true;
   return false;
 }
 
@@ -91,10 +93,10 @@ void displayBackground() {
     glBindTexture(GL_TEXTURE_2D,tex_face);
     glBegin(GL_QUADS);
     glColor4f(k,k,k,1);
-    glTexCoord2f(1,1); glVertex3f(1280.0,0,0);
-    glTexCoord2f(0,1); glVertex3f(0.0,0,0);
-    glTexCoord2f(0,0); glVertex3f(0.0,720.0,0);
-    glTexCoord2f(1,0); glVertex3f(1280.0,720.0,0);
+    glTexCoord2f(1,0); glVertex3f(1280.0,0,0);
+    glTexCoord2f(0,0); glVertex3f(0.0,0,0);
+    glTexCoord2f(0,1); glVertex3f(0.0,720.0,0);
+    glTexCoord2f(1,1); glVertex3f(1280.0,720.0,0);
     glEnd();
   } else {
     int ki = k * 255;
@@ -140,10 +142,10 @@ void displayForeground() {
     glBindTexture(GL_TEXTURE_2D,tex_level);
     glBegin(GL_QUADS);
     glColor4f(1,1,1,1);
-    glTexCoord2f(1,1); glVertex3f(1280.0,0,0);
-    glTexCoord2f(0,1); glVertex3f(0.0,0,0);
-    glTexCoord2f(0,0); glVertex3f(0.0,720.0,0);
-    glTexCoord2f(1,0); glVertex3f(1280.0,720.0,0);
+    glTexCoord2f(1,0); glVertex3f(1280.0,0,0);
+    glTexCoord2f(0,0); glVertex3f(0.0,0,0);
+    glTexCoord2f(0,1); glVertex3f(0.0,720.0,0);
+    glTexCoord2f(1,1); glVertex3f(1280.0,720.0,0);
     glEnd();
   } else {
     drawSprite(Vector(1280/2,720/2,0),1280,720,tex_level,0xffffffff,SPRITEFLAG_NODEPTHWRITE);

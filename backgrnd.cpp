@@ -18,7 +18,7 @@ extern int YRES;
 
 void clearFrame() {
   glClearColor(0.0,0.0,0.0,1.0);
-  glClearDepthf(1.0);
+  glClearDepth(1.0);
   glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 }
 
@@ -206,6 +206,7 @@ void paintLevel1() {
   const double fY =  fmod(levelScrollY2,dY);
   const double tY = levelScrollY2 - fY;
   const double particleSize = 7.5;
+  glExplicitAlpha(true,1);
   glEnable(GL_ALPHA_TEST);
   glAlphaFunc(GL_GREATER,2.f/255.f);
   glEnable(GL_TEXTURE_2D);
@@ -279,5 +280,6 @@ void paintLevel1() {
   glDisable(GL_TEXTURE_2D);
   glDisable(GL_BLEND);
   glDisable(GL_ALPHA_TEST);
+  glExplicitAlpha(true,0);
 }
 

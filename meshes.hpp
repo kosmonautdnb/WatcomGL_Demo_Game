@@ -22,4 +22,4 @@ public:
 Mesh *loadObject(const String &fileName);
 void centerAndResizeObject(Mesh *mesh, double size);
 
-#endif __MESHES_HPP__
+#endif //__MESHES_HPP__

@@ -1,9 +1,17 @@
 #include "speaker.hpp"
 #include <conio.h>
 #include <stdlib.h>
-#include <i86.h>
 #include <math.h>
 #include <string.h>
+#ifdef __WATCOMC__
+#include <i86.h>
+#endif // __WATCOMC__
+#ifdef __DJGPP__
+// todo: not implemented, yet
+#include <dos.h>
+#endif // __DJGPP__
+
+#ifdef __WATCOMC__
 
 #define HARDWARE_TIMER_FREQUENCY 1193180 // 1193180 / 65536  = 18.2 (found in the internet that it's more like 1193181.66666666 instead of 1193180)
 #define TIMER_MULTIPLICATOR 1024 // 1193180 * 1024 / 65536
@@ -208,3 +216,68 @@ void playSample32BitSigned(signed int *data, int len, double volume) {
     pos++;
   }
 }
+
+#endif // __WATCOMC__
+
+#ifdef __DJGPP__
+
+double speakerFrequency = 0;
+
+volatile bool playSampleOn = false;
+volatile unsigned char *bitSample = NULL;
+volatile int bitSamplePos = 0;
+volatile int bitSampleLength = 0;
+volatile int timerIrqPos = 0;
+volatile bool loopSample = true;
+volatile double speakerSeconds = 0; // important
+volatile bool muteSpeaker = false;
+volatile bool mode8Bit = false;
+
+static void initSample() {
+}
+
+void playSample(unsigned char *data, int len, bool loop) {
+}
+
+void stopSample() {
+}
+
+int samplePosition() {
+  return 0;
+}
+
+int sampleLength() {
+  return 0;
+}
+
+unsigned char *convertSampleFromUInt8(unsigned char *data, int len) {
+  return NULL;
+}
+
+unsigned char *convertSampleFromSInt8(char *data, int len) {
+  return NULL;
+}
+
+unsigned char *convertSampleFromUInt16(unsigned short *data, int len) {
+  return NULL;
+}
+
+unsigned char *convertSampleFromSInt16(short *data, int len) {
+  return NULL;
+}
+                  
+void enableSamplePlayback() {
+}
+
+void disableSamplePlayback() {
+}
+
+void enable32BitSignedSamplePlayback(signed int *audioBuffer, int len) {
+}
+
+void playSample32BitSigned(signed int *data, int len, double volume) {
+}
+
+#endif // __DJGPP__
+
+

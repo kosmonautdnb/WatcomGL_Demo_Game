@@ -234,7 +234,9 @@ public:
     }
     glColor3f(r,g,b);
     if (!USE_SPRITES) {
+      glExplicitAlpha(true,1);
       glVertex3f(position.x, position.y, position.z);
+      glExplicitAlpha(true,0);
     } else {
       int rg = r * 255;
       int gg = g * 255;
@@ -304,7 +306,9 @@ public:
       const float pointSize = XRES*10/320;
       if (!USE_SPRITES) {
         glPointSize(pointSize);
+        glExplicitAlpha(true,1);
         glVertex3f(position.x,position.y,position.z);
+        glExplicitAlpha(true,0);
       } else {
         drawSprite(Vector(position.x,position.y,position.z),pointSize,pointSize,shotTexture[2],0xffffffff,SPRITEFLAG_PREMULTIPLIED_ALPHA|SPRITEFLAG_NODEPTHWRITE|SPRITEFLAG_BYSCREENSIZE);
       }
@@ -355,7 +359,9 @@ public:
     float pointSize = XRES*5/320;
     glPointSize(pointSize);
     if (!USE_SPRITES) {
+      glExplicitAlpha(true,1);
       glVertex3f(position2.x,position2.y,position2.z);
+      glExplicitAlpha(true,0);
     } else {
       drawSprite(Vector(position2.x,position2.y,position2.z),pointSize,pointSize,texture,0xffffffff,SPRITEFLAG_NODEPTHWRITE|SPRITEFLAG_BYSCREENSIZE);
     }

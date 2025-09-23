@@ -305,7 +305,7 @@ void screenShot() {
   RGBAImage m,m2;
   m.width = glFrameBufferWidth;
   m.height = glFrameBufferHeight;
-  m.data = glFrameBuffer;
+  m.data = (uint32_t*)glFrameBuffer;
   m2 = m.getResized(1280, 720);
   for (int i = 0; i < 1280*720; i++) m2.data[i] |= 0xff000000;
   m2.savePNG("scrnshot.png");
@@ -328,10 +328,24 @@ void reInitLevel() {
   playerPosScreen = Vector();
 }
 
-int main(int argc, const char *argv) {
+int main(int argc, const char **argv) {
+
+  const bool pureVGA = false;
+  if (pureVGA) {
+    glVGA();
+  } else {
+    if (!glVesa(XRES,YRES,32)) {
+      printf("No Vesa 320x200x32 found.\n");
+      //sleep(1);
+      if (!glVGA())
+      {
+        printf("No VGA device found.\n");
+        exit(0);
+      }
+    }
+  }
 
   printf("Starting up..\n");
-  const bool pureVGA = false;
   printf("Starting up..\n");
   glEnable(GL_CULL_FACE);
   glEnable(GL_DEPTH_TEST);
@@ -367,20 +381,6 @@ int main(int argc, const char *argv) {
 
   if (argc>1) 
     performanceMode = true;
-
-  if (pureVGA) {
-    glVGA();
-  } else {
-    if (!glVesa(XRES,YRES,32)) {
-      printf("No Vesa 320x200x32 found.\n");
-      sleep(1);
-      if (!glVGA())
-      {
-        printf("No VGA device found.\n");
-        exit(0);
-      }
-    }
-  }
 
   displayStartScreen();
 
@@ -424,23 +424,37 @@ int main(int argc, const char *argv) {
     if (playerDestRoll<playerRoll) playerRoll -= timeDelta*playerRollSpeed;
     if (playerDestRoll>playerRoll) playerRoll += timeDelta*playerRollSpeed;
 
+    bool DJGPPup = false;
+    bool DJGPPdown = false;
+    bool DJGPPleft = false;
+    bool DJGPPright = false;
+    bool DJGPPshift = false;
+    bool DJGPPctrl = false;
+    bool DJGPPalt = false;
+#if __DJGPP__
+    DJGPPup = currentKey == GL_VK_UP;
+    DJGPPdown = currentKey == GL_VK_DOWN;
+    DJGPPleft = currentKey == GL_VK_LEFT;
+    DJGPPright = currentKey == GL_VK_RIGHT;
+    glSpecialKeys(&DJGPPshift,&DJGPPctrl,&DJGPPalt);
+#endif
     playerDestRoll = 0;
-    if (isKeyPressed(SCANCODE_UP)) {
+    if (isKeyPressed(SCANCODE_UP)||DJGPPup) {
       playerPosScreen.y -= playerSpeed*timeDelta;
     }
-    if (isKeyPressed(SCANCODE_DOWN)) {
+    if (isKeyPressed(SCANCODE_DOWN)||DJGPPdown) {
       playerPosScreen.y += playerSpeed*timeDelta;
     }
-    if (isKeyPressed(SCANCODE_LEFT)) {
+    if (isKeyPressed(SCANCODE_LEFT)||DJGPPleft) {
       playerPosScreen.x -= playerSpeed*timeDelta;
       playerDestRoll = +45;
     }
-    if (isKeyPressed(SCANCODE_RIGHT)) {
+    if (isKeyPressed(SCANCODE_RIGHT)||DJGPPright) {
       playerPosScreen.x += playerSpeed*timeDelta;
       playerDestRoll = -45;
     }
     static bool shiftPressed = false;
-    if (isKeyPressed(SCANCODE_RSHIFT)||isKeyPressed(SCANCODE_TAB)) { // LSHIFT is not usable, cursor keys emit LSHIFT, too
+    if (isKeyPressed(SCANCODE_RSHIFT)||isKeyPressed(SCANCODE_TAB)||DJGPPshift) { // LSHIFT is not usable, cursor keys emit LSHIFT, too
       if (!shiftPressed) {
         placeExplosionRing(playerPos);
         playerRed = !playerRed;
@@ -462,7 +476,7 @@ int main(int argc, const char *argv) {
     }
     setCameraGame();
     drawPlayer(player,playerPos);
-    if (isKeyPressed(SCANCODE_CTRL)) {
+    if (isKeyPressed(SCANCODE_CTRL)||DJGPPctrl) {
       shot();
     }      
     go_onFrame(timeDelta);
@@ -475,7 +489,7 @@ int main(int argc, const char *argv) {
       playerLifeLostAnimDuration=1.0;
     }
     if (levelCompleted) {
-      sleep(5);
+      //sleep(5);
       done = true;
     }
     if (playerLifeLostAnimDuration>0) {

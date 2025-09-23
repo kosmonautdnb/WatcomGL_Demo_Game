@@ -4,6 +4,9 @@
 #include "vector.hpp"
 #include <stdlib.h>
 #include <math.h>
+#ifdef __DJGPP__
+#include "gl.h"
+#endif
 
 float randomLike(const unsigned int i);
 
@@ -133,7 +136,17 @@ Sample *auLoadSample(int type, double priority) {
 }
 
 volatile double &auSeconds() {
+#ifdef __WATCOMC__
   return speakerSeconds;
+#endif
+#ifdef __DJGPP__
+  // todo: not implemented (worse granularity)
+  static double k = 0;
+  static double lastK = glSeconds();
+  k += glSeconds() - lastK;
+  lastK = glSeconds();
+  return k;
+#endif
 }
 
 void auMuteAudio(bool mute) {

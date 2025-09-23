@@ -23,6 +23,7 @@
 #define FARPLANE 1000.0
 #define CAMPOSZ (-120.0/8)
 #define CAMPOSY (120.0/8)
+#define FILTERING GL_NEAREST
 
 unsigned int tex_birdOfLight;
 unsigned int tex_birdOfLight_Glow;
@@ -65,8 +66,8 @@ void loadStartScreen() {
   glGenTextures(1, &tex_birdOfLight);
   glBindTexture(GL_TEXTURE_2D, tex_birdOfLight);
   glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,img.width,img.height,0,GL_RGBA,GL_UNSIGNED_BYTE,img.data);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, FILTERING);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,  FILTERING);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   img.free();
@@ -76,8 +77,8 @@ void loadStartScreen() {
   glGenTextures(1, &tex_birdOfLight_Glow);
   glBindTexture(GL_TEXTURE_2D, tex_birdOfLight_Glow);
   glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,img.width,img.height,0,GL_RGBA,GL_UNSIGNED_BYTE,img.data);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,  FILTERING);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,  FILTERING);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   img.free();
@@ -87,8 +88,8 @@ void loadStartScreen() {
   glGenTextures(1, &tex_stars);
   glBindTexture(GL_TEXTURE_2D, tex_stars);
   glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,img.width,img.height,0,GL_RGBA,GL_UNSIGNED_BYTE,img.data);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,  FILTERING);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,  FILTERING);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   img.free();
@@ -98,8 +99,8 @@ void loadStartScreen() {
   glGenTextures(1, &tex_trees2);
   glBindTexture(GL_TEXTURE_2D, tex_trees2);
   glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,img.width,img.height,0,GL_RGBA,GL_UNSIGNED_BYTE,img.data);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,  FILTERING);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,  FILTERING);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   img.free();
@@ -177,6 +178,7 @@ void displaySkyDome() {
   glBegin(GL_QUADS);
   float k = 0.5;
   glColor4f(0,k*0.5*2,k*2,1);
+  //glColor4f(1,1,1,1);
   Vector p[4];
   Vector t[4];
   for (int y = 0; y < tesselY; y++) {  
@@ -190,7 +192,7 @@ void displaySkyDome() {
         p[i].y = (ry-0.5)*radY*2;
         p[i].z = cos(fx*2*PI)*radX;
         t[i].x = fx;
-        t[i].y = 1-fy;
+        t[i].y = fy;
       }
       glTexCoord2f(t[1].x,t[1].y);glVertex3f(p[1].x,p[1].y,p[1].z);
       glTexCoord2f(t[0].x,t[0].y);glVertex3f(p[0].x,p[0].y,p[0].z);
@@ -216,72 +218,61 @@ void displayLogo() {
     glBindTexture(GL_TEXTURE_2D, tex_trees2);
     glBegin(GL_QUADS);
     glColor4f(1,1,1,1);
-    k = 0.0;
-    glTexCoord2f(1,1-k);glVertex3f(1280,720*k,0);
-    glTexCoord2f(0,1-k);glVertex3f(0,720*k,0);
-    glTexCoord2f(0,0);glVertex3f(0,720,0);
-    glTexCoord2f(1,0);glVertex3f(1280,720,0);
+    glTexCoord2f(1,0);glVertex3f(1280,0,0);
+    glTexCoord2f(0,0);glVertex3f(0,0,0);
+    glTexCoord2f(0,1);glVertex3f(0,720,0);
+    glTexCoord2f(1,1);glVertex3f(1280,720,0);
     glEnd();
   } else {
     drawSprite(Vector(1280/2,720/2,0),1280,720,tex_trees2,0xffffffff,SPRITEFLAG_NODEPTHCOMPARE|SPRITEFLAG_NODEPTHWRITE);
   }
 
-  double r = -1+seconds_intro*1.0;
-  r *= 200;
-  if (r > 0) r = 0;
-  r = 0;
-
-  glBlendFunc(GL_SRC_ALPHA,GL_ONE);
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, tex_birdOfLight_Glow);
-  glBegin(GL_QUADS);
   k = 0.425;
-  Vector p[4];
-  Vector t[4];
-  int tesselX = 4;
-  int tesselY = 4;
-  for (int y = 0; y < tesselY; y++) {  
-    for (int x = 0; x < tesselX; x++) {
-      for (int i = 0; i < 4; i++) {
-        int rx = i & 1;
-        int ry = i/2;
-        float fx = (float)(x+rx)/tesselX;
-        float fy = (float)(y+ry)/tesselY;
-        p[i].x = fx*1280;
-        p[i].y = fy*720*k+r;
-        p[i].z = 0;
-        t[i].x = fx;
-        t[i].y = 1-fy*k;
-        t[i].z = -seconds_intro*2+sin(seconds_intro*0.3+t[i].x)*5+cos(seconds_intro*0.25+t[i].y)*4;
+  if (true) {
+    glBlendFunc(GL_SRC_ALPHA,GL_ONE);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, tex_birdOfLight_Glow);
+    glBegin(GL_QUADS);
+    Vector p[4];
+    Vector t[4];
+    int tesselX = 4;
+    int tesselY = 4;
+    for (int y = 0; y < tesselY; y++) {  
+      for (int x = 0; x < tesselX; x++) {
+        for (int i = 0; i < 4; i++) {
+          int rx = i & 1;
+          int ry = i/2;
+          double fx = (double)(x+rx)/tesselX;
+          double fy = (double)(y+ry)/tesselY;
+          p[i].x = fx*1280.0;
+          p[i].y = fy*720.0*k;
+          p[i].z = 0;
+          t[i].x = fx;
+          t[i].y = fy*k;
+          t[i].z = -seconds_intro*2+sin(seconds_intro*0.3+t[i].x)*5+cos(seconds_intro*0.25+t[i].y)*4;
+        }
+        glColor4f(0.5,1,1,sin(t[1].z)*0.4+0.6);
+        glTexCoord2f(t[1].x,t[1].y);glVertex3f(p[1].x,p[1].y,p[1].z);
+        glColor4f(0.5,1,1,sin(t[0].z)*0.4+0.6);
+        glTexCoord2f(t[0].x,t[0].y);glVertex3f(p[0].x,p[0].y,p[0].z);
+        glColor4f(0.5,1,1,sin(t[2].z)*0.4+0.6);
+        glTexCoord2f(t[2].x,t[2].y);glVertex3f(p[2].x,p[2].y,p[2].z);
+        glColor4f(0.5,1,1,sin(t[3].z)*0.4+0.6);
+        glTexCoord2f(t[3].x,t[3].y);glVertex3f(p[3].x,p[3].y,p[3].z);
       }
-      glColor4f(0.5,1,1,sin(t[1].z)*0.4+0.6);
-      glTexCoord2f(t[1].x,t[1].y);glVertex3f(p[1].x,p[1].y,p[1].z);
-      glColor4f(0.5,1,1,sin(t[0].z)*0.4+0.6);
-      glTexCoord2f(t[0].x,t[0].y);glVertex3f(p[0].x,p[0].y,p[0].z);
-      glColor4f(0.5,1,1,sin(t[2].z)*0.4+0.6);
-      glTexCoord2f(t[2].x,t[2].y);glVertex3f(p[2].x,p[2].y,p[2].z);
-      glColor4f(0.5,1,1,sin(t[3].z)*0.4+0.6);
-      glTexCoord2f(t[3].x,t[3].y);glVertex3f(p[3].x,p[3].y,p[3].z);
     }
+    glEnd();   
   }
-  glEnd();   
 
   glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, tex_birdOfLight);
-  if (r != 0) {
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  } else {
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  }
   glBegin(GL_QUADS);
   float k2;
-  k2 = sin(seconds_intro*1.2+1)*0.4+0.6;glColor4f(k2,k2,k2*0.75,1);glTexCoord2f(1,1);glVertex3f(1280,r,0);
-  k2 = sin(seconds_intro*0.7)*0.4+0.6;glColor4f(k2,k2,k2*0.75,1);glTexCoord2f(0,1);glVertex3f(0,r,0);
-  k2 = sin(seconds_intro*1.7)*0.4+0.6;glColor4f(k2,k2,k2*0.75,1);glTexCoord2f(0,1-k);glVertex3f(0,720*k+r,0);
-  k2 = sin(seconds_intro*1.1)*0.4+0.6;glColor4f(k2,k2,k2*0.75,1);glTexCoord2f(1,1-k);glVertex3f(1280,720*k+r,0);
+  k2 = sin(seconds_intro*1.2+1)*0.4+0.6;glColor4f(k2,k2,k2*0.75,1);glTexCoord2f(1,0);glVertex3f(1280,0,0);
+  k2 = sin(seconds_intro*0.7)*0.4+0.6;glColor4f(k2,k2,k2*0.75,1);glTexCoord2f(0,0);glVertex3f(0,0,0);
+  k2 = sin(seconds_intro*1.7)*0.4+0.6;glColor4f(k2,k2,k2*0.75,1);glTexCoord2f(0,1*k);glVertex3f(0,720*k,0);
+  k2 = sin(seconds_intro*1.1)*0.4+0.6;glColor4f(k2,k2,k2*0.75,1);glTexCoord2f(1,1*k);glVertex3f(1280,720*k,0);
   glEnd();
 
   glDisable(GL_BLEND);
@@ -290,9 +281,11 @@ void displayLogo() {
 }
 
 bool isAcceptKeyPressed() {
-  if (isKeyPressed(SCANCODE_RSHIFT)) return true;
-  if (isKeyPressed(SCANCODE_CTRL)) return true;
-  if (isKeyPressed(SCANCODE_ALT)) return true;
+  bool shift,ctrl,alt;
+  glSpecialKeys(&shift, &ctrl, &alt);
+  if (shift||isKeyPressed(SCANCODE_RSHIFT)) return true;
+  if (ctrl||isKeyPressed(SCANCODE_CTRL)) return true;
+  if (alt||isKeyPressed(SCANCODE_ALT)) return true;
   return false;
 }
 
@@ -300,6 +293,8 @@ bool isReclineKeyPressed() {
   if (isKeyPressed(SCANCODE_ESCAPE)) return true;
   return false;
 }
+
+static double fps_intro = 0;
 
 void frame_mainScreen() {
   hudStart();
@@ -325,6 +320,7 @@ void frame_mainScreen() {
   c = a == 1;drawText(0,1280/2,720/2+o*1,(c?">":"")+String("Highscores")+(c?"<":""),c?wh:col,1.0,0.5,0.5);
   c = a == 2;drawText(0,1280/2,720/2+o*2,(c?">":"")+String("Setup")+(c?"<":""),c?wh:col,1.0,0.5,0.5);
   c = a == 3;drawText(0,1280/2,720/2+o*3,(c?">":"")+String("Credits")+(c?"<":""),c?wh:col,1.0,0.5,0.5);
+  drawText(0,1280/2,720/2+o*4,String("FPS:")+String::fromDouble(fps_intro),wh,1.0,0.5,0.5);
   hudEnd();
   if (isAcceptKeyPressed()) acceptKeyPressed = true; else if (acceptKeyPressed) {exploSound->play(Vector());acceptKeyPressed = false; screen = a; if(a==0) screen = -1;}
   if (isReclineKeyPressed()) reclineKeyPressed = true; else if (reclineKeyPressed) {exploSound->play(Vector());reclineKeyPressed = false; screen = -1;}
@@ -377,6 +373,7 @@ void displayStartScreen() {
   muted = true;
   auMuteAudio(muted);
   do {
+
     int currentKey = glNextKey();
     currentTime_intro = auSeconds();
     timeDelta_intro = currentTime_intro-lastTime_intro;
@@ -384,6 +381,16 @@ void displayStartScreen() {
     seconds_intro += timeDelta_intro;
     clearFrame();
     displaySkyDome();
+
+    static int currentFrame_intro = 0;
+    static double lastFPSTime = 0;
+    currentFrame_intro++;
+    static unsigned int lastFPSFrame = currentFrame_intro;
+    if (fabs(lastFPSTime-currentTime_intro)>1.0) {
+      lastFPSTime = currentTime_intro;
+      fps_intro = currentFrame_intro-lastFPSFrame;
+      lastFPSFrame = currentFrame_intro;
+    }
     
     glPushMatrix();
     glTranslatef(0,0,0);

@@ -1,4 +1,5 @@
 @echo off
+copy /Y djgpp.lnk _build\djgpp.lnk
 copy /Y c:\_OPENGL_\GLIMPL.CPP
 copy /Y c:\_OPENGL_\GL.H
 copy /Y c:\_STL_\TYPES.HPP
