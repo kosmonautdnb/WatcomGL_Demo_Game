@@ -52,7 +52,7 @@ void screenShot();
 float randomLike(const unsigned int t);
 
 static bool isAcceptKeyPressed() {
-  bool shift,ctrl,alt;
+  GLboolean shift,ctrl,alt;
   glSpecialKeys(&shift, &ctrl, &alt);
   if (shift||isKeyPressed(SCANCODE_RSHIFT)) return true;
   if (ctrl||isKeyPressed(SCANCODE_CTRL)) return true;

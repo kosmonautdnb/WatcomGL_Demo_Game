@@ -162,7 +162,7 @@ SMPL_File *loadObj(const String &fileName, bool triangulate) {
       switch(mode) {
         case 1: {
           if (sscanf(s,"vt %f %f",&x,&y)!=2) SMPL_ERROR
-          ret->texCoords.push_back(Vector(x,y));
+          ret->texCoords.push_back(Vector(x,1-y)); // seems 1-y is right for v
         } break;
         case 2: {
           if (sscanf(s,"vn %f %f %f",&x,&y,&z)!=3) SMPL_ERROR
@@ -238,7 +238,6 @@ SMPL_File *loadObj(const String &fileName, bool triangulate) {
   return ret;
 }
 
-/*
 void loadTexture(TextureLoad_t functor, SMPL_Texture &t, const String &type) {
   if (t.used && t.glHandle == 0) {
     t.glHandle = functor(t.fileName, type);
@@ -277,7 +276,7 @@ void SMPL_File::genVertexColors(const Array<String> &vertexColorMaterials) {
       const SMPL_Texture &mapDiffuse = m.mapDiffuse;
       const uint32_t glHandle = mapDiffuse.glHandle;
       if (glHandle != 0) {
-        const uint32_t *texturePointer = glGetTexturePointer(glHandle);
+        const uint32_t *texturePointer = (uint32_t *)glGetTexturePointer(glHandle);
         const uint32_t textureWidth = glGetTextureWidth(glHandle);
         const uint32_t textureHeight = glGetTextureHeight(glHandle);
         // only wrapmode supported is repeat
@@ -420,4 +419,3 @@ SMPL_Ply *loadPly(const String &fileName) {
   }}
   return ret;
 }
-*/         

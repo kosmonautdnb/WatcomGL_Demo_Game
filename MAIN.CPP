@@ -329,7 +329,7 @@ void reInitLevel() {
 }
 
 int main(int argc, const char **argv) {
-
+  glFastTexturing = true;
   const bool pureVGA = false;
   if (pureVGA) {
     glVGA();
@@ -386,6 +386,7 @@ int main(int argc, const char **argv) {
 
   bool done = false;
   reInitLevel();
+
   do {
     glExplicitAlpha(true,0);
     currentKey = glNextKey();
@@ -424,13 +425,13 @@ int main(int argc, const char **argv) {
     if (playerDestRoll<playerRoll) playerRoll -= timeDelta*playerRollSpeed;
     if (playerDestRoll>playerRoll) playerRoll += timeDelta*playerRollSpeed;
 
-    bool DJGPPup = false;
-    bool DJGPPdown = false;
-    bool DJGPPleft = false;
-    bool DJGPPright = false;
-    bool DJGPPshift = false;
-    bool DJGPPctrl = false;
-    bool DJGPPalt = false;
+    GLboolean DJGPPup = GL_FALSE;
+    GLboolean DJGPPdown = GL_FALSE;
+    GLboolean DJGPPleft = GL_FALSE;
+    GLboolean DJGPPright = GL_FALSE;
+    GLboolean DJGPPshift = GL_FALSE;
+    GLboolean DJGPPctrl = GL_FALSE;
+    GLboolean DJGPPalt = GL_FALSE;
 #if __DJGPP__
     DJGPPup = currentKey == GL_VK_UP;
     DJGPPdown = currentKey == GL_VK_DOWN;

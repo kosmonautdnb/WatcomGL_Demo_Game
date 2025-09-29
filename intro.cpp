@@ -281,7 +281,7 @@ void displayLogo() {
 }
 
 bool isAcceptKeyPressed() {
-  bool shift,ctrl,alt;
+  GLboolean shift,ctrl,alt;
   glSpecialKeys(&shift, &ctrl, &alt);
   if (shift||isKeyPressed(SCANCODE_RSHIFT)) return true;
   if (ctrl||isKeyPressed(SCANCODE_CTRL)) return true;
@@ -320,7 +320,14 @@ void frame_mainScreen() {
   c = a == 1;drawText(0,1280/2,720/2+o*1,(c?">":"")+String("Highscores")+(c?"<":""),c?wh:col,1.0,0.5,0.5);
   c = a == 2;drawText(0,1280/2,720/2+o*2,(c?">":"")+String("Setup")+(c?"<":""),c?wh:col,1.0,0.5,0.5);
   c = a == 3;drawText(0,1280/2,720/2+o*3,(c?">":"")+String("Credits")+(c?"<":""),c?wh:col,1.0,0.5,0.5);
-  drawText(0,1280/2,720/2+o*4,String("FPS:")+String::fromDouble(fps_intro),wh,1.0,0.5,0.5);
+  static double mouseX=0;
+  static double mouseY=0;
+  unsigned int mouseB=glMouseButtons();
+  double mouseDeltaX,mouseDeltaY;
+  glNextMouseDelta(&mouseDeltaX, &mouseDeltaY);
+  mouseX += mouseDeltaX;
+  mouseY += mouseDeltaY;
+  drawText(0,1280/2,720/2+o*4,String("FPS:")+String::fromInt(fps_intro),wh,1.0,0.5,0.5);
   hudEnd();
   if (isAcceptKeyPressed()) acceptKeyPressed = true; else if (acceptKeyPressed) {exploSound->play(Vector());acceptKeyPressed = false; screen = a; if(a==0) screen = -1;}
   if (isReclineKeyPressed()) reclineKeyPressed = true; else if (reclineKeyPressed) {exploSound->play(Vector());reclineKeyPressed = false; screen = -1;}
@@ -381,6 +388,8 @@ void displayStartScreen() {
     seconds_intro += timeDelta_intro;
     clearFrame();
     displaySkyDome();
+   
+    if (currentKey==GL_VK_ESCAPE) exit(0);
 
     static int currentFrame_intro = 0;
     static double lastFPSTime = 0;
