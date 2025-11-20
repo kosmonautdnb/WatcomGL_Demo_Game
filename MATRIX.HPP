@@ -47,10 +47,8 @@ public:
   double get(int x, int y) const;
   
   Matrix &setRow(int y, const Vector &b);
-  Matrix &setRow3(int y, const Vector &b);
   Vector getRow(int y) const;
   Matrix &setColumn(int x, const Vector &b);
-  Matrix &setColumn3(int x, const Vector &b);
   Vector getColumn(int x) const;
   
   Matrix &transpose();
@@ -65,7 +63,6 @@ public:
   Matrix &operator /=(const Matrix &a);
 
   Matrix rotationMatrix3x3();
-  Matrix matrix3x3();
 
   bool invert();
   void normalize3x3();
@@ -85,7 +82,6 @@ Matrix inverse(const Matrix &a);
 Matrix transpose(const Matrix &a);
 
 Vector transform(const Vector &a, const Matrix &b);
-Vector transform3(const Vector &a, const Matrix &b);
 Vector transformTransposed(const Vector &a, const Matrix &b);
 Vector transform3x3(const Vector &a, const Matrix &b);
 Vector transformTransposed3x3(const Vector &a, const Matrix &b);

@@ -1,16 +1,15 @@
 #include "keymtrix.hpp"
 #include <conio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
 #ifdef __WATCOMC__
 #include <i86.h>
-#include <dos.h>
 #endif // __WATCOMC__
 #ifdef __DJGPP__
 // todo: not implemented, yet
 #include <dos.h>
 #endif // __DJGPP__
+
+// this is not working in dos4gw, in !!!!!pmode/w!!!!! it's working
 
 #ifdef __WATCOMC__
 typedef void (__interrupt __far* KeyboardHandler)();
@@ -31,14 +30,27 @@ static void (__interrupt __far keyboardHandler) (void) {
 void installKeyboardHandler() {
   if (oldKeyboardHandler != NULL)
     uninstallKeyboardHandler();
-  oldKeyboardHandler = _dos_getvect(0x09);
-  _dos_setvect(0x09,keyboardHandler);
+  union REGS r;
+  r.w.ax = 0x204;
+  r.h.bl = 0x09;
+  int386 (0x31, &r, &r);
+  oldKeyboardHandler = (KeyboardHandler)MK_FP(r.x.ecx,r.x.edx);
+  r.w.ax = 0x205;
+  r.h.bl = 0x09;
+  r.x.ecx = FP_SEG(keyboardHandler);
+  r.x.edx = FP_OFF(keyboardHandler);
+  int386 (0x31, &r, &r);
   atexit(uninstallKeyboardHandler);
 }
 
 void uninstallKeyboardHandler() {
   if (oldKeyboardHandler != NULL) {
-    _dos_setvect(0x09,oldKeyboardHandler);
+    union REGS r;
+    r.w.ax = 0x205;
+    r.h.bl = 0x09;
+    r.x.ecx = FP_SEG(oldKeyboardHandler);
+    r.x.edx = FP_OFF(oldKeyboardHandler);
+    int386 (0x31, &r, &r);
     oldKeyboardHandler = NULL;
   }
 }
