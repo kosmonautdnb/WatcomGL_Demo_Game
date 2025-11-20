@@ -37,6 +37,13 @@ Matrix &Matrix::setRow(int y, const Vector &b) {
   return *this;
 }
 
+Matrix &Matrix::setRow3(int y, const Vector &b) {
+  set(y,0,b.x);
+  set(y,1,b.y);
+  set(y,2,b.z);
+  return *this;
+}
+
 Vector Matrix::getRow(int y) const {
   Vector r;
   r.x = get(y,0);
@@ -51,6 +58,13 @@ Matrix &Matrix::setColumn(int x, const Vector &b) {
   set(1,x,b.y);
   set(2,x,b.z);
   set(3,x,b.w);
+  return *this;
+}
+
+Matrix &Matrix::setColumn3(int x, const Vector &b) {
+  set(0,x,b.x);
+  set(1,x,b.y);
+  set(2,x,b.z);
   return *this;
 }
 
@@ -164,6 +178,17 @@ Matrix Matrix::rotationMatrix3x3() {
     }
   }  
   result.normalize3x3();
+  return result;
+}
+
+Matrix Matrix::matrix3x3() {
+  Matrix result;
+  result.identity();
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      result.set(i,j,this->get(i,j));
+    }
+  }  
   return result;
 }
 
@@ -284,9 +309,9 @@ bool Matrix::invert() {
 }
 
 void Matrix::normalize3x3() {
-  setColumn(0,normalize(getColumn(0)));
-  setColumn(1,normalize(getColumn(1)));
-  setColumn(2,normalize(getColumn(2)));
+  setColumn3(0,normalize(getColumn(0)));
+  setColumn3(1,normalize(getColumn(1)));
+  setColumn3(2,normalize(getColumn(2)));
 }
 
 void Matrix::translate(const Vector &v) {
@@ -402,6 +427,15 @@ Vector transform(const Vector &a, const Matrix &b) {
   r.y = b.GET(1,0)*a.x+b.GET(1,1)*a.y+b.GET(1,2)*a.z+b.GET(1,3)*a.w;
   r.z = b.GET(2,0)*a.x+b.GET(2,1)*a.y+b.GET(2,2)*a.z+b.GET(2,3)*a.w;
   r.w = b.GET(3,0)*a.x+b.GET(3,1)*a.y+b.GET(3,2)*a.z+b.GET(3,3)*a.w;
+  return r;
+}
+
+Vector transform3(const Vector &a, const Matrix &b) {
+  Vector r;
+  r.x = b.GET(0,0)*a.x+b.GET(0,1)*a.y+b.GET(0,2)*a.z+b.GET(0,3);
+  r.y = b.GET(1,0)*a.x+b.GET(1,1)*a.y+b.GET(1,2)*a.z+b.GET(1,3);
+  r.z = b.GET(2,0)*a.x+b.GET(2,1)*a.y+b.GET(2,2)*a.z+b.GET(2,3);
+  r.w = 1;
   return r;
 }
 
