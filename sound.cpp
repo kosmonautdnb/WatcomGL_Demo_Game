@@ -1,12 +1,9 @@
 #include "sound.hpp"
-#include "speaker.hpp"
 #include "util.hpp"
 #include "vector.hpp"
 #include <stdlib.h>
 #include <math.h>
-#ifdef __DJGPP__
 #include "gl.h"
-#endif
 
 float randomLike(const unsigned int i);
 
@@ -23,8 +20,8 @@ void Sample::play(const Vector &pos) {
 }
 
 Sample *auLoadSample(int type, double priority) {
-  Sample *ret=NULL;
-  if (type == 0) {
+  Sample *ret=new Sample();
+/*  if (type == 0) {
     // shot
     unsigned int len = speakerFrequency*0.25;
     unsigned short *sample = (unsigned short*)malloc(len*sizeof(unsigned short));
@@ -132,46 +129,42 @@ Sample *auLoadSample(int type, double priority) {
     free(sample);
     fclose(in);
   }
+*/
   return ret;
 }
 
 volatile double &auSeconds() {
-#ifdef __WATCOMC__
-  return speakerSeconds;
-#endif
-#ifdef __DJGPP__
-  // todo: not implemented (worse granularity)
   static double k = 0;
   static double lastK = glSeconds();
   k += glSeconds() - lastK;
   lastK = glSeconds();
   return k;
-#endif
 }
 
 void auMuteAudio(bool mute) {
-  muteSpeaker = mute;
+//  muteSpeaker = mute;
 }
 
 void auPlaySample(Sample *sample) {
+  if (sample == NULL) return;
   if (sample->priority < currentSoundPriority) {
     if (fabs(currentSoundStartTime-auSeconds())<currentSoundDuration)
       return;
   }
   currentSoundStartTime = auSeconds();
   currentSoundPriority = sample->priority;
-  currentSoundDuration = sample->sampleLength/speakerFrequency;
+//  currentSoundDuration = sample->sampleLength/speakerFrequency;
   currentSoundSample = sample;
-  playSample(sample->sample,sample->sampleLength,false);
+//  playSample(sample->sample,sample->sampleLength,false);
 }
 
 void auFrame() {
 }
 
 void auSoundDriverOn() {
-  enableSamplePlayback();
+//  enableSamplePlayback();
 }
 
 void auSoundDriverOff() {
-  disableSamplePlayback();
+//  disableSamplePlayback();
 }

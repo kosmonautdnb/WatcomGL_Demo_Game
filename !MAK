@@ -4,7 +4,6 @@ string.cpp string.obj
 object.cpp object.obj
 vector.cpp vector.obj
 matrix.cpp matrix.obj
-speaker.cpp speaker.obj
 gameomgr.cpp gameomgr.obj
 image.cpp image.obj
 smplobjl.cpp smplobjl.obj

@@ -329,6 +329,7 @@ void reInitLevel() {
 }
 
 int main(int argc, const char **argv) {
+  glWatcomPrecisionTimer(GL_TRUE);
   glFastTexturing = true;
   const bool pureVGA = false;
   if (pureVGA) {
@@ -390,6 +391,7 @@ int main(int argc, const char **argv) {
   do {
     glExplicitAlpha(true,0);
     currentKey = glNextKey();
+    if (currentKey == GL_VK_END) done = true;
     if (currentKey == GL_VK_ESCAPE) done = true;
     currentTime = auSeconds();
     timeDelta = currentTime-lastTime;

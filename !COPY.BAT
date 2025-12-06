@@ -18,8 +18,6 @@ copy /Y c:\_STL_\VECTOR.HPP
 copy /Y c:\_STL_\VECTOR.CPP
 copy /Y c:\_STL_\MATRIX.HPP
 copy /Y c:\_STL_\MATRIX.CPP
-copy /Y c:\_STL_\SPEAKER.HPP
-copy /Y c:\_STL_\SPEAKER.CPP
 copy /Y c:\_STL_\IMAGE.HPP
 copy /Y c:\_STL_\IMAGE.CPP
 copy /Y c:\_STL_\STBIMAGE.HPP

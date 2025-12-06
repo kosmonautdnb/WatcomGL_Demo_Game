@@ -389,7 +389,7 @@ void displayStartScreen() {
     clearFrame();
     displaySkyDome();
    
-    if (currentKey==GL_VK_ESCAPE) exit(0);
+    if (currentKey==GL_VK_END) exit(0);
 
     static int currentFrame_intro = 0;
     static double lastFPSTime = 0;
