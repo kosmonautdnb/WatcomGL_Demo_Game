@@ -169,3 +169,29 @@ String toString(const float &v) {
 String toString(const double &v) {
   return String::fromFloat((float)v);
 }
+
+#ifdef __DJGPP__
+uint32_t getHash(const unsigned int &v) {
+  return v;
+}
+
+uint32_t getHash(const signed int &v) {
+  return v;
+}
+
+bool equals(const unsigned int &a,const unsigned int &b) {
+  return a == b;
+}
+
+bool equals(const signed int &a,const signed int &b) {
+  return a == b;
+}
+
+String toString(const unsigned int &v) {
+  return String::fromInt(v);
+}
+
+String toString(const signed int &v) {
+  return String::fromInt(v);
+}
+#endif // __DJGPP__

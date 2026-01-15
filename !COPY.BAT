@@ -33,3 +33,5 @@ copy /Y c:\_STL_\SPRITE.CPP
 copy /Y c:\_STL_\SPRITE.HPP
 copy /Y c:\_STL_\OPENGLFX.CPP
 copy /Y c:\_STL_\OPENGLFX.HPP
+copy /Y c:\_STL_\SPEAKER.CPP
+copy /Y c:\_STL_\SPEAKER.HPP

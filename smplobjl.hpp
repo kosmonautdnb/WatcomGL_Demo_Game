@@ -10,7 +10,7 @@
 #include <string.h>
 
 #define SMPL_MAXV 4
-#define SMPL_MAXV_LOAD 24
+#define SMPL_MAXV_LOAD 50
 
 class SMPL_Face {
 public:
@@ -61,7 +61,7 @@ public:
 };
 
 // ...->loadTextures(SMPL_loadTexture);
-typedef uint32_t(*TextureLoad_t)(const String &fileName, const String &type);
+typedef unsigned int(*TextureLoad_t)(const String &fileName, const String &type);
 #define SMPL_LOADTEXTURE \
 unsigned int SMPL_loadTexture(const String &fileName, const String &type) {\
   uint32_t texture = 0;\
@@ -95,6 +95,8 @@ public:
   Array<SMPL_Material*> materialsById;
   void loadTextures(TextureLoad_t functor);
   void genVertexColors(const Array<String> &vertexColorMaterials);
+  void genFaceNormals();
+  void genVertexNormals();
   bool makeFrontFacing(bool ccw);
 };
 

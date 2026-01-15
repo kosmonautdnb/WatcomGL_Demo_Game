@@ -1,9 +1,17 @@
 #ifndef __SPEAKER_HPP__
 #define __SPEAKER_HPP__
 
-// this is not working in dos4gw, in !!!!!pmode/w!!!!! it's working
+//-- simple beep interface for the pc speaker
+void speaker_tone_freq(double hz);
+void speaker_tone_on();
+void speaker_tone_off();
+
+//-- sample interface maybe not usable due to timer irq freq reprogramming that destroys some bios/dos timings
+
 // samples are played at 18643.4375 Hz (timerirq)
 // may alter the DOS file clock by some milliseconds (don't know why it's only at init/deinit) not the RealTimeClock of DOS.
+// my windows shows sometimes that the harddrive must be repaired maybe due to this interrupt change here. 
+// !!Maybe better don't use this altered timer here!!
 extern double speakerFrequency;
 // how many seconds since enableSamplePlayback
 extern volatile double speakerSeconds;

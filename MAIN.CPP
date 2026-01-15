@@ -20,6 +20,7 @@
 #include "text.hpp"
 #include "intro.hpp"
 #include "openglfx.hpp"
+#include "speaker.hpp"
 #include <dos.h>
 #include <math.h>
 
@@ -305,7 +306,7 @@ void screenShot() {
   RGBAImage m,m2;
   m.width = glFrameBufferWidth;
   m.height = glFrameBufferHeight;
-  m.data = (uint32_t*)glFrameBuffer;
+  m.data = (unsigned int*)glFrameBuffer;
   m2 = m.getResized(1280, 720);
   for (int i = 0; i < 1280*720; i++) m2.data[i] |= 0xff000000;
   m2.savePNG("scrnshot.png");
@@ -329,7 +330,9 @@ void reInitLevel() {
 }
 
 int main(int argc, const char **argv) {
+
   glWatcomPrecisionTimer(GL_TRUE);
+
   glFastTexturing = true;
   const bool pureVGA = false;
   if (pureVGA) {
@@ -396,7 +399,7 @@ int main(int argc, const char **argv) {
     currentTime = auSeconds();
     timeDelta = currentTime-lastTime;
 #ifdef ALTW
-    if (isKeyPressed(SCANCODE_W) && isKeyPressed(SCANCODE_ALT)) {
+    if (isKeyPressed(SCANCODE_W) && isKeyPressed(SCANCODE_RALT)) {
       timeDelta *= 15;
     }
 #endif
@@ -479,7 +482,7 @@ int main(int argc, const char **argv) {
     }
     setCameraGame();
     drawPlayer(player,playerPos);
-    if (isKeyPressed(SCANCODE_CTRL)||DJGPPctrl) {
+    if (isKeyPressed(SCANCODE_RCTRL)||DJGPPctrl) {
       shot();
     }      
     go_onFrame(timeDelta);

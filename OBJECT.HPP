@@ -53,4 +53,13 @@ class String toString(const int64_t &v);
 class String toString(const float &v);
 class String toString(const double &v);
 
+#ifdef __DJGPP__
+uint32_t getHash(const unsigned int &v);
+uint32_t getHash(const signed int &v);
+bool equals(const unsigned int &a,const unsigned int &b);
+bool equals(const signed int &a,const signed int &b);
+class String toString(const unsigned int &v);
+class String toString(const signed int &v);
+#endif // __DJGPP__
+
 #endif //__OBJECT_HPP__

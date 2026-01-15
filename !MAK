@@ -21,3 +21,4 @@ lvlscrn.cpp lvlscrn.obj
 sprite.cpp sprite.obj
 openglfx.cpp openglfx.obj
 main.cpp main.OBJ
+speaker.cpp speaker.obj

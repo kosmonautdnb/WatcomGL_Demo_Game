@@ -55,8 +55,8 @@ static bool isAcceptKeyPressed() {
   GLboolean shift,ctrl,alt;
   glSpecialKeys(&shift, &ctrl, &alt);
   if (shift||isKeyPressed(SCANCODE_RSHIFT)) return true;
-  if (ctrl||isKeyPressed(SCANCODE_CTRL)) return true;
-  if (alt||isKeyPressed(SCANCODE_ALT)) return true;
+  if (ctrl||isKeyPressed(SCANCODE_RCTRL)) return true;
+  if (alt||isKeyPressed(SCANCODE_RALT)) return true;
   return false;
 }
 

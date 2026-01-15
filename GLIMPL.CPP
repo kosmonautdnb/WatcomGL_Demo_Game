@@ -10,6 +10,7 @@
 // - In ultra rare cases polygons may have seams. (DJGPP no -Ofast,-ffast-math), maybe add 0.001 to the coordinates
 // - Better take public domain PModeW for 256MB of memory.
 // - On problems with Vesa on DOS, maybe UniVBE (or similar) may help. Not tested that, though.
+// - The fogging (and GL_SEPARATE_SPECULAR) stage is applied before blending.
 // --
 #define WATCOMGLAPI
 #include "GL.H"
@@ -132,12 +133,18 @@ GLubyte *glStencilBuffer0 = NULL;
 #ifndef __GLDISABLEDOSFUNCTIONS__ 
 #ifdef __WATCOMC__
 
+#pragma aux glCLI="cli" modify[]
+#pragma aux glSTI="sti" modify[]
+
 GLubyte glCmosRead(GLubyte reg, GLboolean maskNMI) {
+  glCLI();
   outp(0x70, reg | (maskNMI?0x80:00));
-  return (GLubyte)inp(0x71);
+  GLubyte r = (GLubyte)inp(0x71);
+  glSTI();
+  return r;
 }
 
-volatile GLubyte glCmosUpdateInProgress() {
+GLubyte glCmosUpdateInProgress() {
   return (GLubyte)(glCmosRead(0x0a, GL_TRUE) & 0x80);
 }
 
@@ -154,7 +161,7 @@ GLuint glReadTscHi(); // a tiny tiny tiny bit "unsafe"
 GLuint glHasTsc_();
 #pragma aux glReadTscHi="rdtsc""shr edx,16" value[edx] modify[eax edx]
 #pragma aux glReadTsc="rdtsc""shr eax,16""shl edx,16""or eax,edx" value[eax] modify[eax edx]
-#pragma aux glHasTsc_="push ebx""mov eax,0x80000000""cpuid""cmp eax,0x80000001""jb maybe_no_tsc""mov eax,0x80000001""cpuid""test edx,0x00000010""jnz tsc_available""maybe_no_tsc:""mov eax,0x80000000""cpuid""cmp eax,0x80000007""jb no_tsc""mov eax,0x80000007""cpuid""test edx,0x00000100""jnz tsc_available""no_tsc:""xor eax,eax""jmp end_check""tsc_available:""mov eax,1""end_check:""pop ebx"value[eax] modify[eax edx ecx]
+#pragma aux glHasTsc_="push ebx""mov eax,0x80000000""cpuid""cmp eax,0x80000001""jb maybe_no_tsc""mov eax,0x80000001""cpuid""test edx,0x00000010""jnz tsc_available""maybe_no_tsc:""mov eax,0x80000000""cpuid""cmp eax,0x80000007""jb no_tsc""mov eax,0x80000007""cpuid""test edx,0x00000100""jnz tsc_available""no_tsc:""xor eax,eax""jmp end_check""tsc_available:""mov eax,1""end_check:""pop ebx"value[eax] modify[eax edx ecx ebx]
 GLdouble glReadTscDouble() {return (GLdouble)(glReadTsc())/glTscFrequency+(GLdouble)(glReadTscHi())*65536.0/glTscFrequency*65536.0;} // maybe unsafe? (WatcomC has broken 64bit int support)
 
 GLvoid glInitTSC() {
@@ -971,10 +978,6 @@ GLvoid interpolateVertex(glVertex *dest, glVertex *v0, glVertex *v1, GLdouble f)
   dest->textureW = v0->textureW + f * (v1->textureW-v0->textureW);
 }
 
-#define GLMAXVERTEXCLIPSTACK (1<<GLMAXCLIPPLANES)
-glVertex glClipStack[GLMAXVERTEXCLIPSTACK*3];
-GLint glClipStackPos = 0;
-
 GLvoid glTransposeMatrix(GLdouble *m) {
   GLdouble t[4*4];
   memcpy(t,m,sizeof(t));
@@ -1008,109 +1011,101 @@ GLvoid glWorldSpaceClipPlanes() {
   }
 }
 
-GLvoid glPutOnClipStack(glVertex *v0,glVertex *v1,glVertex *v2) {
-  if (glClipStackPos == -1) glClipStackPos=0;
-  if (glClipStackPos >= GLMAXVERTEXCLIPSTACK*3) return;
-  glClipStack[glClipStackPos+0] = *v0;
-  glClipStack[glClipStackPos+1] = *v1;
-  glClipStack[glClipStackPos+2] = *v2;
-  glClipStackPos += 3;
-}
-
 #define CLIPNULL(__v0__,__v1__,__d__) ((__v1__)==0?((__v0__)==0?0:(__d__)):(__v0__)/(__v1__))
 
-GLint glProceedClip(_GLContext *context,glVertex *v0,glVertex *v1,glVertex *v2,GLdouble *plane) {
-//  const GLdouble *matrix = context->matrixForMode[GL_MODELVIEW & 1];
-  glVertex *v[3];
-  v[0] = v0; v[1] = v1; v[2] = v2;
-  GLdouble x[3],y[3],z[3],w[3],clip[3];
-  GLint clipFlags = 0;
-  for (GLint j = 0; j < 3; j++) {
-//    x[j] = v[j]->vertexX * matrix[0*4+0] + v[j]->vertexY * matrix[1*4+0] + v[j]->vertexZ * matrix[2*4+0] + v[j]->vertexW * matrix[3*4+0];
-//    y[j] = v[j]->vertexX * matrix[0*4+1] + v[j]->vertexY * matrix[1*4+1] + v[j]->vertexZ * matrix[2*4+1] + v[j]->vertexW * matrix[3*4+1];
-//    z[j] = v[j]->vertexX * matrix[0*4+2] + v[j]->vertexY * matrix[1*4+2] + v[j]->vertexZ * matrix[2*4+2] + v[j]->vertexW * matrix[3*4+2];
-//    w[j] = v[j]->vertexX * matrix[0*4+3] + v[j]->vertexY * matrix[1*4+3] + v[j]->vertexZ * matrix[2*4+3] + v[j]->vertexW * matrix[3*4+3];
-    x[j] =  v[j]->vertexX;
-    y[j] =  v[j]->vertexY;
-    z[j] =  v[j]->vertexZ;
-    w[j] =  v[j]->vertexW;
-    if (w[j]!=0) {
-      x[j]/=w[j];
-      y[j]/=w[j];
-      z[j]/=w[j];
-      w[j]/=w[j];
-    }
-    clip[j] = x[j]*plane[0]+y[j]*plane[1]+z[j]*plane[2]+plane[3];
-    clipFlags |= (clip[j]>=0.0)?(1<<j):0;
-  }
-  if (clipFlags == 0) return 0; // not visible
-  if (clipFlags == (1|2|4)) return 1; // all visible
+#define CLIPPOLYMAX (3+GLMAXCLIPPLANES*1)
+glVertex glClipPoly[CLIPPOLYMAX];
+GLint glClipPolySize = 0;
+static double clip[CLIPPOLYMAX];
+static glVertex cPoly[CLIPPOLYMAX];
 
-  glVertex poly[8];
+GLvoid glClipOnPlane(_GLContext *context,glVertex *v0,glVertex *v1,glVertex *v2,GLdouble *plane) {
+  if(glClipPolySize == -1) {
+    glClipPolySize = 3;
+    glClipPoly[0] = *v0;
+    glClipPoly[1] = *v1;
+    glClipPoly[2] = *v2;
+  }
+
+  bool allIn = true;
+  bool allOut = true;
+
+  for (GLint j = 0; j < glClipPolySize; j++) {
+    double x =  glClipPoly[j].vertexX;
+    double y =  glClipPoly[j].vertexY;
+    double z =  glClipPoly[j].vertexZ;
+    double w =  glClipPoly[j].vertexW;
+    if (w!=0) {
+      x/=w;
+      y/=w;
+      z/=w;
+      w/=w;
+    }
+    clip[j] = x*plane[0]+y*plane[1]+z*plane[2]+plane[3];
+    if (clip[j]>=0.0) 
+      allOut=false;
+    else
+      allIn=false;
+  }
+
+  if (allOut) {
+    glClipPolySize = 0;
+    return;
+  }
+
+  if (allIn) {
+    return;
+  }
+
   GLint count = 0;
-  const GLint vertexCount = 3;
+  const GLint vertexCount = glClipPolySize;
   for(GLint i = 0; i < vertexCount; i++) {
-    glVertex *v0 = v[i];
-    glVertex *v1 = v[(i+1) % vertexCount];
+    glVertex *v0 = &glClipPoly[i];
+    glVertex *v1 = &glClipPoly[(i+1) % vertexCount];
     GLdouble ci0 = clip[i];
     GLdouble ci1 = clip[(i+1) % vertexCount];
     GLboolean currentInside = (ci0>=0.0) ? GL_TRUE : GL_FALSE;
     GLboolean nextInside = (ci1>=0.0) ? GL_TRUE : GL_FALSE;
     if (currentInside && nextInside) {
-      poly[count]=*v0;
-      glTransformVertex(context,&poly[count],GL_FALSE);
-      glLightVertex(context,&poly[count]);
+      cPoly[count]=*v0;
+      glTransformVertex(context,&cPoly[count],GL_FALSE);
+      glLightVertex(context,&cPoly[count]);
       count++;
     } else
     if(currentInside && (!nextInside)) {
-      poly[count]=*v0;
-      glTransformVertex(context,&poly[count],GL_FALSE);
-      glLightVertex(context,&poly[count]);
+      cPoly[count]=*v0;
+      glTransformVertex(context,&cPoly[count],GL_FALSE);
+      glLightVertex(context,&cPoly[count]);
       count++;
       GLdouble f = CLIPNULL((ci0) , (ci0-ci1), 1.0);
-      interpolateVertex(&poly[count],v0,v1,f);
-      glTransformVertex(context,&poly[count],GL_FALSE);
-      glLightVertex(context,&poly[count]);
+      interpolateVertex(&cPoly[count],v0,v1,f);
+      glTransformVertex(context,&cPoly[count],GL_FALSE);
+      glLightVertex(context,&cPoly[count]);
       count++;
     } else 
     if((!currentInside) && nextInside) {
       GLdouble f = CLIPNULL((ci0) , (ci0-ci1), 1.0);
-      interpolateVertex(&poly[count],v0,v1,f);
-      glTransformVertex(context,&poly[count],GL_FALSE);
-      glLightVertex(context,&poly[count]);
+      interpolateVertex(&cPoly[count],v0,v1,f);
+      glTransformVertex(context,&cPoly[count],GL_FALSE);
+      glLightVertex(context,&cPoly[count]);
       count++;
     }
   }
-  for(GLint k = 1; k < count-1; k++) glPutOnClipStack(&poly[0],&poly[k],&poly[k+1]);
-
-  return 2; // partially visible
-}
-
-GLvoid glClipOnPlane(_GLContext *context,glVertex *v0,glVertex *v1,glVertex *v2,GLdouble *plane) {
-  if(glClipStackPos == -1) glPutOnClipStack(v0,v1,v2);
-  for (GLint i = glClipStackPos-3; i >= 0 ; i -= 3) {
-    GLint clipped = glProceedClip(context,&glClipStack[i+0],&glClipStack[i+1],&glClipStack[i+2],plane);
-    switch(clipped) {
-    case 2: // partially visible the current one needs also to be deleted
-    case 0: {for (GLint j=i+3;j<glClipStackPos;j++) glClipStack[j-3]=glClipStack[j];glClipStackPos -= 3;} break; // not visible
-    case 1: break; // fully visible
-    }
-  } 
+  
+  glClipPolySize = count;
+  memcpy(glClipPoly,cPoly,sizeof(glVertex)*glClipPolySize);
 }
 
 GLvoid glClipPlaneTriangle(_GLContext *context,glVertex *v0,glVertex *v1,glVertex *v2) {
-  glClipStackPos=-1;
+  glClipPolySize=-1;
   for (GLint i = 0; i < GLMAXCLIPPLANES; i++) {
     if (glIsEnabled2(context, GL_CLIP_PLANE0+i)) glClipOnPlane(context,v0,v1,v2,glWorldClipPlanes[i]);//context->clipPlanes[i]);
   }
-  if (glClipStackPos==-1)
+  if (glClipPolySize==-1)
     glDrawTriangle(context,v0,v1,v2);
   else {
-    glVertex *v = glClipStack;
-    for (int i = 0; i < glClipStackPos/3; i++) {
-      glDrawTriangle(context,&v[0],&v[1],&v[2]);
-      v+=3;
-    }
+    glVertex *v = glClipPoly;
+    for(GLint k = 1; k < glClipPolySize-1; k++) glDrawTriangle(context,&v[0],&v[k],&v[k+1]);
   }
 }
 
@@ -1669,6 +1664,10 @@ GLvoid glActiveTexture(GLenum texture) {
   glContext.activeTexture = texture - GL_TEXTURE0;
   glContext.matrixForMode[2] = glContext.textureMatrix[glContext.activeTexture];
 }              
+
+GLvoid glAdditionalPointSpriteXStretch(GLfloat widthStretch) {
+  additionalPointSpriteXStretch = widthStretch;
+}
 
 GLvoid glAlphaFunc(GLenum func, GLclampf ref) {
   glContext.alphaFunc = func;
@@ -2237,7 +2236,7 @@ GLvoid glEnableClientState(GLenum array) {
 }
 
 GLvoid glEnd() {
-  glContext.beginMode = 0;
+  glContext.beginMode = GL_INVALID_ENUM;
 }
 
 GLvoid glFinish() {
@@ -5185,6 +5184,17 @@ GLvoid glDrawTrianglePrecise(_GLContext *context,glVertex *v0,glVertex *v1,glVer
     }
   }
 
+  bool nullAlphaIsTransparent = false;
+  if (alphaTest) {
+    switch(alphaFunction) {
+    case GL_NEVER: {nullAlphaIsTransparent = GL_TRUE;} break;
+    case GL_EQUAL: {nullAlphaIsTransparent = (alphaRef != 0) ? GL_TRUE : GL_FALSE;} break;
+    case GL_GREATER: {nullAlphaIsTransparent = (alphaRef >= 0) ? GL_TRUE : GL_FALSE;} break;
+    case GL_GEQUAL: {nullAlphaIsTransparent = (alphaRef > 0) ? GL_TRUE : GL_FALSE;} break;
+    case GL_NOTEQUAL: {nullAlphaIsTransparent = (alphaRef == 0) ? GL_TRUE : GL_FALSE;} break;
+    }
+  }
+
   iw = 1.0/v0w; // for constantW
   const GLboolean constantW = (v0w == v1w) && (v1w == v2w);
   const GLboolean wValue = ((textured || interpolateColor || interpolateSpecular || fogging) && (!constantW)) ? GL_TRUE : GL_FALSE;
@@ -5192,7 +5202,7 @@ GLvoid glDrawTrianglePrecise(_GLContext *context,glVertex *v0,glVertex *v1,glVer
   const GLboolean preMultipliedAlpha = (blendFuncS == GL_ONE && blendFuncD == GL_ONE_MINUS_SRC_ALPHA && blendEquation == GL_FUNC_ADD) ? GL_TRUE : GL_FALSE;
   const GLboolean normalAlphaBlendingOrPreMultipliedAlpha = (normalAlphaBlending || preMultipliedAlpha) ? GL_TRUE : GL_FALSE;
   const GLboolean useExplicitAlpha = (context->useExplicitAlpha) ? GL_TRUE : GL_FALSE;
-  const GLboolean alphaSolelyOpacity = (blending && (normalAlphaBlending || (blendFuncS == GL_SRC_ALPHA && blendFuncD == GL_ONE && blendEquation == GL_FUNC_ADD))) ? GL_TRUE : GL_FALSE;
+  const GLboolean alphaSolelyOpacity = ((blending && (normalAlphaBlending || (blendFuncS == GL_SRC_ALPHA && blendFuncD == GL_ONE && blendEquation == GL_FUNC_ADD))) ? GL_TRUE : GL_FALSE) || nullAlphaIsTransparent;
   const GLboolean colorSolelyPossible = ((texEnvMode == GL_MODULATE) || (texEnvMode == GL_ADD) || (texEnvMode == GL_REPLACE)) ? GL_TRUE : GL_FALSE;
   const GLboolean colorSolelyOpacity = (colorSolelyPossible && blending && (blendFuncS == GL_ONE && blendFuncD == GL_ONE && blendEquation == GL_FUNC_ADD)) ? GL_TRUE : GL_FALSE;
 
@@ -5779,24 +5789,45 @@ GLboolean glDirect(GLuint *frameBuffer, GLfloat *depthBuffer, GLubyte *stencilBu
   glDirectBlit = GL_TRUE;
   return GL_TRUE;
 }
+
+// --------------------------------------
+
+static GLSecondsCallback glSecondsCallback = NULL;
+static GLSetTimeCallback glSetTimeCallback = NULL;
+static GLNextKeyCallback glNextKeyCallback = NULL;
+static GLNextMouseDeltaCallback glNextMouseDeltaCallback = NULL;
+static GLMouseButtonsCallback glMouseButtonsCallback = NULL;
+static GLSpecialKeysCallback glSpecialKeysCallback = NULL;
+static GLRefreshNotification glRefreshNotification = NULL;
+static GLDoneNotification glDoneNotification = NULL;
+
+GLvoid glSetSecondsCallback(GLSecondsCallback callback) {glSecondsCallback = callback;}
+GLvoid glSetSetTimeCallback(GLSetTimeCallback callback) {glSetTimeCallback = callback;}
+GLvoid glSetNextKeyCallback(GLNextKeyCallback callback) {glNextKeyCallback = callback;}
+GLvoid glSetNextMouseDeltaCallback(GLNextMouseDeltaCallback callback) {glNextMouseDeltaCallback = callback;}
+GLvoid glSetMouseButtonsCallback(GLMouseButtonsCallback callback) {glMouseButtonsCallback = callback;}
+GLvoid glSetSpecialKeysCallback(GLSpecialKeysCallback callback) {glSpecialKeysCallback = callback;}
+GLvoid glSetRefreshNotification(GLRefreshNotification notification) {glRefreshNotification = notification;}
+GLvoid glSetDoneNotification(GLDoneNotification notification) {glDoneNotification = notification;}
+
 // --------------------------------------
 
 // --------------------------------------
 #ifdef __GLDISABLEDOSFUNCTIONS__
 // --------------------------------------
-GLdouble glSeconds() {return 0;}
-GLvoid glSetTime(GLdouble seconds) {;}
-GLvoid glSpecialKeys(GLboolean *shiftKey, GLboolean *ctrlKey, GLboolean *altKey) {;}
+GLdouble glSeconds() {if (glSecondsCallback != NULL) return glSecondsCallback(); return 0;}
+GLvoid glSetTime(GLdouble seconds) {if (glSetTimeCallback != NULL) glSetTimeCallback(seconds);}
+GLvoid glSpecialKeys(GLboolean *shiftKey, GLboolean *ctrlKey, GLboolean *altKey) {if (glSpecialKeysCallback != NULL) glSpecialKeysCallback(shiftKey, ctrlKey, altKey);}
 GLvoid glSetupMouse() {;}
-GLvoid glNextMouseDelta(GLdouble *mouseX, GLdouble *mouseY) {;}
-GLushort glMouseButtons() {return 0;}
-GLvoid glSetMousePos(GLint x, GLint y) {;}
-GLushort glNextKey() {return 0;}
-GLvoid glDone() {;}
-GLvoid glRefresh() {;}
+GLvoid glNextMouseDelta(GLdouble *mouseX, GLdouble *mouseY) {if (glNextMouseDeltaCallback != NULL) glNextMouseDeltaCallback(mouseX, mouseY);}
+GLushort glMouseButtons() {if (glMouseButtonsCallback != NULL) return glMouseButtonsCallback(); return 0;}
+GLvoid glSetMousePos(GLint x, GLint y) {__UNUSED(x);__UNUSED(y);}
+GLushort glNextKey() {if (glNextKeyCallback != NULL) return glNextKeyCallback(); return 0;}
+GLvoid glDone() {if (glDoneNotification != NULL) glDoneNotification();}
+GLvoid glRefresh() {if (glRefreshNotification != NULL) glRefreshNotification();}
 GLboolean glVGA() {return GL_FALSE;}
-GLboolean glVesa(GLint xRes,GLint yRes, GLint bPP) {return GL_FALSE;}
-GLvoid glDebug(GLuint color) {;}
+GLboolean glVesa(GLint xRes,GLint yRes, GLint bPP) {__UNUSED(xRes); __UNUSED(yRes); __UNUSED(bPP); return GL_FALSE;}
+GLvoid glDebug(GLuint color) {__UNUSED(color);}
 // --------------------------------------
 #else // __GLDISABLEDOSFUNCTIONS__
 // --------------------------------------
@@ -6142,9 +6173,8 @@ GLboolean glVesa(GLint xRes,GLint yRes, GLint bPP) {
       glCleanSetup(xRes, yRes, frameBuffer, depthBuffer, stencilBuffer);
       glSetupMouse();
 
-      glFrameBufferDedicated = (GLuint*)glMapPhysicalToLinear(modeInfo.linearFrameBuffer,4096*1024-1);
-      memset(glFrameBufferDedicated,0,xRes*yRes*sizeof(GLuint));
-
+      glFrameBufferDedicated = (GLuint*)glMapPhysicalToLinear(modeInfo.linearFrameBuffer,xRes*yRes*(bPP/8));
+      // call glRefresh directly after that
       return GL_TRUE;
     }
     v++;
@@ -6265,15 +6295,14 @@ GLboolean glVesa(GLint xRes,GLint yRes, GLint bPP) {
       glSetupMouse();
 
       // linear framebuffer mapping to vesasel not glFrameBufferDedicated
-      glLinearFrameBufferStruct.size = 4096*1024-1;
+      glLinearFrameBufferStruct.size = xRes*yRes*(bPP/8);
       glLinearFrameBufferStruct.address = modeInfo.linearFrameBuffer;
       __dpmi_physical_address_mapping(&glLinearFrameBufferStruct);
       glVesasel = __dpmi_allocate_ldt_descriptors(1);
       __dpmi_set_segment_base_address(glVesasel,glLinearFrameBufferStruct.address);
       __dpmi_set_segment_limit(glVesasel,glLinearFrameBufferStruct.size-1);
-      for (GLint i = 0; i < xRes*yRes; i++) _farpokel(glVesasel,i<<2,0);
       glFrameBufferDedicated = (GLuint*)0x10101010; // not NULL so glDone calls unmap
-
+      // call glRefresh() directly after that.
       return GL_TRUE;
     }
     v++;
@@ -6319,8 +6348,8 @@ GLvoid glSetPalette(GLint index, GLuint color) {
 
 GLvoid glSetHiColorPalette() {
   GLint i;
-  for (i = 0; i < 64; i++) glSetPalette(i,glToColor(0,i*4+3,0));
-  for (i = 0; i < 16*8; i++) glSetPalette(i+128,glToColor((i/8)*16+15,0,(i & 7)*32+31));
+  for (i = 0; i < 64; i++) glSetPalette(i,glToColor(0,i*255/63,0));
+  for (i = 0; i < 16*8; i++) glSetPalette(i+128,glToColor((i/8)*255/15,0,(i & 7)*255/7));
 }
 
 GLvoid glSetModeX() {
@@ -6421,9 +6450,12 @@ GLvoid glFlattenMultiSample() {
 }
 
 GLvoid glRefresh() {
-  glDrawnTrianglesFrame = 0;
 
   glFlattenMultiSample();
+
+  if (glRefreshNotification != NULL) glRefreshNotification();
+
+  glDrawnTrianglesFrame = 0;
 
   if (glFrameBuffer0 != glFrameBuffer)
     return;
@@ -6525,6 +6557,8 @@ GLvoid glRefresh() {
 
 GLvoid glDone() {
 
+  if (glDoneNotification != NULL) glDoneNotification();
+
   if (!glDirectBlit) { // glDirect?
 
     if (glFrameBuffer0 != NULL) {
@@ -6553,20 +6587,41 @@ GLvoid glDone() {
 
 }
 
+#ifdef __WATCOMC__
+GLuint int16_1(); // we need the zero flag it's not well exposed by the watcom api sorry that's why some asm here
+#pragma aux int16_1="mov ah,0x01""int 0x16""jz do""mov eax,0""jmp dont""do:""mov eax,1""dont:" value[eax] modify[eax ebx ecx edx]
+#endif
+#ifdef __DJGPP__
+GLuint int16_1() {
+  GLuint ret;
+  __asm__ __volatile__("\tmovb $1,%%ah\n""\tint $0x16\n""\tjz 1f\n""\tmovl $0,%%eax\n""\tjmp 2f\n""1:\n""\tmovl $1,%%eax\n""2:\n" : "=a" (ret));
+  return ret;
+}
+#endif
+
 GLushort glNextKey() {
+  if (glNextKeyCallback != NULL) return glNextKeyCallback();
+//  union REGS regs;
+//  memset(&regs,0,sizeof(regs));
+//  regs.w.ax = 0x0600;
+//  regs.w.dx = 0xff;
+//  int386(0x21, &regs, &regs);
+//  glKey = regs.w.ax & 0xff;
+//  if (glKey == 0) {
+//    memset(&regs,0,sizeof(regs));
+//    regs.w.ax = 0x0600;
+//    regs.w.dx = 0xff;
+//    int386(0x21, &regs, &regs);
+//    glKey += (regs.w.ax & 0xff)<<8;
+//  }
+  if (int16_1()) return 0;
   union REGS regs;
   memset(&regs,0,sizeof(regs));
-  regs.w.ax = 0x0600;
-  regs.w.dx = 0xff;
-  int386(0x21, &regs, &regs);
-  glKey = regs.w.ax & 0xff;
-  if (glKey == 0) {
-    memset(&regs,0,sizeof(regs));
-    regs.w.ax = 0x0600;
-    regs.w.dx = 0xff;
-    int386(0x21, &regs, &regs);
-    glKey += (regs.w.ax & 0xff)<<8;
-  }
+  regs.w.ax = 0x0000;
+  int386(0x16, &regs, &regs);
+  glKey = regs.w.ax;
+  if ((glKey & 0xff) != 0x00) glKey &= 0xff;
+
   return (GLushort)glKey;
 }
 
@@ -6580,6 +6635,7 @@ GLvoid glSetMousePos(GLint x, GLint y) {
 }
 
 GLvoid glNextMouseDelta(GLdouble *mouseX, GLdouble *mouseY) {
+  if (glNextMouseDeltaCallback != NULL) {glNextMouseDeltaCallback(mouseX, mouseY); return;}
   union REGS regs;
   memset(&regs,0,sizeof(regs));
   regs.w.ax = 0x03;
@@ -6599,6 +6655,7 @@ GLvoid glNextMouseDelta(GLdouble *mouseX, GLdouble *mouseY) {
 
 
 GLushort glMouseButtons() {
+  if (glMouseButtonsCallback != NULL) return glMouseButtonsCallback();
   union REGS regs;
   memset(&regs,0,sizeof(regs));
   regs.w.ax = 0x03;
@@ -6626,13 +6683,19 @@ GLvoid glSetupMouse() {
 }
 
 GLvoid glSpecialKeys(GLboolean *shiftKey, GLboolean *ctrlKey, GLboolean *altKey) {
-#ifdef __WATCOMC__
-  uint8_t keyState = *((uint8_t *)0x417);
-#endif // __WATCOMC__
-#ifdef __DJGPP__
-  uint8_t keyState;
-  dosmemget(0x417,1,&keyState);
-#endif // __DJGPP__
+  if (glSpecialKeysCallback != NULL) {glSpecialKeysCallback(shiftKey, ctrlKey, altKey); return;}
+//#ifdef __WATCOMC__
+//  uint8_t keyState = *((uint8_t *)0x417);
+//#endif // __WATCOMC__
+//#ifdef __DJGPP__
+//  uint8_t keyState;
+//  dosmemget(0x417,1,&keyState);
+//#endif // __DJGPP__
+  union REGS regs;
+  memset(&regs,0,sizeof(regs));
+  regs.w.ax = 0x0200;
+  int386(0x16, &regs, &regs);
+  uint8_t keyState = (uint8_t)(regs.w.ax & 0xff);
   *shiftKey = ((keyState & 0x03) != 0) ? GL_TRUE : GL_FALSE;
   *ctrlKey = ((keyState & 0x04) != 0) ? GL_TRUE : GL_FALSE;
   *altKey = ((keyState & 0x08) != 0) ? GL_TRUE : GL_FALSE;
@@ -6643,9 +6706,11 @@ GLvoid glSpecialKeys(GLboolean *shiftKey, GLboolean *ctrlKey, GLboolean *altKey)
   typedef unsigned long long int uint64_t;
   int64_t glStartClock = 0;
   GLdouble glSeconds() {
+    if (glSecondsCallback != NULL) return glSecondsCallback();
     return (GLdouble)(uclock() - glStartClock) / UCLOCKS_PER_SEC;
   }
   GLvoid glSetTime(GLdouble seconds) {
+    if (glSetTimeCallback != NULL) {glSetTimeCallback(seconds); return;}
     glStartClock = uclock() - (int64_t)(seconds * UCLOCKS_PER_SEC);
   }
 #endif // __DJGPP__
@@ -6653,6 +6718,7 @@ GLvoid glSpecialKeys(GLboolean *shiftKey, GLboolean *ctrlKey, GLboolean *altKey)
 #ifdef __WATCOMC__
   GLdouble glStartClock = 0;
   GLdouble glSeconds() {
+    if (glSecondsCallback != NULL) return glSecondsCallback();
     if (glHasTSC) {
       return glReadTscDouble()-glTscStartValue;
     }
@@ -6660,6 +6726,7 @@ GLvoid glSpecialKeys(GLboolean *shiftKey, GLboolean *ctrlKey, GLboolean *altKey)
     return (GLdouble)(clock() - glStartClock) / CLOCKS_PER_SEC;
   }
   GLvoid glSetTime(GLdouble seconds) {
+    if (glSetTimeCallback != NULL) {glSetTimeCallback(seconds); return;}
     glStartClock = clock() - seconds * CLOCKS_PER_SEC;
     if (glHasTSC) {
       glTscStartValue = glReadTscDouble()-seconds;

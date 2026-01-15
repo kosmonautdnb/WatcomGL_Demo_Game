@@ -7,6 +7,9 @@
 static char buffer[SMPL_BUFFSIZE];
 static char buffer2[SMPL_BUFFSIZE];
 
+
+static int32_t helper[SMPL_MAXV_LOAD][4];
+
 void addTexture(SMPL_Texture &t, const String &params, const String &materialLibFileName) {
   t.used = true;
   String a = params;
@@ -59,6 +62,7 @@ static bool loadMaterialLib(SMPL_File *f,const String &fileName) {
     if (*s=='n') {
       if (sscanf(s,"newmtl %s",buffer2)==1) {
         currentMaterial = buffer2;
+        f->materials[currentMaterial].diffuse = Vector(1,1,1,1);
       }
       continue;
     }
@@ -187,7 +191,6 @@ SMPL_File *loadObj(const String &fileName, bool triangulate) {
           int32_t value = 0;
           int32_t vertexId = 0;
           int32_t componentId = 0;
-          int32_t helper[SMPL_MAXV_LOAD][4];
           memset(helper,0,sizeof(helper));
           while(*s2==' '||*s2=='\t') s2++;
           while(*s2 != 0x00) {
@@ -297,6 +300,45 @@ void SMPL_File::genVertexColors(const Array<String> &vertexColorMaterials) {
       }
     }
   }
+}
+
+void SMPL_File::genFaceNormals() {
+  normals.resize(faces.size());
+  for (int32_t i = 0; i < faces.size(); i++) {
+    SMPL_Face &f = faces[i];
+    for (int32_t j = 0; j < f.c; j++)
+      f.n[j] = i;
+    const Vector &v0 = vertices[f.v[0]];
+    const Vector &v1 = vertices[f.v[1]];
+    const Vector &v2 = vertices[f.v[2]];
+    normals[i] = normalize(cross(v1-v0,v2-v0));
+  }
+}
+
+void SMPL_File::genVertexNormals() {
+  Array<Vector> faceNormals;
+  faceNormals.resize(faces.size());
+  for (int32_t i = 0; i < faces.size(); i++) {
+    SMPL_Face &f = faces[i];
+    for (int32_t j = 0; j < f.c; j++)
+      f.n[j] = i;
+    const Vector &v0 = vertices[f.v[0]];
+    const Vector &v1 = vertices[f.v[1]];
+    const Vector &v2 = vertices[f.v[2]];
+    faceNormals[i] = normalize(cross(v1-v0,v2-v0));
+  }
+  normals.clear();
+  normals.resize(vertices.size());
+  {for (int32_t i = 0; i < faces.size(); i++) {
+    SMPL_Face &f = faces[i];
+    for (int32_t j = 0; j < f.c; j++) {
+      f.n[j] =f.v[j];
+      normals[f.n[j]] += faceNormals[i];
+    }
+  }}
+  {for (int32_t i = 0; i < normals.size(); i++) {
+    normals[i] = normalize(normals[i]);
+  }}
 }
 
 bool SMPL_File::makeFrontFacing(bool ccw) {
